@@ -1,9 +1,17 @@
 package synchers
 
+
+//TODO: we may want to have these return slightly more complex types
+// if we want to do more interesting stuff with the return details
 type Syncer interface {
 	GetRemoteCommand() string
 	GetLocalCommand() string
-	GetTransferResourceName() string
+	GetTransferResource() SyncerTransferResource
+}
+
+type SyncerTransferResource struct {
+	Name string
+	IsDirectory bool
 }
 
 // The following is the root structure for unmarshalling yaml configurations

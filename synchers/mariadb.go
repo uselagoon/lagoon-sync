@@ -18,8 +18,8 @@ type MariadbSyncLocal struct {
 }
 
 type MariadbSyncRoot struct {
-	Config BaseMariaDbSync
-	LocalOverrides  MariadbSyncLocal
+	Config         BaseMariaDbSync
+	LocalOverrides MariadbSyncLocal `yaml:"local"`
 }
 
 func (root MariadbSyncRoot) GetRemoteCommand() string {
@@ -32,12 +32,18 @@ func (m MariadbSyncRoot) GetLocalCommand() string {
 	return fmt.Sprintf("mysql -h%s -u%s -p%s -P%s %s < %s", l.DbHostname, l.DbUsername, l.DbPassword, l.DbPort, l.DbDatabase, l.OutputDirectory)
 }
 
-func (m MariadbSyncRoot) GetTransferResourceName() string {
-	return m.GetOutputDirectory() + "lagoon_sync_mariadb-"
+func (m MariadbSyncRoot) GetTransferResource() SyncerTransferResource {
+	return SyncerTransferResource{
+		Name:        m.GetOutputDirectory() + "lagoon_sync_mariadb-",
+		IsDirectory: false}
 }
 
-func (m MariadbSyncRoot) GetOutputDirectory() string {
-	return "/tmp/"
+func (root MariadbSyncRoot) GetOutputDirectory() string {
+	m := root.Config
+	if(len(m.OutputDirectory) == 0) {
+		return "/tmp/"
+	}
+	return m.OutputDirectory
 }
 
 func (syncConfig MariadbSyncRoot) getEffectiveLocalDetails() BaseMariaDbSync {
@@ -51,7 +57,6 @@ func (syncConfig MariadbSyncRoot) getEffectiveLocalDetails() BaseMariaDbSync {
 	}
 
 	assignLocalOverride := func(target *string, override *string) {
-		fmt.Println(*override)
 		if len(*override) > 0 {
 			*target = *override
 		}

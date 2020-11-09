@@ -52,7 +52,7 @@ lagoon-sync:
         - kakone
       ignore-table-data:
     local:
-      overrides:
+      config:
         hostname: "drupal"
         username: "drupal"
         password: "drupal"
