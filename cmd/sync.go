@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/bomoko/lagoon-sync/synchers"
+	"os"
 )
 
 // syncCmd represents the sync command
@@ -13,22 +14,13 @@ var syncCmd = &cobra.Command{
 	Long:  `Use Lagoon-Sync to sync an external environments resources with the local environment`,
 	Run: func(cmd *cobra.Command, args []string) {
 		//For now, let's just try write up a command that generates the strings ...
-
-		//read yaml data
-		syncConfig := synchers.MariadbSync{
-			BaseMariaDbSync: synchers.BaseMariaDbSync{
-				DbHostname: "test",
-				DbUsername: "drupal",
-				DbPassword: "drupal",
-				DbPort: "$MARIADB_PORT",
-				DbDatabase: "$MARIADB_DATABASE",
-			},
-			LocalOverrides: synchers.BaseMariaDbSync{
-				DbDatabase: "drupal",
-			},
+		lagoonConfigBytestream, err := LoadLagoonConfig("./.lagoon.yml")
+		if(err != nil) {
+			fmt.Println("Couldn't load lagoon config file")
+			os.Exit(1)
 		}
 
-		fmt.Println(syncConfig.GetLocalCommand())
+		fmt.Println(synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream))
 
 	},
 }

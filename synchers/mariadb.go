@@ -2,16 +2,14 @@ package synchers
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
-	"os"
 )
 
 type BaseMariaDbSync struct {
-	DbHostname      string
-	DbUsername      string
-	DbPassword      string
-	DbPort          string
-	DbDatabase      string
+	DbHostname      string `yaml:"hostname"`
+	DbUsername      string `yaml:"username"`
+	DbPassword      string `yaml:"password"`
+	DbPort          string `yaml:"port"`
+	DbDatabase      string `yaml:"database"`
 	OutputDirectory string
 }
 
@@ -22,19 +20,6 @@ type MariadbSyncLocal struct {
 type MariadbSyncRoot struct {
 	Config BaseMariaDbSync
 	LocalOverrides  MariadbSyncLocal
-}
-
-type LagoonSync struct {
-	Mariadb MariadbSyncRoot
-}
-
-func UnmarshallLagoonYamlToMariadbConfig(data []byte) MariadbSyncRoot {
-	lagoonConfig := LagoonSync{}
-	err := yaml.Unmarshal(data, &lagoonConfig)
-	if(err != nil) {
-		os.Exit(1)
-	}
-	return lagoonConfig.Mariadb
 }
 
 func (root MariadbSyncRoot) GetRemoteCommand() string {

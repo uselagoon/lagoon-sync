@@ -1,6 +1,8 @@
 package synchers
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestMariadbSync_GetRemoteCommand(t *testing.T) {
 	type fields struct {

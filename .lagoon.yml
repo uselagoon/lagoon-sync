@@ -41,22 +41,22 @@ environments:
 
 lagoon-sync:
   syncers:
-    mariadb:
+  mariadb:
+    config:
       hostname: "$MARIADB_HOST"
       username: "$MARIADB_USERNAME"
       password: "$MARIADB_PASSWORD"
       port: "$MARIADB_PORT"
       database: "$MARIADB_DATABASE"
       ignore-table:
-        - table_to_ignore_in_output
+        - kakone
       ignore-table-data:
-        - table_to_export_but_whose_data_to_ignore
-      local:
-        overrides:
-          hostname: "$AMAZEEIO_DB_HOST"
-          username: "$AMAZEEIO_DB_USERNAME"
-          password: "$AMAZEEIO_DB_PASSWORD"
-          port: "$AMAZEEIO_DB_PORT"
-          database: "drupal"
+    local:
+      overrides:
+        hostname: "drupal"
+        username: "drupal"
+        password: "drupal"
+        port: "12345"
+        database: "drupal"
     drupalconfig:
       emptykey: "emptyvalue"
