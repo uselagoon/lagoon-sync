@@ -4,11 +4,11 @@ import "testing"
 
 func TestMariadbSync_GetRemoteCommand(t *testing.T) {
 	type fields struct {
-		DbHostname string
-		DbUsername string
-		DbPassword string
-		DbPort     string
-		DbDatabase string
+		DbHostname      string
+		DbUsername      string
+		DbPassword      string
+		DbPort          string
+		DbDatabase      string
 		OutputDirectory string
 	}
 	tests := []struct {
@@ -22,10 +22,10 @@ func TestMariadbSync_GetRemoteCommand(t *testing.T) {
 			want:   "mysqldump -hhostname -uusername -ppassword -Pport database > outputdirectory",
 		},
 	}
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := MariadbSync{
-				BaseMariaDbSync: BaseMariaDbSync{
+			m := MariadbSyncRoot{
+				Config: BaseMariaDbSync{
 					DbHostname:      tt.fields.DbHostname,
 					DbUsername:      tt.fields.DbUsername,
 					DbPassword:      tt.fields.DbPassword,
@@ -43,13 +43,13 @@ func TestMariadbSync_GetRemoteCommand(t *testing.T) {
 
 func TestMariadbSync_GetLocalCommand(t *testing.T) {
 	type fields struct {
-		DbHostname string
-		DbUsername string
-		DbPassword string
-		DbPort     string
-		DbDatabase string
+		DbHostname      string
+		DbUsername      string
+		DbPassword      string
+		DbPort          string
+		DbDatabase      string
 		OutputDirectory string
-		LocalOverrides BaseMariaDbSync
+		LocalOverrides  BaseMariaDbSync
 	}
 	tests := []struct {
 		name   string
@@ -62,17 +62,17 @@ func TestMariadbSync_GetLocalCommand(t *testing.T) {
 			want:   "mysql -hhostname -uusername -ppassword -Pport database < outputdirectory",
 		},
 		{
-			name:   "Import with Overrides",
+			name: "Import with Overrides",
 			fields: fields{DbDatabase: "database", DbHostname: "hostname", DbPort: "port", DbPassword: "password", DbUsername: "username", OutputDirectory: "outputdirectory", LocalOverrides: BaseMariaDbSync{
 				DbDatabase: "localdatabase",
 			}},
-			want:   "mysql -hhostname -uusername -ppassword -Pport localdatabase < outputdirectory",
+			want: "mysql -hhostname -uusername -ppassword -Pport localdatabase < outputdirectory",
 		},
 	}
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := MariadbSync{
-				BaseMariaDbSync: BaseMariaDbSync{
+			m := MariadbSyncRoot{
+				Config: BaseMariaDbSync{
 					DbHostname:      tt.fields.DbHostname,
 					DbUsername:      tt.fields.DbUsername,
 					DbPassword:      tt.fields.DbPassword,
@@ -80,13 +80,15 @@ func TestMariadbSync_GetLocalCommand(t *testing.T) {
 					DbDatabase:      tt.fields.DbDatabase,
 					OutputDirectory: tt.fields.OutputDirectory,
 				},
-				LocalOverrides: tt.fields.LocalOverrides,
+				LocalOverrides: MariadbSyncLocal{
+					Config: tt.fields.LocalOverrides,
+				},
 			}
-			if got := m.GetLocalCommand(); got != tt.want {
-				t.Errorf("GetLocalCommand() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+		if got := m.GetLocalCommand(); got != tt.want {
+			t.Errorf("GetLocalCommand() = %v, want %v", got, tt.want)
+		}
+	})
+}
 }
 
 //func TestMariadbSync_GetOutputDirectory(t *testing.T) {

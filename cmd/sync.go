@@ -18,11 +18,17 @@ var syncCmd = &cobra.Command{
 		syncConfig := synchers.MariadbSync{
 			BaseMariaDbSync: synchers.BaseMariaDbSync{
 				DbHostname: "test",
+				DbUsername: "drupal",
+				DbPassword: "drupal",
+				DbPort: "$MARIADB_PORT",
+				DbDatabase: "$MARIADB_DATABASE",
 			},
-			LocalOverrides: synchers.BaseMariaDbSync{},
+			LocalOverrides: synchers.BaseMariaDbSync{
+				DbDatabase: "drupal",
+			},
 		}
 
-		fmt.Println(syncConfig.GetRemoteCommand())
+		fmt.Println(syncConfig.GetLocalCommand())
 
 	},
 }
