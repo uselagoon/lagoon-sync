@@ -16,3 +16,6 @@ vendor/
 
 # Goland cruft
 .idea/
+
+# Build output
+./builds/*

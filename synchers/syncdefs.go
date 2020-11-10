@@ -1,5 +1,9 @@
 package synchers
 
+import (
+	"fmt"
+	"strings"
+)
 
 //TODO: we may want to have these return slightly more complex types
 // if we want to do more interesting stuff with the return details
@@ -9,9 +13,19 @@ type Syncer interface {
 	GetTransferResource() SyncerTransferResource
 }
 
+// SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()
 type SyncerTransferResource struct {
 	Name string
 	IsDirectory bool
+}
+
+type RemoteEnvironment struct {
+	ProjectName string
+	EnvironmentName string
+}
+
+func (r RemoteEnvironment) getOpenshiftProjectName() string {
+	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
 }
 
 // The following is the root structure for unmarshalling yaml configurations
@@ -24,4 +38,5 @@ type LagoonSync struct {
 type SyncherConfigRoot struct {
 	Project string
 	LagoonSync LagoonSync `yaml:"lagoon-sync"`
+	TransferId string // a unique id which can be used to identify this entire transaction
 }

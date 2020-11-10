@@ -6,13 +6,18 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"os/exec"
+	"strconv"
+	"time"
 )
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
-	lagoonConfig := SyncherConfigRoot{}
+	transferId := strconv.FormatInt(time.Now().UnixNano(), 10)
+	lagoonConfig := SyncherConfigRoot{
+		TransferId: transferId,
+	}
 	err := yaml.Unmarshal(data, &lagoonConfig)
-	if(err != nil) {
+	if err != nil {
 		return SyncherConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
 	}
 	return lagoonConfig, nil
@@ -30,30 +35,63 @@ func Shellout(command string) (error, string, string) {
 	return err, stdout.String(), stderr.String()
 }
 
-
-func SyncRunRemote(syncer Syncer) error {
-	println(syncer.GetRemoteCommand())
-
+func SyncRunRemote(remoteEnvironment RemoteEnvironment,syncer Syncer) error {
 	execString := fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
-	"amazeelabsv4-com-dev", "ls")
+		remoteEnvironment.getOpenshiftProjectName(), syncer.GetRemoteCommand())
 
-	err, outstring, errstring := Shellout(execString)
-
-	if err != nil {
-		fmt.Println(errstring)
-		return err
-	}
-	fmt.Println(outstring)
+	//err, outstring, errstring := Shellout(execString)
+	//
+	//if err != nil {
+	//	fmt.Println(errstring)
+	//	return err
+	//}
+	//fmt.Println(outstring)
+	fmt.Println(execString)
 	return nil
 }
 
-func SyncRunTransfer(syncer Syncer) error {
-	fmt.Print("I'm going to be rsyncing the following resource: ")
+func SyncRunTransfer(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
+
+	remoteResourceName := syncer.GetTransferResource().Name
+	if syncer.GetTransferResource().IsDirectory == true {
+		remoteResourceName += "/"
+	}
+	localResourceName := syncer.GetTransferResource().Name
+
+	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222\" -a %s@ssh.lagoon.amazeeio.cloud:%s %s",
+		remoteEnvironment.getOpenshiftProjectName(),
+		remoteResourceName,
+		localResourceName)
+
+	//err, outstring, errstring := Shellout(execString)
+	//
+	//if err != nil {
+	//	fmt.Println(errstring)
+	//	return err
+	//}
+	//
+	//fmt.Println(outstring)
+	fmt.Println(execString)
 	return nil
 }
 
 func SyncRunLocal(syncer Syncer) error {
-	fmt.Print("I'm going to be running the following: ")
-	fmt.Println(syncer.GetLocalCommand())
+	execString := syncer.GetLocalCommand()
+
+	//err, outstring, errstring := Shellout(execString)
+	//
+	//if err != nil {
+	//	fmt.Println(errstring)
+	//	return err
+	//}
+	//fmt.Println(outstring)
+	fmt.Println(execString)
+	return nil
+}
+
+func SyncCleanUp(syncer Syncer) error {
+	//remove remote resources
+	//remove local resources
+	fmt.Println("Cleaning up ...")
 	return nil
 }

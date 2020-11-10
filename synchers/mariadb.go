@@ -24,23 +24,25 @@ type MariadbSyncRoot struct {
 
 func (root MariadbSyncRoot) GetRemoteCommand() string {
 	m := root.Config
-	return fmt.Sprintf("mysqldump -h%s -u%s -p%s -P%s %s > %s", m.DbHostname, m.DbUsername, m.DbPassword, m.DbPort, m.DbDatabase, m.OutputDirectory)
+	transferResource := root.GetTransferResource()
+	return fmt.Sprintf("mysqldump -h%s -u%s -p%s -P%s %s > %s", m.DbHostname, m.DbUsername, m.DbPassword, m.DbPort, m.DbDatabase, transferResource.Name)
 }
 
 func (m MariadbSyncRoot) GetLocalCommand() string {
 	l := m.getEffectiveLocalDetails()
-	return fmt.Sprintf("mysql -h%s -u%s -p%s -P%s %s < %s", l.DbHostname, l.DbUsername, l.DbPassword, l.DbPort, l.DbDatabase, l.OutputDirectory)
+	transferResource := m.GetTransferResource()
+	return fmt.Sprintf("mysql -h%s -u%s -p%s -P%s %s < %s", l.DbHostname, l.DbUsername, l.DbPassword, l.DbPort, l.DbDatabase, transferResource.Name)
 }
 
 func (m MariadbSyncRoot) GetTransferResource() SyncerTransferResource {
 	return SyncerTransferResource{
-		Name:        m.GetOutputDirectory() + "lagoon_sync_mariadb-",
+		Name:        m.GetOutputDirectory() + "lagoon_sync_mariadb.sql",
 		IsDirectory: false}
 }
 
 func (root MariadbSyncRoot) GetOutputDirectory() string {
 	m := root.Config
-	if(len(m.OutputDirectory) == 0) {
+	if len(m.OutputDirectory) == 0 {
 		return "/tmp/"
 	}
 	return m.OutputDirectory
@@ -70,5 +72,4 @@ func (syncConfig MariadbSyncRoot) getEffectiveLocalDetails() BaseMariaDbSync {
 	assignLocalOverride(&returnDetails.DbDatabase, &syncConfig.LocalOverrides.Config.DbDatabase)
 	assignLocalOverride(&returnDetails.OutputDirectory, &syncConfig.LocalOverrides.Config.OutputDirectory)
 	return returnDetails
-
 }

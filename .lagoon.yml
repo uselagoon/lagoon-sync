@@ -49,14 +49,14 @@ lagoon-sync:
       port: "$MARIADB_PORT"
       database: "$MARIADB_DATABASE"
       ignore-table:
-        - kakone
+        - cachewhatever
       ignore-table-data:
     local:
       config:
         hostname: "drupal"
         username: "drupal"
         password: "drupal"
-        port: "12345"
+        port: "3306"
         database: "drupal"
     drupalconfig:
       emptykey: "emptyvalue"
