@@ -60,13 +60,13 @@ func SyncRunRemote(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
 	execString := fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
 		remoteEnvironment.getOpenshiftProjectName(), syncer.GetRemoteCommand())
 
-	err, outstring, errstring := Shellout(execString)
-
-	if err != nil {
-		fmt.Println(errstring)
-		return err
-	}
-	fmt.Println(outstring)
+	//err, outstring, errstring := Shellout(execString)
+	//
+	//if err != nil {
+	//	fmt.Println(errstring)
+	//	return err
+	//}
+	//fmt.Println(outstring)
 	fmt.Println(execString)
 	return nil
 }
@@ -84,14 +84,14 @@ func SyncRunTransfer(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
 		remoteResourceName,
 		localResourceName)
 
-	err, outstring, errstring := Shellout(execString)
-
-	if err != nil {
-		fmt.Println(errstring)
-		return err
-	}
-
-	fmt.Println(outstring)
+	//err, outstring, errstring := Shellout(execString)
+	//
+	//if err != nil {
+	//	fmt.Println(errstring)
+	//	return err
+	//}
+	//
+	//fmt.Println(outstring)
 	fmt.Println(execString)
 	return nil
 }
@@ -99,13 +99,13 @@ func SyncRunTransfer(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
 func SyncRunLocal(syncer Syncer) error {
 	execString := syncer.GetLocalCommand()
 
-	err, outstring, errstring := Shellout(execString)
-
-	if err != nil {
-		fmt.Println(errstring)
-		return err
-	}
-	fmt.Println(outstring)
+	//err, outstring, errstring := Shellout(execString)
+	//
+	//if err != nil {
+	//	fmt.Println(errstring)
+	//	return err
+	//}
+	//fmt.Println(outstring)
 	fmt.Println(execString)
 	return nil
 }
