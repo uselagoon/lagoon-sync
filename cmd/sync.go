@@ -50,7 +50,7 @@ var syncCmd = &cobra.Command{
 		//TODO: perhaps there's a more dynamic way of doing this match?
 		switch moduleName {
 		case "mariadb":
-			lagoonSyncer = configRoot.LagoonSync.Mariadb
+			lagoonSyncer = configRoot.LagoonSync.Mariadb.PrepareSyncer()
 			break
 		default:
 			log.Print("Could not match type : %v", moduleName)

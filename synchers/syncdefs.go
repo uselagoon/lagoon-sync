@@ -11,6 +11,7 @@ type Syncer interface {
 	GetRemoteCommand() string
 	GetLocalCommand() string
 	GetTransferResource() SyncerTransferResource
+	PrepareSyncer() Syncer
 }
 
 // SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()

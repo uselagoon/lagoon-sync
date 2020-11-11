@@ -24,7 +24,12 @@ type MariadbSyncLocal struct {
 type MariadbSyncRoot struct {
 	Config         BaseMariaDbSync
 	LocalOverrides MariadbSyncLocal `yaml:"local"`
-	transferId     string
+	TransferId     string
+}
+
+func (root MariadbSyncRoot) PrepareSyncer() Syncer {
+	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
+	return root
 }
 
 func (root MariadbSyncRoot) GetRemoteCommand() string {
@@ -51,13 +56,8 @@ func (m MariadbSyncRoot) GetLocalCommand() string {
 }
 
 func (m MariadbSyncRoot) GetTransferResource() SyncerTransferResource {
-
-	if m.transferId == "" {
-		m.transferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-	}
-
 	return SyncerTransferResource{
-		Name:        m.GetOutputDirectory() + "lagoon_sync_mariadb.sql",
+		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql", m.GetOutputDirectory(),m.TransferId),
 		IsDirectory: false}
 }
 

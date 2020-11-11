@@ -18,4 +18,4 @@ vendor/
 .idea/
 
 # Build output
-./builds/*
+./builds
