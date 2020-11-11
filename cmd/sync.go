@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/bomoko/lagoon-sync/synchers"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
+
+	"github.com/bomoko/lagoon-sync/synchers"
+	"github.com/spf13/cobra"
 )
 
 var ProjectName string
@@ -41,16 +42,22 @@ var syncCmd = &cobra.Command{
 		// For now, let's just pull it straight from the .lagoon.yml
 
 		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-		if(err != nil) {
+		if err != nil {
 			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
 			return
 		}
 
-		var lagoonSyncer  synchers.Syncer
+		var lagoonSyncer synchers.Syncer
 		//TODO: perhaps there's a more dynamic way of doing this match?
 		switch moduleName {
 		case "mariadb":
 			lagoonSyncer = configRoot.LagoonSync.Mariadb.PrepareSyncer()
+			break
+		case "postgres":
+			lagoonSyncer = configRoot.LagoonSync.Postgres.PrepareSyncer()
+			break
+		case "drupalconfig":
+			lagoonSyncer = configRoot.LagoonSync.Drupalconfig.PrepareSyncer()
 			break
 		default:
 			log.Print("Could not match type : %v", moduleName)
@@ -60,7 +67,7 @@ var syncCmd = &cobra.Command{
 
 		err = synchers.RunSyncProcess(sourceEnvironment, lagoonSyncer)
 		fmt.Println(lagoonSyncer)
-		if(err != nil) {
+		if err != nil {
 			log.Printf("There was an error running the sync process: %v", err)
 			return
 		}

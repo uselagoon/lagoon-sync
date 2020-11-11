@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"os/exec"
+
+	"gopkg.in/yaml.v2"
 )
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
 	lagoonConfig := SyncherConfigRoot{
-		LagoonSync: LagoonSync{
-		},
+		LagoonSync: LagoonSync{},
 	}
 	err := yaml.Unmarshal(data, &lagoonConfig)
 	if err != nil {

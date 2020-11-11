@@ -41,25 +41,50 @@ environments:
 
 lagoon-sync:
   syncers:
-  mariadb:
-    config:
-      hostname: "$MARIADB_HOST"
-      username: "$MARIADB_USERNAME"
-      password: "$MARIADB_PASSWORD"
-      port: "$MARIADB_PORT"
-      database: "$MARIADB_DATABASE"
-      ignore-table:
-        - cachewhatever
-        - someothertable
-      ignore-table-data:
-        - cache_data
-        - cache_menu
-    local:
+    postgres:
       config:
-        hostname: "drupal"
-        username: "drupal"
-        password: "drupal"
-        port: "3306"
-        database: "drupal"
+        hostname: "$POSTGRES_HOST"
+        username: "$POSTGRES_USERNAME"
+        password: "$POSTGRES_PASSWORD"
+        port: "5432"
+        database: "$POSTGRES_DATABASE"
+        exclude-table:
+          - cachewhatever
+          - someothertable
+        exclude-table-data:
+          - cache_data
+          - cache_menu
+      local:
+        config:
+          hostname: "drupal"
+          username: "drupal"
+          password: "drupal"
+          port: "3306"
+          database: "drupal"
+    mariadb:
+      config:
+        hostname: "$MARIADB_HOST"
+        username: "$MARIADB_USERNAME"
+        password: "$MARIADB_PASSWORD"
+        port: "$MARIADB_PORT"
+        database: "$MARIADB_DATABASE"
+        ignore-table:
+          - cachewhatever
+          - someothertable
+        ignore-table-data:
+          - cache_data
+          - cache_menu
+      local:
+        config:
+          hostname: "drupal"
+          username: "drupal"
+          password: "drupal"
+          port: "3306"
+          database: "drupal"
     drupalconfig:
-      emptykey: "emptyvalue"
+      config:
+        syncpath: "./config/sync"
+      local:
+        overrides:
+          config:
+            syncpath: "./config/sync"

@@ -16,12 +16,12 @@ type Syncer interface {
 
 // SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()
 type SyncerTransferResource struct {
-	Name string
+	Name        string
 	IsDirectory bool
 }
 
 type RemoteEnvironment struct {
-	ProjectName string
+	ProjectName     string
 	EnvironmentName string
 }
 
@@ -32,12 +32,14 @@ func (r RemoteEnvironment) getOpenshiftProjectName() string {
 // The following is the root structure for unmarshalling yaml configurations
 // Each syncer must register its structure here
 type LagoonSync struct {
-	Mariadb MariadbSyncRoot
-	TransferId string // a unique id which can be used to identify this entire transaction
+	Mariadb      MariadbSyncRoot      `yaml:"mariadb"`
+	Postgres     PostgresSyncRoot     `yaml:"postgres"`
+	Drupalconfig DrupalconfigSyncRoot `yaml:"drupalconfig"`
+	TransferId   string               // a unique id which can be used to identify this entire transaction
 }
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
-	Project string
+	Project    string
 	LagoonSync LagoonSync `yaml:"lagoon-sync"`
 }
