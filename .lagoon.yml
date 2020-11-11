@@ -50,7 +50,10 @@ lagoon-sync:
       database: "$MARIADB_DATABASE"
       ignore-table:
         - cachewhatever
+        - someothertable
       ignore-table-data:
+        - cache_data
+        - cache_menu
     local:
       config:
         hostname: "drupal"

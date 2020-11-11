@@ -2,14 +2,18 @@ package synchers
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 )
 
 type BaseMariaDbSync struct {
-	DbHostname      string `yaml:"hostname"`
-	DbUsername      string `yaml:"username"`
-	DbPassword      string `yaml:"password"`
-	DbPort          string `yaml:"port"`
-	DbDatabase      string `yaml:"database"`
+	DbHostname      string   `yaml:"hostname"`
+	DbUsername      string   `yaml:"username"`
+	DbPassword      string   `yaml:"password"`
+	DbPort          string   `yaml:"port"`
+	DbDatabase      string   `yaml:"database"`
+	IgnoreTable     []string `yaml:"ignore-table"`
+	IgnoreTableData []string `yaml:"ignore-table-data"`
 	OutputDirectory string
 }
 
@@ -20,12 +24,24 @@ type MariadbSyncLocal struct {
 type MariadbSyncRoot struct {
 	Config         BaseMariaDbSync
 	LocalOverrides MariadbSyncLocal `yaml:"local"`
+	transferId     string
 }
 
 func (root MariadbSyncRoot) GetRemoteCommand() string {
 	m := root.Config
 	transferResource := root.GetTransferResource()
-	return fmt.Sprintf("mysqldump -h%s -u%s -p%s -P%s %s > %s", m.DbHostname, m.DbUsername, m.DbPassword, m.DbPort, m.DbDatabase, transferResource.Name)
+
+	var tablesToIgnore string
+	for _, s := range m.IgnoreTable {
+		tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, s)
+	}
+
+	var tablesWhoseDataToIgnore string
+	for _, s := range m.IgnoreTableData {
+		tablesWhoseDataToIgnore += fmt.Sprintf("--ignore-table-data=%s.%s ", m.DbDatabase, s)
+	}
+
+	return fmt.Sprintf("mysqldump -h%s -u%s -p%s -P%s %s %s %s > %s", m.DbHostname, m.DbUsername, m.DbPassword, m.DbPort, tablesToIgnore, tablesWhoseDataToIgnore, m.DbDatabase, transferResource.Name)
 }
 
 func (m MariadbSyncRoot) GetLocalCommand() string {
@@ -35,6 +51,11 @@ func (m MariadbSyncRoot) GetLocalCommand() string {
 }
 
 func (m MariadbSyncRoot) GetTransferResource() SyncerTransferResource {
+
+	if m.transferId == "" {
+		m.transferId = strconv.FormatInt(time.Now().UnixNano(), 10)
+	}
+
 	return SyncerTransferResource{
 		Name:        m.GetOutputDirectory() + "lagoon_sync_mariadb.sql",
 		IsDirectory: false}

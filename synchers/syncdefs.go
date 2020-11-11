@@ -32,11 +32,11 @@ func (r RemoteEnvironment) getOpenshiftProjectName() string {
 // Each syncer must register its structure here
 type LagoonSync struct {
 	Mariadb MariadbSyncRoot
+	TransferId string // a unique id which can be used to identify this entire transaction
 }
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
 	Project string
 	LagoonSync LagoonSync `yaml:"lagoon-sync"`
-	TransferId string // a unique id which can be used to identify this entire transaction
 }

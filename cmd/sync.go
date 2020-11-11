@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bomoko/lagoon-sync/synchers"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -39,33 +40,31 @@ var syncCmd = &cobra.Command{
 		//TODO: we need some standard way of extracting the project name
 		// For now, let's just pull it straight from the .lagoon.yml
 
-		configRoot, _ := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-		//fmt.Println(configRoot.LagoonSync.Mariadb)
+		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+		if(err != nil) {
+			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
+			return
+		}
 
 		var lagoonSyncer  synchers.Syncer
-
 		//TODO: perhaps there's a more dynamic way of doing this match?
 		switch moduleName {
 		case "mariadb":
 			lagoonSyncer = configRoot.LagoonSync.Mariadb
 			break
 		default:
-			fmt.Println("Could not match type : " + moduleName)
-			os.Exit(1)
+			log.Print("Could not match type : %v", moduleName)
+			return
 			break
 		}
 
-		_ = runSyncProcess(sourceEnvironment, lagoonSyncer)
-
+		err = synchers.RunSyncProcess(sourceEnvironment, lagoonSyncer)
+		fmt.Println(lagoonSyncer)
+		if(err != nil) {
+			log.Printf("There was an error running the sync process: %v", err)
+			return
+		}
 	},
-}
-
-func runSyncProcess(sourceEnvironment synchers.RemoteEnvironment, lagoonSyncer synchers.Syncer) error {
-	_ = synchers.SyncRunRemote(sourceEnvironment, lagoonSyncer)
-	_ = synchers.SyncRunTransfer(sourceEnvironment, lagoonSyncer)
-	_ = synchers.SyncRunLocal(lagoonSyncer)
-	_ = synchers.SyncCleanUp(lagoonSyncer)
-	return nil
 }
 
 func init() {

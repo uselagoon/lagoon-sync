@@ -14,13 +14,39 @@ import (
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
 	transferId := strconv.FormatInt(time.Now().UnixNano(), 10)
 	lagoonConfig := SyncherConfigRoot{
-		TransferId: transferId,
+		LagoonSync: LagoonSync{
+			TransferId: transferId,
+		},
 	}
 	err := yaml.Unmarshal(data, &lagoonConfig)
+	fmt.Print(lagoonConfig)
 	if err != nil {
 		return SyncherConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
 	}
 	return lagoonConfig, nil
+}
+
+func RunSyncProcess(sourceEnvironment RemoteEnvironment, lagoonSyncer Syncer) error {
+	var err error
+	err = SyncRunRemote(sourceEnvironment, lagoonSyncer)
+
+	if err != nil {
+		_ = SyncCleanUp(lagoonSyncer)
+		return err
+	}
+	err = SyncRunTransfer(sourceEnvironment, lagoonSyncer)
+	if err != nil {
+		_ = SyncCleanUp(lagoonSyncer)
+		return err
+	}
+
+	err = SyncRunLocal(lagoonSyncer)
+	if err != nil {
+		_ = SyncCleanUp(lagoonSyncer)
+		return err
+	}
+
+	return SyncCleanUp(lagoonSyncer)
 }
 
 const ShellToUse = "bash"
@@ -35,7 +61,7 @@ func Shellout(command string) (error, string, string) {
 	return err, stdout.String(), stderr.String()
 }
 
-func SyncRunRemote(remoteEnvironment RemoteEnvironment,syncer Syncer) error {
+func SyncRunRemote(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
 	execString := fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
 		remoteEnvironment.getOpenshiftProjectName(), syncer.GetRemoteCommand())
 
