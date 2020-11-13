@@ -33,9 +33,14 @@ var syncCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		sourceEnvironment := synchers.RemoteEnvironment{
+		sourceEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: sourceEnvironmentName,
+		}
+
+		targetEnvironment := synchers.Environment{
+			ProjectName:	ProjectName,
+			EnvironmentName: "local",
 		}
 
 		//TODO: we need some standard way of extracting the project name
@@ -65,7 +70,7 @@ var syncCmd = &cobra.Command{
 			break
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, lagoonSyncer)
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer)
 		fmt.Println(lagoonSyncer)
 		if err != nil {
 			log.Printf("There was an error running the sync process: %v", err)

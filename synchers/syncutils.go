@@ -21,7 +21,7 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment RemoteEnvironment, lagoonSyncer Syncer) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer) error {
 	var err error
 	err = SyncRunRemote(sourceEnvironment, lagoonSyncer)
 
@@ -35,7 +35,7 @@ func RunSyncProcess(sourceEnvironment RemoteEnvironment, lagoonSyncer Syncer) er
 		return err
 	}
 
-	err = SyncRunLocal(lagoonSyncer)
+	err = SyncRunLocal(targetEnvironment, lagoonSyncer)
 	if err != nil {
 		_ = SyncCleanUp(lagoonSyncer)
 		return err
@@ -56,9 +56,9 @@ func Shellout(command string) (error, string, string) {
 	return err, stdout.String(), stderr.String()
 }
 
-func SyncRunRemote(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
+func SyncRunRemote(remoteEnvironment Environment, syncer Syncer) error {
 	execString := fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
-		remoteEnvironment.getOpenshiftProjectName(), syncer.GetRemoteCommand())
+		remoteEnvironment.getOpenshiftProjectName(), syncer.GetRemoteCommand(remoteEnvironment))
 
 	//err, outstring, errstring := Shellout(execString)
 	//
@@ -71,7 +71,7 @@ func SyncRunRemote(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
 	return nil
 }
 
-func SyncRunTransfer(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
+func SyncRunTransfer(remoteEnvironment Environment, syncer Syncer) error {
 
 	remoteResourceName := syncer.GetTransferResource().Name
 	if syncer.GetTransferResource().IsDirectory == true {
@@ -96,8 +96,8 @@ func SyncRunTransfer(remoteEnvironment RemoteEnvironment, syncer Syncer) error {
 	return nil
 }
 
-func SyncRunLocal(syncer Syncer) error {
-	execString := syncer.GetLocalCommand()
+func SyncRunLocal(targetEnvironment Environment, syncer Syncer) error {
+	execString := syncer.GetLocalCommand(targetEnvironment)
 
 	//err, outstring, errstring := Shellout(execString)
 	//

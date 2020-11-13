@@ -32,7 +32,7 @@ func (root MariadbSyncRoot) PrepareSyncer() Syncer {
 	return root
 }
 
-func (root MariadbSyncRoot) GetRemoteCommand() string {
+func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
 	m := root.Config
 	transferResource := root.GetTransferResource()
 
@@ -46,13 +46,20 @@ func (root MariadbSyncRoot) GetRemoteCommand() string {
 		tablesWhoseDataToIgnore += fmt.Sprintf("--ignore-table-data=%s.%s ", m.DbDatabase, s)
 	}
 
-	return fmt.Sprintf("mysqldump -h%s -u%s -p%s -P%s %s %s %s > %s", m.DbHostname, m.DbUsername, m.DbPassword, m.DbPort, tablesToIgnore, tablesWhoseDataToIgnore, m.DbDatabase, transferResource.Name)
+	return SyncCommand{
+		command: fmt.Sprintf("mysqldump -h%s -u%s -p%s -P%s %s %s %s > %s", m.DbHostname, m.DbUsername, m.DbPassword, m.DbPort, tablesToIgnore, tablesWhoseDataToIgnore, m.DbDatabase, transferResource.Name),
+	}
 }
 
-func (m MariadbSyncRoot) GetLocalCommand() string {
-	l := m.getEffectiveLocalDetails()
+func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncCommand {
+	l := m.Config
+	if targetEnvironment.EnvironmentName == "local" {
+		l = m.getEffectiveLocalDetails()
+	}
 	transferResource := m.GetTransferResource()
-	return fmt.Sprintf("mysql -h%s -u%s -p%s -P%s %s < %s", l.DbHostname, l.DbUsername, l.DbPassword, l.DbPort, l.DbDatabase, transferResource.Name)
+	return SyncCommand{
+		command: fmt.Sprintf("mysql -h%s -u%s -p%s -P%s %s < %s", l.DbHostname, l.DbUsername, l.DbPassword, l.DbPort, l.DbDatabase, transferResource.Name),
+	}
 }
 
 func (m MariadbSyncRoot) GetTransferResource() SyncerTransferResource {
