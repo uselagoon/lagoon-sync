@@ -57,17 +57,13 @@ func Shellout(command string) (error, string, string) {
 }
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
-	//execString := fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
-	//	remoteEnvironment.getOpenshiftProjectName(), syncer.GetRemoteCommand(remoteEnvironment))
-
 	var execString string
 
-	if remoteEnvironment.EnvironmentName == "local" {
+	if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = syncer.GetRemoteCommand(remoteEnvironment).command
 	} else {
 		execString = generateRemoteCommand(remoteEnvironment, syncer.GetRemoteCommand(remoteEnvironment).command)
 	}
-
 
 	//err, outstring, errstring := Shellout(execString)
 	//
@@ -82,12 +78,12 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
 
 func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer) error {
 
-	if(sourceEnvironment.EnvironmentName == targetEnvironment.EnvironmentName) {
+	if sourceEnvironment.EnvironmentName == targetEnvironment.EnvironmentName {
 		return nil
 	}
 
-
 	remoteResourceName := syncer.GetTransferResource().Name
+
 	if syncer.GetTransferResource().IsDirectory == true {
 		remoteResourceName += "/"
 	}
@@ -115,7 +111,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer) error {
 
 	var execString string
 
-	if targetEnvironment.EnvironmentName == "local" {
+	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = syncer.GetLocalCommand(targetEnvironment).command
 	} else {
 		execString = generateRemoteCommand(targetEnvironment, syncer.GetLocalCommand(targetEnvironment).command)

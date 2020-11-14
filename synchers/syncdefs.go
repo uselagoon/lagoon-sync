@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// consts are defined here
+
+const LOCAL_ENVIRONMENT_NAME = "local"
+
+// general interfaces defined below
+
 type Syncer interface {
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment) SyncCommand

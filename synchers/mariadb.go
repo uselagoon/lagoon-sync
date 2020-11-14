@@ -35,7 +35,7 @@ func (root MariadbSyncRoot) PrepareSyncer() Syncer {
 func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
 	m := root.Config
 
-	if sourceEnvironment.EnvironmentName == "local" {
+	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		m = root.getEffectiveLocalDetails()
 	}
 
@@ -58,7 +58,7 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 
 func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncCommand {
 	l := m.Config
-	if targetEnvironment.EnvironmentName == "local" {
+	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource()
