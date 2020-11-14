@@ -34,6 +34,11 @@ func (root MariadbSyncRoot) PrepareSyncer() Syncer {
 
 func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
 	m := root.Config
+
+	if sourceEnvironment.EnvironmentName == "local" {
+		m = root.getEffectiveLocalDetails()
+	}
+
 	transferResource := root.GetTransferResource()
 
 	var tablesToIgnore string
