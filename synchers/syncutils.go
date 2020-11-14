@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os/exec"
-
 	"gopkg.in/yaml.v2"
+	"os/exec"
 )
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
@@ -44,18 +43,6 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	return SyncCleanUp(lagoonSyncer)
 }
 
-const ShellToUse = "bash"
-
-func Shellout(command string) (error, string, string) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command(ShellToUse, "-c", command)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	return err, stdout.String(), stderr.String()
-}
-
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
 	var execString string
 
@@ -65,13 +52,13 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
 		execString = generateRemoteCommand(remoteEnvironment, syncer.GetRemoteCommand(remoteEnvironment).command)
 	}
 
-	//err, outstring, errstring := Shellout(execString)
-	//
-	//if err != nil {
-	//	fmt.Println(errstring)
-	//	return err
-	//}
-	//fmt.Println(outstring)
+	err, outstring, errstring := Shellout(execString)
+
+	if err != nil {
+		fmt.Println(errstring)
+		return err
+	}
+	fmt.Println(outstring)
 	fmt.Println(execString)
 	return nil
 }
@@ -82,26 +69,32 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		return nil
 	}
 
-	remoteResourceName := syncer.GetTransferResource().Name
-
+	sourceEnvironmentName := syncer.GetTransferResource().Name
 	if syncer.GetTransferResource().IsDirectory == true {
-		remoteResourceName += "/"
+		sourceEnvironmentName += "/"
 	}
-	localResourceName := syncer.GetTransferResource().Name
+	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
+		sourceEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", sourceEnvironment.getOpenshiftProjectName(), sourceEnvironmentName)
+	}
 
-	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222\" -a %s@ssh.lagoon.amazeeio.cloud:%s %s",
-		sourceEnvironment.getOpenshiftProjectName(),
-		remoteResourceName,
-		localResourceName)
+	targetEnvironmentName := syncer.GetTransferResource().Name
+	if targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
+		targetEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", targetEnvironment.getOpenshiftProjectName(), targetEnvironmentName)
+	}
 
-	//err, outstring, errstring := Shellout(execString)
-	//
-	//if err != nil {
-	//	fmt.Println(errstring)
-	//	return err
-	//}
-	//
-	//fmt.Println(outstring)
+	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222\" -a %s %s",
+		sourceEnvironmentName,
+		targetEnvironmentName)
+
+	err, outstring, errstring := Shellout(execString)
+
+	fmt.Println(outstring)
+
+	if err != nil {
+		fmt.Println(errstring)
+		return err
+	}
+
 	fmt.Println(execString)
 	return nil
 }
@@ -128,14 +121,26 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer) error {
 	return nil
 }
 
-func generateRemoteCommand(remoteEnvironment Environment, command string) string {
-	return fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
-		remoteEnvironment.getOpenshiftProjectName(), command)
-}
-
 func SyncCleanUp(syncer Syncer) error {
 	//remove remote resources
 	//remove local resources
 	fmt.Println("Cleaning up ...")
 	return nil
+}
+
+func generateRemoteCommand(remoteEnvironment Environment, command string) string {
+	return fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
+		remoteEnvironment.getOpenshiftProjectName(), command)
+}
+
+const ShellToUse = "bash"
+
+func Shellout(command string) (error, string, string) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command(ShellToUse, "-c", command)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	return err, stdout.String(), stderr.String()
 }

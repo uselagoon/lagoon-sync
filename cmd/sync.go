@@ -38,9 +38,13 @@ var syncCmd = &cobra.Command{
 			EnvironmentName: sourceEnvironmentName,
 		}
 
+		//We assume that the target environment is local if it's not passed as an argument
+		if targetEnvironmentName == "" {
+			targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
+		}
 		targetEnvironment := synchers.Environment{
 			ProjectName:	ProjectName,
-			EnvironmentName: synchers.LOCAL_ENVIRONMENT_NAME,
+			EnvironmentName: targetEnvironmentName,
 		}
 
 		//TODO: we need some standard way of extracting the project name
