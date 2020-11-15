@@ -5,13 +5,24 @@ import (
 	"strings"
 )
 
-//TODO: we may want to have these return slightly more complex types
-// if we want to do more interesting stuff with the return details
+// consts are defined here
+
+const LOCAL_ENVIRONMENT_NAME = "local"
+
+// general interfaces defined below
+
 type Syncer interface {
-	GetRemoteCommand() string
-	GetLocalCommand() string
+	// GetRemoteCommand will return the command to be run on the source system
+	GetRemoteCommand(environment Environment) SyncCommand
+	// GetLocalCommand will return the command to be run on the target system
+	GetLocalCommand(environment Environment) SyncCommand
 	GetTransferResource() SyncerTransferResource
+	// PrepareSyncer does any preparations required on a Syncer before it is used
 	PrepareSyncer() Syncer
+}
+
+type SyncCommand struct {
+	command string
 }
 
 // SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()
@@ -20,12 +31,12 @@ type SyncerTransferResource struct {
 	IsDirectory bool
 }
 
-type RemoteEnvironment struct {
+type Environment struct {
 	ProjectName     string
 	EnvironmentName string
 }
 
-func (r RemoteEnvironment) getOpenshiftProjectName() string {
+func (r Environment) getOpenshiftProjectName() string {
 	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
 }
 

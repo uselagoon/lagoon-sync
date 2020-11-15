@@ -40,7 +40,6 @@ environments:
           - status.amazeelabs.com
 
 lagoon-sync:
-  syncers:
     postgres:
       config:
         hostname: "$POSTGRES_HOST"

@@ -32,7 +32,7 @@ func (root PostgresSyncRoot) PrepareSyncer() Syncer {
 	return root
 }
 
-func (root PostgresSyncRoot) GetRemoteCommand() string {
+func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
 	m := root.Config
 	transferResource := root.GetTransferResource()
 
@@ -46,13 +46,17 @@ func (root PostgresSyncRoot) GetRemoteCommand() string {
 		tablesWhoseDataToExclude += fmt.Sprintf("--exclude-table-data=%s.%s ", m.DbDatabase, s)
 	}
 
-	return fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump --no-owner -h%s -U%s -p%s %s %s %s > %s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, tablesToExclude, tablesWhoseDataToExclude, m.DbDatabase, transferResource.Name)
+	return SyncCommand{
+		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump --no-owner -h%s -U%s -p%s %s %s %s > %s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, tablesToExclude, tablesWhoseDataToExclude, m.DbDatabase, transferResource.Name),
+	}
 }
 
-func (m PostgresSyncRoot) GetLocalCommand() string {
+func (m PostgresSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
 	l := m.getEffectiveLocalDetails()
 	transferResource := m.GetTransferResource()
-	return fmt.Sprintf("pg_restore --no-privileges --no-owner -U%s -d%s --clean < %s", l.DbUsername, l.DbDatabase, transferResource.Name)
+	return SyncCommand{
+		command: fmt.Sprintf("pg_restore --no-privileges --no-owner -U%s -d%s --clean < %s", l.DbUsername, l.DbDatabase, transferResource.Name),
+	}
 }
 
 func (m PostgresSyncRoot) GetTransferResource() SyncerTransferResource {
