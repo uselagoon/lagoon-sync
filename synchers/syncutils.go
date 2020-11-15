@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
+	"log"
 	"os/exec"
 )
 
@@ -25,26 +26,34 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer)
 
 	if err != nil {
-		_ = SyncCleanUp(lagoonSyncer)
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
 		return err
 	}
 	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer)
 	if err != nil {
-		_ = SyncCleanUp(lagoonSyncer)
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
 		return err
 	}
 
 	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer)
 	if err != nil {
-		_ = SyncCleanUp(lagoonSyncer)
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
+		_ = SyncCleanUp(targetEnvironment, lagoonSyncer)
 		return err
 	}
 
-	return SyncCleanUp(lagoonSyncer)
+	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
+	_ = SyncCleanUp(targetEnvironment, lagoonSyncer)
+
+	return nil
 }
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
+
+	log.Println("Beginning export on source environment (%s)", remoteEnvironment.EnvironmentName)
+
 	var execString string
+
 
 	if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = syncer.GetRemoteCommand(remoteEnvironment).command
@@ -52,22 +61,24 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
 		execString = generateRemoteCommand(remoteEnvironment, syncer.GetRemoteCommand(remoteEnvironment).command)
 	}
 
-	err, outstring, errstring := Shellout(execString)
+	log.Printf("Running the following for source :- %s", execString)
+	err, _, errstring := Shellout(execString)
 
 	if err != nil {
 		fmt.Println(errstring)
 		return err
 	}
-	fmt.Println(outstring)
-	fmt.Println(execString)
 	return nil
 }
 
 func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer) error {
 
 	if sourceEnvironment.EnvironmentName == targetEnvironment.EnvironmentName {
+		log.Println("Source and target environments are the same, skipping transfer")
 		return nil
 	}
+
+	log.Println("Beginning file transfer logic")
 
 	sourceEnvironmentName := syncer.GetTransferResource().Name
 	if syncer.GetTransferResource().IsDirectory == true {
@@ -86,21 +97,20 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		sourceEnvironmentName,
 		targetEnvironmentName)
 
-	err, outstring, errstring := Shellout(execString)
-
-	fmt.Println(outstring)
+	log.Printf("Running the following for target :- %s", execString)
+	err, _, errstring := Shellout(execString)
 
 	if err != nil {
-		fmt.Println(errstring)
+		log.Println(errstring)
 		return err
 	}
 
-	fmt.Println(execString)
 	return nil
 }
 
 func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer) error {
-	//execString := syncer.GetLocalCommand(targetEnvironment)
+
+	log.Println("Beginning import on target environment (%s)", targetEnvironment.EnvironmentName)
 
 	var execString string
 
@@ -110,21 +120,39 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer) error {
 		execString = generateRemoteCommand(targetEnvironment, syncer.GetLocalCommand(targetEnvironment).command)
 	}
 
-	//err, outstring, errstring := Shellout(execString)
-	//
-	//if err != nil {
-	//	fmt.Println(errstring)
-	//	return err
-	//}
-	//fmt.Println(outstring)
-	fmt.Println(execString)
+	log.Printf("Running the following for target :- %s", execString)
+
+	err, _, errstring := Shellout(execString)
+
+	if err != nil {
+		fmt.Println(errstring)
+		return err
+	}
+
 	return nil
 }
 
-func SyncCleanUp(syncer Syncer) error {
-	//remove remote resources
-	//remove local resources
-	fmt.Println("Cleaning up ...")
+func SyncCleanUp(environment Environment, syncer Syncer) error {
+	transferResourceName := syncer.GetTransferResource().Name
+
+	execString := fmt.Sprintf("rm -r %s", transferResourceName)
+
+	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
+		execString = generateRemoteCommand(environment, execString)
+	}
+
+	log.Printf("Beginning resource cleanup on %s", environment.EnvironmentName)
+	log.Printf("Running the following: %s", execString)
+
+	err, _, errstring := Shellout(execString)
+
+	if err != nil {
+		fmt.Println(errstring)
+		return err
+	}
+
+
+
 	return nil
 }
 
