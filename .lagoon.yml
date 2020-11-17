@@ -80,6 +80,15 @@ lagoon-sync:
           password: "drupal"
           port: "3306"
           database: "drupal"
+    files:
+      config:
+        sync-directory: "/app/storage"
+        exclude:
+          - "app"
+          - "framework"
+      local:
+        config:
+          sync-directory: "/tmp/storageout"
     drupalconfig:
       config:
         syncpath: "./config/sync"

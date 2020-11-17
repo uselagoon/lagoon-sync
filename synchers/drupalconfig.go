@@ -27,7 +27,7 @@ func (root DrupalconfigSyncRoot) PrepareSyncer() Syncer {
 }
 
 func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
-	transferResource := root.GetTransferResource()
+	transferResource := root.GetTransferResource(environment)
 	return SyncCommand{
 		command: fmt.Sprintf("drush config-export --destination=%s", transferResource.Name),
 	}
@@ -35,7 +35,7 @@ func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) SyncC
 
 func (m DrupalconfigSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
 	// l := m.getEffectiveLocalDetails()
-	transferResource := m.GetTransferResource()
+	transferResource := m.GetTransferResource(environment)
 
 	return SyncCommand{
 		command: fmt.Sprintf("drush -y config-import --source=%s", transferResource.Name),
@@ -43,7 +43,7 @@ func (m DrupalconfigSyncRoot) GetLocalCommand(environment Environment) SyncComma
 
 }
 
-func (m DrupalconfigSyncRoot) GetTransferResource() SyncerTransferResource {
+func (m DrupalconfigSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vdrupalconfig-sync-%v", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: true}

@@ -39,7 +39,7 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 		m = root.getEffectiveLocalDetails()
 	}
 
-	transferResource := root.GetTransferResource()
+	transferResource := root.GetTransferResource(sourceEnvironment)
 
 	var tablesToIgnore string
 	for _, s := range m.IgnoreTable {
@@ -61,13 +61,13 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		l = m.getEffectiveLocalDetails()
 	}
-	transferResource := m.GetTransferResource()
+	transferResource := m.GetTransferResource(targetEnvironment)
 	return SyncCommand{
 		command: fmt.Sprintf("mysql -h%s -u%s -p%s -P%s %s < %s", l.DbHostname, l.DbUsername, l.DbPassword, l.DbPort, l.DbDatabase, transferResource.Name),
 	}
 }
 
-func (m MariadbSyncRoot) GetTransferResource() SyncerTransferResource {
+func (m MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql", m.GetOutputDirectory(),m.TransferId),
 		IsDirectory: false}
