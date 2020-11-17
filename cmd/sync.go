@@ -70,6 +70,9 @@ var syncCmd = &cobra.Command{
 		case "drupalconfig":
 			lagoonSyncer = configRoot.LagoonSync.Drupalconfig.PrepareSyncer()
 			break
+		case "files":
+			lagoonSyncer = configRoot.LagoonSync.Filesconfig.PrepareSyncer()
+			break
 		default:
 			log.Print("Could not match type : %v", moduleName)
 			return
@@ -87,7 +90,7 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer)
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, false)
 
 		if err != nil {
 			log.Printf("There was an error running the sync process: %v", err)

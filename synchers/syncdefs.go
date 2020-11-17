@@ -16,19 +16,22 @@ type Syncer interface {
 	GetRemoteCommand(environment Environment) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
 	GetLocalCommand(environment Environment) SyncCommand
-	GetTransferResource() SyncerTransferResource
+	GetTransferResource(environment Environment) SyncerTransferResource
 	// PrepareSyncer does any preparations required on a Syncer before it is used
 	PrepareSyncer() Syncer
 }
 
 type SyncCommand struct {
 	command string
+	NoOp bool // NoOp can be set to true if this command performs no operation (in situations like file transfers)
 }
 
 // SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()
 type SyncerTransferResource struct {
 	Name        string
 	IsDirectory bool
+	ExcludeResources []string // ExcludeResources is a string list of any resources that aren't to be included in the transfer
+	SkipCleanup bool
 }
 
 type Environment struct {
@@ -46,6 +49,7 @@ type LagoonSync struct {
 	Mariadb      MariadbSyncRoot      `yaml:"mariadb"`
 	Postgres     PostgresSyncRoot     `yaml:"postgres"`
 	Drupalconfig DrupalconfigSyncRoot `yaml:"drupalconfig"`
+	Filesconfig  FilesSyncRoot        `yaml:"files"`
 	TransferId   string               // a unique id which can be used to identify this entire transaction
 }
 

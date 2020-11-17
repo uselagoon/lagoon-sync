@@ -21,39 +21,43 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, dryRun bool) error {
 	var err error
-	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer)
+	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun)
 
 	if err != nil {
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
 		return err
 	}
-	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer)
+	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun)
 	if err != nil {
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
-		return err
-	}
-
-	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer)
-	if err != nil {
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
-		_ = SyncCleanUp(targetEnvironment, lagoonSyncer)
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
 		return err
 	}
 
-	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer)
-	_ = SyncCleanUp(targetEnvironment, lagoonSyncer)
+	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun)
+	if err != nil {
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
+		_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun)
+		return err
+	}
+
+	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
+	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun)
 
 	return nil
 }
 
-func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
+func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool) error {
 
 	log.Println("Beginning export on source environment (%s)", remoteEnvironment.EnvironmentName)
 
-	var execString string
+	if syncer.GetRemoteCommand(remoteEnvironment).NoOp {
+		log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
+		return nil
+	}
 
+	var execString string
 
 	if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = syncer.GetRemoteCommand(remoteEnvironment).command
@@ -62,16 +66,18 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer) error {
 	}
 
 	log.Printf("Running the following for source :- %s", execString)
-	err, _, errstring := Shellout(execString)
 
-	if err != nil {
-		fmt.Println(errstring)
-		return err
+	if !dryRun {
+		err, _, errstring := Shellout(execString)
+		if err != nil {
+			fmt.Println(errstring)
+			return err
+		}
 	}
 	return nil
 }
 
-func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer) error {
+func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool) error {
 
 	if sourceEnvironment.EnvironmentName == targetEnvironment.EnvironmentName {
 		log.Println("Source and target environments are the same, skipping transfer")
@@ -80,37 +86,51 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 
 	log.Println("Beginning file transfer logic")
 
-	sourceEnvironmentName := syncer.GetTransferResource().Name
-	if syncer.GetTransferResource().IsDirectory == true {
+	sourceEnvironmentName := syncer.GetTransferResource(sourceEnvironment).Name
+	if syncer.GetTransferResource(sourceEnvironment).IsDirectory == true {
 		sourceEnvironmentName += "/"
 	}
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		sourceEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", sourceEnvironment.getOpenshiftProjectName(), sourceEnvironmentName)
 	}
 
-	targetEnvironmentName := syncer.GetTransferResource().Name
+	targetEnvironmentName := syncer.GetTransferResource(targetEnvironment).Name
 	if targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		targetEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", targetEnvironment.getOpenshiftProjectName(), targetEnvironmentName)
 	}
 
-	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222\" -a %s %s",
+	syncExcludes := " "
+	for _, e := range syncer.GetTransferResource(sourceEnvironment).ExcludeResources {
+		syncExcludes += fmt.Sprintf("--exclude=%v ", e)
+	}
+
+	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222\" %v -a %s %s",
+		syncExcludes,
 		sourceEnvironmentName,
 		targetEnvironmentName)
 
 	log.Printf("Running the following for target :- %s", execString)
-	err, _, errstring := Shellout(execString)
 
-	if err != nil {
-		log.Println(errstring)
-		return err
+	if !dryRun {
+		err, _, errstring := Shellout(execString)
+
+		if err != nil {
+			log.Println(errstring)
+			return err
+		}
 	}
 
 	return nil
 }
 
-func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer) error {
+func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool) error {
 
 	log.Println("Beginning import on target environment (%s)", targetEnvironment.EnvironmentName)
+
+	if syncer.GetRemoteCommand(targetEnvironment).NoOp {
+		log.Printf("Found No Op for environment %s - skipping step", targetEnvironment.EnvironmentName)
+		return nil
+	}
 
 	var execString string
 
@@ -121,19 +141,28 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer) error {
 	}
 
 	log.Printf("Running the following for target :- %s", execString)
+	if !dryRun {
+		err, _, errstring := Shellout(execString)
 
-	err, _, errstring := Shellout(execString)
-
-	if err != nil {
-		fmt.Println(errstring)
-		return err
+		if err != nil {
+			fmt.Println(errstring)
+			return err
+		}
 	}
 
 	return nil
 }
 
-func SyncCleanUp(environment Environment, syncer Syncer) error {
-	transferResourceName := syncer.GetTransferResource().Name
+func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
+	transferResouce := syncer.GetTransferResource(environment)
+
+	if transferResouce.SkipCleanup == true {
+		log.Printf("Skipping cleanup for %v on %v environment", transferResouce.Name, environment.EnvironmentName)
+		return nil
+	}
+
+	transferResourceName := transferResouce.Name
+
 
 	execString := fmt.Sprintf("rm -r %s", transferResourceName)
 
@@ -144,11 +173,13 @@ func SyncCleanUp(environment Environment, syncer Syncer) error {
 	log.Printf("Beginning resource cleanup on %s", environment.EnvironmentName)
 	log.Printf("Running the following: %s", execString)
 
-	err, _, errstring := Shellout(execString)
+	if !dryRun {
+		err, _, errstring := Shellout(execString)
 
-	if err != nil {
-		fmt.Println(errstring)
-		return err
+		if err != nil {
+			fmt.Println(errstring)
+			return err
+		}
 	}
 
 

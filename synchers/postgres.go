@@ -34,7 +34,7 @@ func (root PostgresSyncRoot) PrepareSyncer() Syncer {
 
 func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
 	m := root.Config
-	transferResource := root.GetTransferResource()
+	transferResource := root.GetTransferResource(environment)
 
 	var tablesToExclude string
 	for _, s := range m.ExcludeTable {
@@ -53,13 +53,13 @@ func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncComma
 
 func (m PostgresSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
 	l := m.getEffectiveLocalDetails()
-	transferResource := m.GetTransferResource()
+	transferResource := m.GetTransferResource(environment)
 	return SyncCommand{
 		command: fmt.Sprintf("pg_restore --no-privileges --no-owner -U%s -d%s --clean < %s", l.DbUsername, l.DbDatabase, transferResource.Name),
 	}
 }
 
-func (m PostgresSyncRoot) GetTransferResource() SyncerTransferResource {
+func (m PostgresSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vlagoon_sync_postgres_%v.sql", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: false}
