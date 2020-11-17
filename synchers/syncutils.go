@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"log"
 	"os/exec"
+	"text/template"
 )
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
@@ -50,7 +51,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool) error {
 
-	log.Println("Beginning export on source environment (%s)", remoteEnvironment.EnvironmentName)
+	log.Printf("Beginning export on source environment (%s)", remoteEnvironment.EnvironmentName)
 
 	if syncer.GetRemoteCommand(remoteEnvironment).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
@@ -59,10 +60,15 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 
 	var execString string
 
+	command, commandErr := syncer.GetRemoteCommand(remoteEnvironment).GetCommand()
+	if commandErr != nil {
+		return commandErr
+	}
+
 	if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		execString = syncer.GetRemoteCommand(remoteEnvironment).command
+		execString = command
 	} else {
-		execString = generateRemoteCommand(remoteEnvironment, syncer.GetRemoteCommand(remoteEnvironment).command)
+		execString = generateRemoteCommand(remoteEnvironment, command)
 	}
 
 	log.Printf("Running the following for source :- %s", execString)
@@ -125,7 +131,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 
 func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool) error {
 
-	log.Println("Beginning import on target environment (%s)", targetEnvironment.EnvironmentName)
+	log.Printf("Beginning import on target environment (%s)", targetEnvironment.EnvironmentName)
 
 	if syncer.GetRemoteCommand(targetEnvironment).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", targetEnvironment.EnvironmentName)
@@ -133,11 +139,15 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 	}
 
 	var execString string
+	command, commandErr := syncer.GetLocalCommand(targetEnvironment).GetCommand()
+	if commandErr != nil {
+		return commandErr
+	}
 
 	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		execString = syncer.GetLocalCommand(targetEnvironment).command
+		execString = command
 	} else {
-		execString = generateRemoteCommand(targetEnvironment, syncer.GetLocalCommand(targetEnvironment).command)
+		execString = generateRemoteCommand(targetEnvironment, command)
 	}
 
 	log.Printf("Running the following for target :- %s", execString)
@@ -185,6 +195,36 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
 
 
 	return nil
+}
+
+
+func generateNoOpSyncCommand() SyncCommand {
+	return SyncCommand{
+		NoOp: true,
+	}
+}
+
+func generateSyncCommand(commandString string, substitutions map[string]interface{}) SyncCommand {
+	return SyncCommand{
+		command: commandString,
+		substitutions: substitutions,
+		NoOp: false,
+	}
+}
+
+func (c SyncCommand) GetCommand() (string, error) {
+	if c.NoOp == true {
+		return "", errors.New("The command is marked as NoOp(eration) and does not generate a string")
+	}
+	templ, err := template.New("Command Template").Parse(c.command)
+	if err != nil {
+		return "", err
+	}
+	var output bytes.Buffer
+	if err := templ.Execute(&output, c.substitutions); err != nil {
+		return "", err
+	}
+	return output.String(), nil
 }
 
 func generateRemoteCommand(remoteEnvironment Environment, command string) string {

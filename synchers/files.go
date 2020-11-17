@@ -27,17 +27,11 @@ func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root FilesSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
-	return SyncCommand{
-		command: "",
-		NoOp:    true,
-	}
+	return generateNoOpSyncCommand()
 }
 
 func (m FilesSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
-	return SyncCommand{
-		command: "",
-		NoOp:    true,
-	}
+	return generateNoOpSyncCommand()
 }
 
 func (m FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
