@@ -27,9 +27,9 @@ type BasePostgresSync struct {
 	OutputDirectory  string
 }
 
-func (root PostgresSyncRoot) PrepareSyncer() Syncer {
+func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-	return root
+	return root, nil
 }
 
 func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {

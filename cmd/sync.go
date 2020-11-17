@@ -57,16 +57,16 @@ var syncCmd = &cobra.Command{
 		//TODO: perhaps there's a more dynamic way of doing this match?
 		switch moduleName {
 		case "mariadb":
-			lagoonSyncer = configRoot.LagoonSync.Mariadb.PrepareSyncer()
+			lagoonSyncer, _ = configRoot.LagoonSync.Mariadb.PrepareSyncer()
 			break
 		case "postgres":
-			lagoonSyncer = configRoot.LagoonSync.Postgres.PrepareSyncer()
+			lagoonSyncer, _ = configRoot.LagoonSync.Postgres.PrepareSyncer()
 			break
 		case "drupalconfig":
-			lagoonSyncer = configRoot.LagoonSync.Drupalconfig.PrepareSyncer()
+			lagoonSyncer, _ = configRoot.LagoonSync.Drupalconfig.PrepareSyncer()
 			break
 		case "files":
-			lagoonSyncer = configRoot.LagoonSync.Filesconfig.PrepareSyncer()
+			lagoonSyncer, _ = configRoot.LagoonSync.Filesconfig.PrepareSyncer()
 			break
 		default:
 			log.Print("Could not match type : %v", moduleName)

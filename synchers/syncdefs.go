@@ -18,7 +18,7 @@ type Syncer interface {
 	GetLocalCommand(environment Environment) SyncCommand
 	GetTransferResource(environment Environment) SyncerTransferResource
 	// PrepareSyncer does any preparations required on a Syncer before it is used
-	PrepareSyncer() Syncer
+	PrepareSyncer() (Syncer, error)
 }
 
 type SyncCommand struct {

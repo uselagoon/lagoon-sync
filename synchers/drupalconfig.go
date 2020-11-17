@@ -21,9 +21,9 @@ type BaseDrupalconfigSync struct {
 	OutputDirectory string
 }
 
-func (root DrupalconfigSyncRoot) PrepareSyncer() Syncer {
+func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-	return root
+	return root, nil
 }
 
 func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {

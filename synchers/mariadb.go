@@ -27,9 +27,9 @@ type MariadbSyncRoot struct {
 	TransferId     string
 }
 
-func (root MariadbSyncRoot) PrepareSyncer() Syncer {
+func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-	return root
+	return root, nil
 }
 
 func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {

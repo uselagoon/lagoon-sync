@@ -21,9 +21,9 @@ type BaseFilesSync struct {
 	Exclude  []string
 }
 
-func (root FilesSyncRoot) PrepareSyncer() Syncer {
+func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-	return root
+	return root, nil
 }
 
 func (root FilesSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
