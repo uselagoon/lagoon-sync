@@ -15,6 +15,8 @@ var sourceEnvironmentName string
 var targetEnvironmentName string
 var configurationFile string
 var noCliInteraction bool
+var dryRun bool
+
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
@@ -27,9 +29,9 @@ var syncCmd = &cobra.Command{
 		moduleName := args[0]
 
 		//For now, let's just try write up a command that generates the strings ...
-		//TODO: make the lagoonYamlPath a configuration value, and overridable
+
 		//Perhaps we should refactor this into some generic thing ...
-		lagoonConfigBytestream, err := LoadLagoonConfig("./.lagoon.yml")
+		lagoonConfigBytestream, err := LoadLagoonConfig(configurationFile)
 		if err != nil {
 			log.Println("Couldn't load lagoon config file")
 			os.Exit(1)
@@ -90,7 +92,7 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, false)
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun)
 
 		if err != nil {
 			log.Printf("There was an error running the sync process: %v", err)
@@ -127,10 +129,12 @@ func init() {
 	syncCmd.PersistentFlags().StringVar(&sourceEnvironmentName, "source-environment-name", "", "The Lagoon environment name of the source system")
 	syncCmd.MarkPersistentFlagRequired("source-environment-name")
 	syncCmd.PersistentFlags().StringVar(&targetEnvironmentName, "target-environment-name", "", "The Lagoon environment name of the source system (defaults to local)")
-	syncCmd.PersistentFlags().StringVar(&configurationFile, "configuration-file", "", "File containing sync configuration. Defaults to ./.lagoon.yml")
+	syncCmd.PersistentFlags().StringVar(&configurationFile, "configuration-file", "./.lagoon.yml", "File containing sync configuration. Defaults to ./.lagoon.yml")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
+
+	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
