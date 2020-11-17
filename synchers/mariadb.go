@@ -52,7 +52,16 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	}
 
 	return SyncCommand{
-		command: fmt.Sprintf("mysqldump -h%s -u%s -p%s -P%s %s %s %s > %s", m.DbHostname, m.DbUsername, m.DbPassword, m.DbPort, tablesToIgnore, tablesWhoseDataToIgnore, m.DbDatabase, transferResource.Name),
+		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }}"),
+		substitutions: map[string]interface{}{
+			"hostname": m.DbHostname,
+			"username": m.DbUsername,
+			"password": m.DbPassword,
+			"port": m.DbPort,
+			"tablesToIgnore": tablesWhoseDataToIgnore,
+			"database": m.DbDatabase,
+			"transferResource": transferResource.Name,
+		},
 	}
 }
 
@@ -62,9 +71,15 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return SyncCommand{
-		command: fmt.Sprintf("mysql -h%s -u%s -p%s -P%s %s < %s", l.DbHostname, l.DbUsername, l.DbPassword, l.DbPort, l.DbDatabase, transferResource.Name),
-	}
+	return generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < {{ .transferResource }}",
+		map[string]interface{}{
+			"hostname": l.DbHostname,
+			"username": l.DbUsername,
+			"password": l.DbPassword,
+			"port": l.DbPort,
+			"database": l.DbDatabase,
+			"transferResource": transferResource.Name,
+		})
 }
 
 func (m MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {

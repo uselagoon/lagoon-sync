@@ -69,7 +69,7 @@ var syncCmd = &cobra.Command{
 			lagoonSyncer, _ = configRoot.LagoonSync.Filesconfig.PrepareSyncer()
 			break
 		default:
-			log.Print("Could not match type : %v", moduleName)
+			log.Printf("Could not match type : %v", moduleName)
 			return
 			break
 		}
