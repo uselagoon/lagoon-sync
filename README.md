@@ -9,4 +9,4 @@ blah blah ... fill this in.
 
 ### Syncing a mariadb database
 
-`lagoon-sync sync --remote-project-name=amazeelabsv4-com --remote-environment-name=dev`
+`lagoon-sync sync --remote-project-name=amazeelabsv4-com --remote-environment-name=dev`git

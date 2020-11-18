@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/bomoko/lagoon-sync/synchers"
+	"github.com/amazeeio/lagoon-sync/synchers"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )

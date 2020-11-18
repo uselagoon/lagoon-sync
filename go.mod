@@ -1,4 +1,4 @@
-module github.com/bomoko/lagoon-sync
+module github.com/amazeeio/lagoon-sync
 
 go 1.13
 
