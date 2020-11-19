@@ -43,3 +43,31 @@ jobs:
       with:
         name: lagoon-sync
         path: /tmp/lagoon-sync    
+        
+        
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download phar artifact from build step
+        id: download
+        uses: actions/download-artifact@v2
+        with:
+          name: lagoon-sync
+          path: ./
+
+#       - name: Get tag
+#         id: get-tag
+#         run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+
+      - name: Bump version and create release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+#           name: ${{ steps.get-tag.outputs.tag }}
+#           tag: ${{ steps.get-tag.outputs.tag }}
+          body: 'Next stable release.'
+          allowUpdates: true
+          artifacts: "**/lagoon-sync"
