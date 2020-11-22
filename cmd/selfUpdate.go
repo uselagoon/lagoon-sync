@@ -24,7 +24,7 @@ import (
 	"github.com/inconshreveable/go-update"
 )
 
-const selfUpdateDownloadURL = "https://github.com/bomoko/lagoon-sync/releases/latest/download/lagoon-sync"
+const selfUpdateDownloadURL = "https://github.com/amazeeio/lagoon-sync/releases/latest/download/lagoon-sync"
 
 // selfUpdateCmd represents the selfUpdate command
 var selfUpdateCmd = &cobra.Command{
@@ -47,14 +47,14 @@ to quickly create a Cobra application.`,
 	},
 }
 
-func followRedirectsToActualFile(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatalf("http.Get => %v", err.Error())
-		return "", err
-	}
-	return resp.Request.URL.String(), nil
-}
+//func followRedirectsToActualFile(url string) (string, error) {
+//	resp, err := http.Get(url)
+//	if err != nil {
+//		log.Fatalf("http.Get => %v", err.Error())
+//		return "", err
+//	}
+//	return resp.Request.URL.String(), nil
+//}
 
 func doUpdate(url string) error {
 	resp, err := http.Get(url)
