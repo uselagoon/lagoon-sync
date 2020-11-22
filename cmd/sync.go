@@ -54,24 +54,11 @@ var syncCmd = &cobra.Command{
 		}
 
 		var lagoonSyncer synchers.Syncer
-		//TODO: perhaps there's a more dynamic way of doing this match?
-		switch moduleName {
-		case "mariadb":
-			lagoonSyncer, _ = configRoot.LagoonSync.Mariadb.PrepareSyncer()
-			break
-		case "postgres":
-			lagoonSyncer, _ = configRoot.LagoonSync.Postgres.PrepareSyncer()
-			break
-		case "drupalconfig":
-			lagoonSyncer, _ = configRoot.LagoonSync.Drupalconfig.PrepareSyncer()
-			break
-		case "files":
-			lagoonSyncer, _ = configRoot.LagoonSync.Filesconfig.PrepareSyncer()
-			break
-		default:
-			log.Printf("Could not match type : %v", moduleName)
+		lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(moduleName, configRoot)
+
+		if err != nil {
+			log.Println(err.Error())
 			return
-			break
 		}
 
 		if noCliInteraction == false {

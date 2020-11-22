@@ -21,6 +21,28 @@ type BaseDrupalconfigSync struct {
 	OutputDirectory string
 }
 
+// Init related types and functions follow
+
+type DrupalConfigSyncPlugin struct {
+}
+
+func (m DrupalConfigSyncPlugin) GetPluginId() string {
+	return "drupalconfig"
+}
+
+func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
+	syncerRoot := FilesSyncRoot{}
+	_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &syncerRoot)
+	lagoonSyncer, _ := syncerRoot.PrepareSyncer()
+	return lagoonSyncer, nil
+}
+
+func init() {
+	RegisterSyncer(DrupalConfigSyncPlugin{})
+}
+
+// Sync functions below
+
 func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil

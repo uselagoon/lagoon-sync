@@ -13,7 +13,6 @@ import (
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
 	lagoonConfig := SyncherConfigRoot{
-		LagoonSync: LagoonSync{},
 	}
 	err := yaml.Unmarshal(data, &lagoonConfig)
 	if err != nil {

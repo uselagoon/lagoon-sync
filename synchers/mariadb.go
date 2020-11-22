@@ -27,6 +27,28 @@ type MariadbSyncRoot struct {
 	TransferId     string
 }
 
+// Init related types and functions follow
+
+type MariadbSyncPlugin struct {
+}
+
+func (m MariadbSyncPlugin) GetPluginId() string {
+	return "mariadb"
+}
+
+func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
+	mariadb := MariadbSyncRoot{}
+	_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &mariadb)
+	lagoonSyncer, _ := mariadb.PrepareSyncer()
+	return lagoonSyncer, nil
+}
+
+func init() {
+	RegisterSyncer(MariadbSyncPlugin{})
+}
+
+// Sync related functions follow
+
 func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
