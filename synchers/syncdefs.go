@@ -45,16 +45,6 @@ func (r Environment) getOpenshiftProjectName() string {
 	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
 }
 
-// The following is the root structure for unmarshalling yaml configurations
-// Each syncer must register its structure here
-//type LagoonSync struct {
-//	Mariadb      MariadbSyncRoot      `yaml:"mariadb"`
-//	Postgres     PostgresSyncRoot     `yaml:"postgres"`
-//	Drupalconfig DrupalconfigSyncRoot `yaml:"drupalconfig"`
-//	Filesconfig  FilesSyncRoot        `yaml:"files"`
-//	TransferId   string               // a unique id which can be used to identify this entire transaction
-//}
-
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
 	Project    string
