@@ -27,6 +27,29 @@ type BasePostgresSync struct {
 	OutputDirectory  string
 }
 
+// Init related types and functions follow
+
+type PostgresSyncPlugin struct {
+}
+
+func (m PostgresSyncPlugin) GetPluginId() string {
+	return "postgres"
+}
+
+func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
+	syncerRoot := FilesSyncRoot{}
+	_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &syncerRoot)
+	lagoonSyncer, _ := syncerRoot.PrepareSyncer()
+	return lagoonSyncer, nil
+}
+
+func init() {
+	RegisterSyncer(PostgresSyncPlugin{})
+}
+
+
+// Sync related functions below
+
 func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil

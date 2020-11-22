@@ -2,6 +2,7 @@ package synchers
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"strings"
 )
 
@@ -46,16 +47,27 @@ func (r Environment) getOpenshiftProjectName() string {
 
 // The following is the root structure for unmarshalling yaml configurations
 // Each syncer must register its structure here
-type LagoonSync struct {
-	Mariadb      MariadbSyncRoot      `yaml:"mariadb"`
-	Postgres     PostgresSyncRoot     `yaml:"postgres"`
-	Drupalconfig DrupalconfigSyncRoot `yaml:"drupalconfig"`
-	Filesconfig  FilesSyncRoot        `yaml:"files"`
-	TransferId   string               // a unique id which can be used to identify this entire transaction
-}
+//type LagoonSync struct {
+//	Mariadb      MariadbSyncRoot      `yaml:"mariadb"`
+//	Postgres     PostgresSyncRoot     `yaml:"postgres"`
+//	Drupalconfig DrupalconfigSyncRoot `yaml:"drupalconfig"`
+//	Filesconfig  FilesSyncRoot        `yaml:"files"`
+//	TransferId   string               // a unique id which can be used to identify this entire transaction
+//}
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
 	Project    string
-	LagoonSync LagoonSync `yaml:"lagoon-sync"`
+	LagoonSync map[string]interface{} `yaml:"lagoon-sync"`
+}
+
+// takes interface, marshals back to []byte, then unmarshals to desired struct
+// from https://github.com/go-yaml/yaml/issues/13#issuecomment-428952604
+func UnmarshalIntoStruct(pluginIn, pluginOut interface{}) error {
+
+	b, err := yaml.Marshal(pluginIn)
+	if err != nil {
+		return err
+	}
+	return yaml.Unmarshal(b, pluginOut)
 }

@@ -21,6 +21,27 @@ type BaseFilesSync struct {
 	Exclude  []string
 }
 
+// Init related types and functions follow
+
+type FilesSyncPlugin struct {
+}
+
+func (m FilesSyncPlugin) GetPluginId() string {
+	return "files"
+}
+
+func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
+	filesroot := FilesSyncRoot{}
+	_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &filesroot)
+	lagoonSyncer, _ := filesroot.PrepareSyncer()
+	return lagoonSyncer, nil
+}
+
+func init() {
+	RegisterSyncer(FilesSyncPlugin{})
+}
+
+
 func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
