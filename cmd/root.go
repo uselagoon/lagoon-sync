@@ -19,7 +19,7 @@ var rootCmd = &cobra.Command{
 	Long: `lagoon-sync is a tools for syncing resources between environments in Lagoon hosted applications.
 This includes files, databases, and configurations.
 `,
-	Version: "v1.0.1",
+	Version: "v0.0.3",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },
