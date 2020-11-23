@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,8 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// const selfUpdateDownloadURL = "https://github.com/amazeeio/lagoon-sync/releases/latest/download/lagoon-sync"
-const selfUpdateDownloadURL = "https://github.com/bomoko/lagoon-sync/releases/latest/download/lagoon-sync"
+const selfUpdateDownloadURL = "https://github.com/amazeeio/lagoon-sync/releases/latest/download/lagoon-sync"
 
 // selfUpdateCmd represents the selfUpdate command
 var selfUpdateCmd = &cobra.Command{
@@ -72,8 +72,10 @@ func doUpdate(url string) error {
 	}
 
 	fmt.Printf("Applying update...\n")
+	//TODO: add support for gpg verification
 	err = update.Apply(resp.Body, update.Options{
 		TargetPath: exec,
+		Hash:       crypto.SHA256,
 	})
 	if err != nil {
 		return err
