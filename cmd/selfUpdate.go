@@ -149,29 +149,27 @@ func doUpdate(url string) error {
 		return err
 	}
 
-	checkSumFileResp, err := http.Get(checkSumFileUrl)
+	checksumRespBody, err := getChecksum(checkSumFileUrl)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return err
 	}
-
-	if checkSumFileResp.StatusCode != 200 {
-		fmt.Printf(checkSumFileResp.Status)
-		os.Exit(2)
-	}
-	defer checkSumFileResp.Body.Close()
-
+	//fmt.Printf("Parsed checksum: %s\n", checksumRespBody)
 	checkSumOut, err := os.Create("/tmp/checksum.txt")
 	if err != nil {
 		return err
 	}
 	defer checkSumOut.Close()
-	_, err = io.Copy(checkSumOut, checkSumFileResp.Body)
+	// _, err = io.Copy(checkSumOut, checksumRespBody)
+	_, err = checkSumOut.Write(checksumRespBody)
 
+	// Open Checksum file
 	checkSumfile, err := os.Open("/tmp/checksum.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Pull out the inidivdual checksum from the list for given binary version
 	scanner := bufio.NewScanner(checkSumfile)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -180,23 +178,11 @@ func doUpdate(url string) error {
 			checksumStr = line[0:64]
 		}
 	}
-
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
 
-	// Testing
-	// checksumTest := "d3090cd585204ccdc0d4fb77dde763b7e9061bdf5322e61fc1688b126c464941"
-	// checksumTestWrong := "D9999cd585204ccdc0d4fb77dde763b7e9061bdf5322e61fc1688b126c464941"
-	// fmt.Println(checkSumFileUrl)
-
-	// @TODO: move all checksum parsing into a func
-	// checksum, err := parseChecksum(checkSumFileUrl)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return err
-	// }
-
+	// Checksum hex into string
 	checksum, err := hex.DecodeString(checksumStr)
 	if err != nil {
 		return err
@@ -219,14 +205,12 @@ func doUpdate(url string) error {
 	// Write signature body to file
 	_, err = io.Copy(sigOut, sigFileResp.Body)
 
-	// Verify complete checksum using openpgp (as go-updater requires pub key in PEM format) but goreleaser uses GPG
-
-	// keyRingReader, err := os.Open("/tmp/public.key")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return err
-	// }
-
+	/*
+		Verification step
+		This
+		We need to verify the complete signed checksum using openpgp (as go-updater requires pub key in PEM format, but
+		goreleaser uses GPG).
+	*/
 	// Load from public key reader abover, instead of os.Open
 	keyring, err := openpgp.ReadArmoredKeyRing(publicKey)
 	if err != nil {
@@ -264,8 +248,7 @@ func doUpdate(url string) error {
 	}
 
 	fmt.Printf("Applying update...\n")
-	// We have already verified at this step using opengpg (PGP): go-updater requires openssl and the use of PEM
-	// format, so we only need to do a checksum check here.
+	// We have now verified at this step using opengpg, so we only define additional go-update options.
 	opts := update.Options{
 		TargetPath: exec,
 		Hash:       crypto.SHA256,
@@ -274,7 +257,7 @@ func doUpdate(url string) error {
 		// Verifier:   update.NewRSAVerifier(),
 	}
 
-	// Apply the update
+	// If we get this far, then we can apply the update
 	err = update.Apply(resp.Body, opts)
 	if err != nil {
 		fmt.Println(err)
@@ -284,9 +267,24 @@ func doUpdate(url string) error {
 	return err
 }
 
-// func parseChecksum(url string) ([]byte, error) {
+func getChecksum(url string) ([]byte, error) {
+	checkSumFileResp, err := http.Get(checkSumFileUrl)
+	if err != nil {
+		panic(err)
+	}
 
-// }
+	if checkSumFileResp.StatusCode != 200 {
+		fmt.Printf(checkSumFileResp.Status)
+		os.Exit(2)
+	}
+	defer checkSumFileResp.Body.Close()
+	checkSumFileRespBodyText, err := ioutil.ReadAll(checkSumFileResp.Body)
+	if err != nil {
+		log.Fatal("Error reading response", err)
+	}
+
+	return checkSumFileRespBodyText, err
+}
 
 func init() {
 	rootCmd.AddCommand(selfUpdateCmd)
