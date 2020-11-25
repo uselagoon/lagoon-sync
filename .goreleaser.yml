@@ -17,10 +17,10 @@ archives:
   - format: binary
 checksum:
   name_template: 'checksums.txt'
+  algorithm: sha256
 signs:
   - artifacts: checksum
     args: ["--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}"]
-    id: signConfig
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:

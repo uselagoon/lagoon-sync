@@ -37,13 +37,14 @@ jobs:
       with:
         gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
+        git-user-signingkey: true
+        git-commit-gpgsign: true
 
     - name: Printing GPG user config
       run: |
         echo "fingerprint: ${{ steps.import_gpg.outputs.fingerprint }}"
         echo "keyid:       ${{ steps.import_gpg.outputs.keyid }}"
         echo "name:        ${{ steps.import_gpg.outputs.name }}"
-        echo "email:       ${{ steps.import_gpg.outputs.email }}"
 
     - name: Build and Release
       uses: goreleaser/goreleaser-action@v2

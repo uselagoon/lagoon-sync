@@ -16,17 +16,81 @@ limitations under the License.
 package cmd
 
 import (
+	"bufio"
 	"crypto"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"runtime"
+	"strings"
 
 	"github.com/inconshreveable/go-update"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/openpgp"
 )
 
-const selfUpdateDownloadURL = "https://github.com/amazeeio/lagoon-sync/releases/latest/download/lagoon-sync"
+const selfUpdateDownloadURL = "https://api.github.com/repos/amazeeio/lagoon-sync/releases/latest"
+
+var osArch, downloadPath, checkSumFileUrl, sigFileUrl, checksumStr string
+
+var publicKey = strings.NewReader(`
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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
+=xcNP
+-----END PGP PUBLIC KEY BLOCK-----
+`)
 
 // selfUpdateCmd represents the selfUpdate command
 var selfUpdateCmd = &cobra.Command{
@@ -50,7 +114,36 @@ func followRedirectsToActualFile(url string) (string, error) {
 		log.Fatalf("http.Get => %v", err.Error())
 		return "", err
 	}
-	return resp.Request.URL.String(), nil
+
+	defer resp.Body.Close()
+	bodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal("Error reading response", err)
+	}
+
+	result := make(map[string]interface{})
+	json.Unmarshal(bodyText, &result)
+
+	results := make([]interface{}, 0)
+	for _, asset := range result["assets"].([]interface{}) {
+		results = append(results, asset.(map[string]interface{})["browser_download_url"])
+	}
+
+	osArch = fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
+	for _, res := range results {
+		str := res.(string)
+		if strings.Contains(str, osArch) {
+			downloadPath = str
+		}
+		if strings.Contains(str, "checksums.txt") && !strings.Contains(str, "checksums.txt.sig") {
+			checkSumFileUrl = str
+		}
+		if strings.Contains(str, "checksums.txt.sig") {
+			sigFileUrl = str
+		}
+	}
+
+	return downloadPath, nil
 }
 
 func doUpdate(url string) error {
@@ -71,18 +164,144 @@ func doUpdate(url string) error {
 		return err
 	}
 
-	fmt.Printf("Applying update...\n")
-	//TODO: add support for gpg verification
-	err = update.Apply(resp.Body, update.Options{
-		TargetPath: exec,
-		Hash:       crypto.SHA256,
-	})
+	checkSumFileResp, err := http.Get(checkSumFileUrl)
+	if err != nil {
+		panic(err)
+	}
+
+	if checkSumFileResp.StatusCode != 200 {
+		fmt.Printf(checkSumFileResp.Status)
+		os.Exit(2)
+	}
+	defer checkSumFileResp.Body.Close()
+
+	checkSumOut, err := os.Create("/tmp/checksum.txt")
 	if err != nil {
 		return err
+	}
+	defer checkSumOut.Close()
+	_, err = io.Copy(checkSumOut, checkSumFileResp.Body)
+
+	checkSumfile, err := os.Open("/tmp/checksum.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(checkSumfile)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, osArch) {
+			fmt.Printf("Checksum for %s: %s\n", osArch, line[0:64])
+			checksumStr = line[0:64]
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Testing
+	// checksumTest := "d3090cd585204ccdc0d4fb77dde763b7e9061bdf5322e61fc1688b126c464941"
+	// checksumTestWrong := "D9999cd585204ccdc0d4fb77dde763b7e9061bdf5322e61fc1688b126c464941"
+	// fmt.Println(checkSumFileUrl)
+
+	// @TODO: move all checksum parsing into a func
+	// checksum, err := parseChecksum(checkSumFileUrl)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return err
+	// }
+
+	checksum, err := hex.DecodeString(checksumStr)
+	if err != nil {
+		return err
+	}
+
+	sigFileResp, err := http.Get(sigFileUrl)
+	if err != nil {
+		panic(err)
+	}
+	if sigFileResp.StatusCode != 200 {
+		fmt.Printf(sigFileResp.Status)
+		os.Exit(2)
+	}
+	defer sigFileResp.Body.Close()
+	sigOut, err := os.Create("/tmp/checksum.txt.sig")
+	if err != nil {
+		return err
+	}
+	defer sigOut.Close()
+	// Write signature body to file
+	_, err = io.Copy(sigOut, sigFileResp.Body)
+
+	// Verify complete checksum using openpgp (as go-updater requires pub key in PEM format) but goreleaser uses GPG
+
+	// keyRingReader, err := os.Open("/tmp/public.key")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return err
+	// }
+
+	// Load from public key reader abover, instead of os.Open
+	keyring, err := openpgp.ReadArmoredKeyRing(publicKey)
+	if err != nil {
+		fmt.Println("Public key error: " + err.Error())
+		return err
+	}
+	// Target checksum we need to verify that it hasn't been manipulated
+	verificationTarget, err := os.Open("/tmp/checksum.txt")
+	if err != nil {
+		fmt.Printf("Can't open checksum target: %s", err)
+		return err
+	}
+	// Signature of the new executable, signed by the private key during GH release
+	sig, err := os.Open("/tmp/checksum.txt.sig")
+	if err != nil {
+		fmt.Printf("Can't open signature: %s", err)
+		return err
+	}
+
+	// When the signature is binary instead of armored, the error was EOF.
+	// e.g. entity, err := openpgp.CheckArmoredDetachedSignature(keyring, verificationTarget, sig)
+	// So using the binary signature method instead
+	entity, err := openpgp.CheckDetachedSignature(keyring, verificationTarget, sig)
+	if err == io.EOF {
+		// If signature has EOF issues, the client failure is just "EOF", which is not helpful
+		return fmt.Errorf("No valid signatures found in target checksum file")
+	}
+	if err != nil {
+		fmt.Printf("Verifcation error: %s", err)
+		return err
+	}
+	// fmt.Println("Signature verified OK")
+	for _, identity := range entity.Identities {
+		fmt.Fprintf(os.Stderr, "Good signature from \"%s\"\n", identity.UserId.Name)
+	}
+
+	fmt.Printf("Applying update...\n")
+	// We have already verified at this step using opengpg (PGP): go-updater requires openssl and the use of PEM
+	// format, so we only need to do a checksum check here.
+	opts := update.Options{
+		TargetPath: exec,
+		Hash:       crypto.SHA256,
+		Checksum:   checksum,
+		// Signature:  signature,
+		// Verifier:   update.NewRSAVerifier(),
+	}
+
+	// Apply the update
+	err = update.Apply(resp.Body, opts)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(2)
 	}
 	fmt.Printf("Successfully updated binary at: %s\n", exec)
 	return err
 }
+
+// func parseChecksum(url string) ([]byte, error) {
+
+// }
 
 func init() {
 	rootCmd.AddCommand(selfUpdateCmd)
@@ -91,7 +310,7 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	selfUpdateCmd.PersistentFlags().String("version", "", "Define version to update")
+	//selfUpdateCmd.PersistentFlags().String("os", "", "Define os to update")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
