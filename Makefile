@@ -11,4 +11,4 @@ clean:
 	rm -rf dist/
 
 temp-remove-rsync-binary:
-	rm /usr/bin/rsync
+	sudo rm /usr/bin/rsync
