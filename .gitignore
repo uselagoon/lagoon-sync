@@ -19,3 +19,6 @@ vendor/
 
 # Build output
 ./builds
+
+# Release output (goreleaser)
+dist/
