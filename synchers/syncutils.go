@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"log"
 	"os/exec"
 	"text/template"
+
+	"gopkg.in/yaml.v2"
 )
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
-	lagoonConfig := SyncherConfigRoot{
-	}
+	lagoonConfig := SyncherConfigRoot{}
 	err := yaml.Unmarshal(data, &lagoonConfig)
 	if err != nil {
 		return SyncherConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
@@ -172,7 +172,6 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
 
 	transferResourceName := transferResouce.Name
 
-
 	execString := fmt.Sprintf("rm -r %s", transferResourceName)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
@@ -191,11 +190,8 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
 		}
 	}
 
-
-
 	return nil
 }
-
 
 func generateNoOpSyncCommand() SyncCommand {
 	return SyncCommand{
@@ -205,9 +201,9 @@ func generateNoOpSyncCommand() SyncCommand {
 
 func generateSyncCommand(commandString string, substitutions map[string]interface{}) SyncCommand {
 	return SyncCommand{
-		command: commandString,
+		command:       commandString,
 		substitutions: substitutions,
-		NoOp: false,
+		NoOp:          false,
 	}
 }
 

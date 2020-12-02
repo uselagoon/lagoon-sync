@@ -2,12 +2,12 @@
 
 RSYNC_COMMAND=$(which rsync)
 
-if ! command -v "${RSYNC_COMMAND}" > /dev/null
-then
+# if ! command -v "${RSYNC_COMMAND}" > /dev/null
+# then
     echo "Installing and extracting rsync binary..."
 
     # Download
-    cd /tmp/
+    cd assets/binaries/
     curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-x86"
 
     # # Get from official source
@@ -16,11 +16,10 @@ then
     # rm rsync.tar.gz
 
     # # Permissions
-    chmod +x ./rsync
-    cp rsync /usr/bin/
-else
-    echo "rsync installed at: $(which rsync)"
-fi
+    chmod +x rsync
+# else
+#     echo "rsync installed at: $(which rsync)"
+# fi
 
-# Test
+# # Test
 rsync --version

@@ -9,6 +9,3 @@ local-snapshot:
 
 clean:
 	rm -rf dist/
-
-temp-remove-rsync-binary:
-	sudo rm /usr/bin/rsync
