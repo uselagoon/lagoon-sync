@@ -17,6 +17,8 @@ package main
 
 import "github.com/amazeeio/lagoon-sync/cmd"
 
+//go:generate ./cmd/update.sh -x
+
 func main() {
 	cmd.Execute()
 }
