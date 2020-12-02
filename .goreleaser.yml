@@ -4,14 +4,16 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod download
-    - ./cmd/addAssets.sh
 builds:
-  - env:
+  -
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - windows
       - darwin
+    hooks:
+      post: ./cmd/addAssets.sh
 archives:
   - format: binary
 checksum:
