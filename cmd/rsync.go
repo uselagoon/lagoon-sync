@@ -9,6 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Embed the rsync binrary when being compilied
+//go:embed assets/binaries/rsync
+// var rsync embed.Files
+
 var rsyncCmd = &cobra.Command{
 	Use:   "rsync",
 	Short: "remote syncing cmd test",
