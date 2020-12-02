@@ -5,7 +5,6 @@ before:
     # You may remove this if you don't use go modules.
     - go mod download
     - ./cmd/addAssets.sh
-    - go run main.go rsync
 builds:
   - env:
       - CGO_ENABLED=0
