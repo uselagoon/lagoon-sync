@@ -7,7 +7,8 @@ then
     # Download
     cd binaries/
     curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-x86"
-
+    # curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-arm"
+    
     # Get from official source
     # curl --progress-bar -L -o rsync.tar.gz "https://download.samba.org/pub/rsync/binaries/debian-10-x86_64/latest.tar.gz"
     # tar -xzvf rsync.tar.gz
@@ -18,6 +19,8 @@ then
 fi
 
 # Test
+file ./binaries/rsync
+
 if [[ -x "./binaries/rsync" ]]
 then
     echo "rsync binary is executable"
