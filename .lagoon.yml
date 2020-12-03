@@ -60,6 +60,20 @@ lagoon-sync:
           password: "drupal"
           port: "3306"
           database: "drupal"
+    mongodb:
+      config:
+        hostname:
+        username:
+        password:
+        port:
+        database:
+      local:
+        config:
+          hostname:
+          username:
+          password:
+          port:
+          database:
     mariadb:
       config:
         hostname: "$MARIADB_HOST"
