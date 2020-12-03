@@ -1,5 +1,5 @@
 pre-build:
-	./cmd/addAssets.sh
+	# ./cmd/addAssets.sh
 	go-embed -compress=false -input binaries/ -output assets/main.go
 
 build: pre-build
