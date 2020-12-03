@@ -17,6 +17,8 @@ package main
 
 import "github.com/amazeeio/lagoon-sync/cmd"
 
+//go:generate make pre-build
+
 func main() {
 	cmd.Execute()
 }

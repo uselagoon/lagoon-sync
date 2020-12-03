@@ -4,7 +4,7 @@ before:
   hooks:
     # download mods to local cache
     - go mod download
-    - go generate make pre-build
+    - go generate
 builds:
   -
     env:
