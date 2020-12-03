@@ -3,15 +3,13 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os/exec"
 
+	"github.com/amazeeio/lagoon-sync/assets"
 	"github.com/spf13/cobra"
 )
-
-// Embed the rsync binrary when being compilied
-//go:embed assets/binaries/rsync
-// var rsync embed.Files
 
 var rsyncCmd = &cobra.Command{
 	Use:   "rsync",
@@ -23,8 +21,13 @@ var rsyncCmd = &cobra.Command{
 }
 
 func testLocalRsync() {
+	err := ioutil.WriteFile("/tmp/rsync", assets.GetRSYNC(), 0774)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Test running local rsync binary
-	localRsyncCommand := exec.Command("./assets/binaries/rsync", "--version")
+	localRsyncCommand := exec.Command("/tmp/rsync", "--version")
 	// stdin, err := local_rsync_command.StdinPipe()
 	// if err != nil {
 	// 	log.Fatal(err)

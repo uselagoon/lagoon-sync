@@ -22,3 +22,5 @@ vendor/
 
 # Release output (goreleaser)
 dist/
+assets/*.go
+builds/

@@ -1,25 +1,26 @@
 #!/bin/bash
 
-RSYNC_COMMAND=$(which rsync)
-
-# if ! command -v "${RSYNC_COMMAND}" > /dev/null
-# then
+if [ ! -f binaries/rsync ];
+then
     echo "Installing and extracting rsync binary..."
 
     # Download
-    cd assets/binaries/
+    cd binaries/
     curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-x86"
 
-    # # Get from official source
+    # Get from official source
     # curl --progress-bar -L -o rsync.tar.gz "https://download.samba.org/pub/rsync/binaries/debian-10-x86_64/latest.tar.gz"
     # tar -xzvf rsync.tar.gz
     # rm rsync.tar.gz
 
-    # # Permissions
+    # Permissions
     chmod +x rsync
-# else
-#     echo "rsync installed at: $(which rsync)"
-# fi
+fi
 
-# # Test
-rsync --version
+# Test
+if [[ -x "./binaries/rsync" ]]
+then
+    echo "rsync binary is executable"
+else
+    echo "rsync binary can't execute - check OS/Arch version, running x86 and not ARM CPU"
+fi
