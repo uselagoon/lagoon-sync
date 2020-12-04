@@ -34,24 +34,32 @@ var syncCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+		if err != nil {
+			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
+			return
+		}
+
+		// If no project flag is given, find project from env var.
+		if ProjectName == "" {
+			project, exists := os.LookupEnv("LAGOON_PROJECT")
+			if exists {
+				ProjectName = strings.Replace(project, "_", "-", -1)
+			}
+		}
+
 		sourceEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: sourceEnvironmentName,
 		}
 
-		//We assume that the target environment is local if it's not passed as an argument
+		// We assume that the target environment is local if it's not passed as an argument
 		if targetEnvironmentName == "" {
 			targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
 		}
 		targetEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: targetEnvironmentName,
-		}
-
-		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-		if err != nil {
-			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
-			return
 		}
 
 		var lagoonSyncer synchers.Syncer

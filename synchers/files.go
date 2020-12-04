@@ -6,6 +6,17 @@ import (
 	"time"
 )
 
+type BaseFilesSync struct {
+	SyncPath string `yaml:"sync-directory"`
+	Exclude  []string
+}
+
+func (filesConfig *BaseFilesSync) setDefaults() {
+	if filesConfig.SyncPath == "" {
+		filesConfig.SyncPath = "/app/sites/default/files"
+	}
+}
+
 type FilesSyncRoot struct {
 	Config         BaseFilesSync
 	LocalOverrides FilesSyncLocal `yaml:"local"`
@@ -14,11 +25,6 @@ type FilesSyncRoot struct {
 
 type FilesSyncLocal struct {
 	Config BaseFilesSync
-}
-
-type BaseFilesSync struct {
-	SyncPath string `yaml:"sync-directory"`
-	Exclude  []string
 }
 
 // Init related types and functions follow
@@ -32,7 +38,12 @@ func (m FilesSyncPlugin) GetPluginId() string {
 
 func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	filesroot := FilesSyncRoot{}
-	_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &filesroot)
+	filesroot.Config.setDefaults()
+	filesroot.LocalOverrides.Config.SyncPath = "/tmp/storageout"
+
+	if len(root.LagoonSync) != 0 {
+		_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &filesroot)
+	}
 	lagoonSyncer, _ := filesroot.PrepareSyncer()
 	return lagoonSyncer, nil
 }
@@ -41,9 +52,11 @@ func init() {
 	RegisterSyncer(FilesSyncPlugin{})
 }
 
-
 func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	fmt.Println("Config values set:", root)
+
 	return root, nil
 }
 
@@ -61,9 +74,9 @@ func (m FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransf
 		config = m.getEffectiveLocalDetails()
 	}
 	return SyncerTransferResource{
-		Name:        fmt.Sprintf(config.SyncPath),
-		IsDirectory: true,
-		SkipCleanup: true,
+		Name:             fmt.Sprintf(config.SyncPath),
+		IsDirectory:      true,
+		SkipCleanup:      true,
 		ExcludeResources: m.Config.Exclude,
 	}
 }

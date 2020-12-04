@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type BaseDrupalconfigSync struct {
+	SyncPath        string `yaml:"syncpath"`
+	OutputDirectory string
+}
+
 type DrupalconfigSyncRoot struct {
 	Config         BaseDrupalconfigSync
 	LocalOverrides DrupalconfigSyncLocal `yaml:"local"`
@@ -14,11 +19,6 @@ type DrupalconfigSyncRoot struct {
 
 type DrupalconfigSyncLocal struct {
 	Config BaseDrupalconfigSync
-}
-
-type BaseDrupalconfigSync struct {
-	SyncPath        string
-	OutputDirectory string
 }
 
 // Init related types and functions follow
@@ -31,9 +31,14 @@ func (m DrupalConfigSyncPlugin) GetPluginId() string {
 }
 
 func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
-	syncerRoot := FilesSyncRoot{}
-	_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &syncerRoot)
-	lagoonSyncer, _ := syncerRoot.PrepareSyncer()
+	drupalconfig := DrupalconfigSyncRoot{}
+	drupalconfig.Config.SyncPath = "./config/sync"
+	drupalconfig.LocalOverrides.Config.SyncPath = "./config/sync"
+
+	if len(syncerConfigRoot.LagoonSync) != 0 {
+		_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &drupalconfig)
+	}
+	lagoonSyncer, _ := drupalconfig.PrepareSyncer()
 	return lagoonSyncer, nil
 }
 
@@ -45,6 +50,9 @@ func init() {
 
 func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	fmt.Println("Config values set:", root)
+
 	return root, nil
 }
 

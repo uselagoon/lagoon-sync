@@ -6,16 +6,6 @@ import (
 	"time"
 )
 
-type PostgresSyncRoot struct {
-	Config         BasePostgresSync  `yaml:"config"`
-	LocalOverrides PostgresSyncLocal `yaml:"local"`
-	TransferId     string
-}
-
-type PostgresSyncLocal struct {
-	Config BasePostgresSync
-}
-
 type BasePostgresSync struct {
 	DbHostname       string   `yaml:"hostname"`
 	DbUsername       string   `yaml:"username"`
@@ -25,6 +15,33 @@ type BasePostgresSync struct {
 	ExcludeTable     []string `yaml:"exclude-table"`
 	ExcludeTableData []string `yaml:"exclude-table-data"`
 	OutputDirectory  string
+}
+type PostgresSyncRoot struct {
+	Config         BasePostgresSync
+	LocalOverrides PostgresSyncLocal `yaml:"local"`
+	TransferId     string
+}
+
+type PostgresSyncLocal struct {
+	Config BasePostgresSync
+}
+
+func (postgresConfig *BasePostgresSync) setDefaults() {
+	if postgresConfig.DbHostname == "" {
+		postgresConfig.DbHostname = getEnv("AMAZEEIO_DB_HOST", "postgres")
+	}
+	if postgresConfig.DbUsername == "" {
+		postgresConfig.DbUsername = getEnv("AMAZEEIO_DB_USERNAME", "")
+	}
+	if postgresConfig.DbPassword == "" {
+		postgresConfig.DbPassword = getEnv("AMAZEEIO_DB_PASSWORD", "")
+	}
+	if postgresConfig.DbPort == "" {
+		postgresConfig.DbPort = getEnv("AMAZEEIO_DB_PORT", "")
+	}
+	if postgresConfig.DbDatabase == "" {
+		postgresConfig.DbDatabase = getEnv("POSTGRES_DATABASE", "")
+	}
 }
 
 // Init related types and functions follow
@@ -37,9 +54,14 @@ func (m PostgresSyncPlugin) GetPluginId() string {
 }
 
 func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
-	syncerRoot := FilesSyncRoot{}
-	_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &syncerRoot)
-	lagoonSyncer, _ := syncerRoot.PrepareSyncer()
+	postgres := PostgresSyncRoot{}
+	postgres.Config.setDefaults()
+	postgres.LocalOverrides.Config.setDefaults()
+
+	if len(syncerConfigRoot.LagoonSync) != 0 {
+		_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &postgres)
+	}
+	lagoonSyncer, _ := postgres.PrepareSyncer()
 	return lagoonSyncer, nil
 }
 
@@ -47,11 +69,13 @@ func init() {
 	RegisterSyncer(PostgresSyncPlugin{})
 }
 
-
 // Sync related functions below
 
 func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	fmt.Println("Config values set:", root)
+
 	return root, nil
 }
 
@@ -70,7 +94,7 @@ func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncComma
 	}
 
 	return SyncCommand{
-		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump --no-owner -h%s -U%s -p%s %s %s %s > %s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, tablesToExclude, tablesWhoseDataToExclude, m.DbDatabase, transferResource.Name),
+		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump -h%s -U%s -p%s -d%s %s %s -Fc -w -f%s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, m.DbDatabase, tablesToExclude, tablesWhoseDataToExclude, transferResource.Name),
 	}
 }
 
@@ -78,7 +102,7 @@ func (m PostgresSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
 	l := m.getEffectiveLocalDetails()
 	transferResource := m.GetTransferResource(environment)
 	return SyncCommand{
-		command: fmt.Sprintf("pg_restore --no-privileges --no-owner -U%s -d%s --clean < %s", l.DbUsername, l.DbDatabase, transferResource.Name),
+		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_restore -c -x -w -h%s -d%s -p%s -U%s %s", l.DbPassword, l.DbHostname, l.DbDatabase, l.DbPort, l.DbUsername, transferResource.Name),
 	}
 }
 
