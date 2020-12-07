@@ -19,8 +19,8 @@ type BaseMariaDbSync struct {
 }
 
 func getEnv(key string, defaultVal string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
+	if _, exists := os.LookupEnv(key); exists {
+		return key
 	}
 	return defaultVal
 }
@@ -28,19 +28,19 @@ func getEnv(key string, defaultVal string) string {
 func (mariaConfig *BaseMariaDbSync) setDefaults() {
 	// If no values from config file, set some defaults (both remote and local)
 	if mariaConfig.DbHostname == "" {
-		mariaConfig.DbHostname = getEnv("AMAZEEIO_DB_HOST", "MARIADB_HOST")
+		mariaConfig.DbHostname = "$MARIADB_HOST"
 	}
 	if mariaConfig.DbUsername == "" {
-		mariaConfig.DbUsername = getEnv("AMAZEEIO_DB_USERNAME", "MARIADB_USERNAME")
+		mariaConfig.DbUsername = "$MARIADB_USERNAME"
 	}
 	if mariaConfig.DbPassword == "" {
-		mariaConfig.DbPassword = getEnv("AMAZEEIO_DB_PASSWORD", "MARIADB_PASSWORD")
+		mariaConfig.DbPassword = "$MARIADB_PASSWORD"
 	}
 	if mariaConfig.DbPort == "" {
-		mariaConfig.DbPort = getEnv("AMAZEEIO_DB_PORT", "MARIADB_PORT")
+		mariaConfig.DbPort = "$MARIADB_PORT"
 	}
 	if mariaConfig.DbDatabase == "" {
-		mariaConfig.DbDatabase = getEnv("MARIADB_DATABASE", "")
+		mariaConfig.DbDatabase = "$MARIADB_DATABASE"
 	}
 }
 
@@ -86,9 +86,6 @@ func init() {
 
 func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-
-	fmt.Println("Config values set:", root)
-
 	return root, nil
 }
 

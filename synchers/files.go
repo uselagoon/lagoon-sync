@@ -54,9 +54,6 @@ func init() {
 
 func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-
-	fmt.Println("Config values set:", root)
-
 	return root, nil
 }
 

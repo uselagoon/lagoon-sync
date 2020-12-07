@@ -28,19 +28,19 @@ type PostgresSyncLocal struct {
 
 func (postgresConfig *BasePostgresSync) setDefaults() {
 	if postgresConfig.DbHostname == "" {
-		postgresConfig.DbHostname = getEnv("AMAZEEIO_DB_HOST", "postgres")
+		postgresConfig.DbHostname = "$AMAZEEIO_DB_HOST"
 	}
 	if postgresConfig.DbUsername == "" {
-		postgresConfig.DbUsername = getEnv("AMAZEEIO_DB_USERNAME", "")
+		postgresConfig.DbUsername = "$AMAZEEIO_DB_USERNAME"
 	}
 	if postgresConfig.DbPassword == "" {
-		postgresConfig.DbPassword = getEnv("AMAZEEIO_DB_PASSWORD", "")
+		postgresConfig.DbPassword = "$AMAZEEIO_DB_PASSWORD"
 	}
 	if postgresConfig.DbPort == "" {
-		postgresConfig.DbPort = getEnv("AMAZEEIO_DB_PORT", "")
+		postgresConfig.DbPort = "$AMAZEEIO_DB_PORT"
 	}
 	if postgresConfig.DbDatabase == "" {
-		postgresConfig.DbDatabase = getEnv("POSTGRES_DATABASE", "")
+		postgresConfig.DbDatabase = "$POSTGRES_DATABASE"
 	}
 }
 
@@ -73,9 +73,6 @@ func init() {
 
 func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-
-	fmt.Println("Config values set:", root)
-
 	return root, nil
 }
 
