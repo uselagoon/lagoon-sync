@@ -32,8 +32,10 @@ func (m DrupalConfigSyncPlugin) GetPluginId() string {
 
 func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	drupalconfig := DrupalconfigSyncRoot{}
-	drupalconfig.Config.SyncPath = "./config/sync"
-	drupalconfig.LocalOverrides.Config.SyncPath = "./config/sync"
+
+	// unmarshal environment variables as defaults
+	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &drupalconfig)
+	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &drupalconfig.LocalOverrides)
 
 	if len(syncerConfigRoot.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &drupalconfig)

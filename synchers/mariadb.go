@@ -2,7 +2,6 @@ package synchers
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 )
@@ -16,13 +15,6 @@ type BaseMariaDbSync struct {
 	IgnoreTable     []string `yaml:"ignore-table"`
 	IgnoreTableData []string `yaml:"ignore-table-data"`
 	OutputDirectory string
-}
-
-func getEnv(key string, defaultVal string) string {
-	if _, exists := os.LookupEnv(key); exists {
-		return key
-	}
-	return defaultVal
 }
 
 func (mariaConfig *BaseMariaDbSync) setDefaults() {
@@ -65,8 +57,10 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
-	mariadb.Config.setDefaults()
-	mariadb.LocalOverrides.Config.setDefaults()
+
+	// unmarshal environment variables as defaults
+	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb)
+	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb.LocalOverrides)
 
 	// if yaml config is there then unmarshall into struct and override default values
 	if len(root.LagoonSync) != 0 {
@@ -74,7 +68,6 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	}
 
 	lagoonSyncer, _ := mariadb.PrepareSyncer()
-
 	return lagoonSyncer, nil
 }
 

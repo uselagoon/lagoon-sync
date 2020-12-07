@@ -55,8 +55,10 @@ func (m PostgresSyncPlugin) GetPluginId() string {
 
 func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	postgres := PostgresSyncRoot{}
-	postgres.Config.setDefaults()
-	postgres.LocalOverrides.Config.setDefaults()
+
+	// unmarshal environment variables as defaults
+	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &postgres)
+	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &postgres.LocalOverrides)
 
 	if len(syncerConfigRoot.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &postgres)
