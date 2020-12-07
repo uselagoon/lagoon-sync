@@ -83,25 +83,53 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 }
 
 func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool) error {
+	log.Println("Beginning file transfer logic")
 
+	// If we're transferring to the same resource, we can skip this whole process.
 	if sourceEnvironment.EnvironmentName == targetEnvironment.EnvironmentName {
 		log.Println("Source and target environments are the same, skipping transfer")
 		return nil
 	}
 
-	log.Println("Beginning file transfer logic")
+	//For now, we assert that _one_ of the environments _has_ to be local
+	executeRsyncRemotelyOnTarget :=false
+	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
+		//TODO: if we have multiple remotes, we need to treat the target environment as local, and run the rysync from there ...
+		log.Println("Note - since we're syncing across two remote systems, we're pulling the files _to_ the target")
+		executeRsyncRemotelyOnTarget = true
+	}
+
+	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+		return errors.New("In order to rsync, at least _one_ of the environments must be remote")
+	}
 
 	sourceEnvironmentName := syncer.GetTransferResource(sourceEnvironment).Name
 	if syncer.GetTransferResource(sourceEnvironment).IsDirectory == true {
 		sourceEnvironmentName += "/"
 	}
+
+	// lagoonRsyncService keeps track of precisely where we're going to be rsyncing from.
+	lagoonRsyncService := "cli"
+	// rsyncRemoteSystemUsername is used by the rsync command to set up the ssh tunnel
+	rsyncRemoteSystemUsername := ""
+
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		sourceEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", sourceEnvironment.getOpenshiftProjectName(), sourceEnvironmentName)
+		//sourceEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", sourceEnvironment.getOpenshiftProjectName(), sourceEnvironmentName)
+		sourceEnvironmentName = fmt.Sprintf(":%s", sourceEnvironmentName)
+		rsyncRemoteSystemUsername = sourceEnvironment.getOpenshiftProjectName()
+		if sourceEnvironment.ServiceName != "" {
+			lagoonRsyncService = sourceEnvironment.ServiceName
+		}
 	}
 
 	targetEnvironmentName := syncer.GetTransferResource(targetEnvironment).Name
-	if targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		targetEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", targetEnvironment.getOpenshiftProjectName(), targetEnvironmentName)
+	if targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && executeRsyncRemotelyOnTarget == false {
+		//targetEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", targetEnvironment.getOpenshiftProjectName(), targetEnvironmentName)
+		targetEnvironmentName = fmt.Sprintf(":%s", targetEnvironmentName)
+		rsyncRemoteSystemUsername = targetEnvironment.getOpenshiftProjectName()
+		if targetEnvironment.ServiceName != "" {
+			lagoonRsyncService = targetEnvironment.ServiceName
+		}
 	}
 
 	syncExcludes := " "
@@ -109,17 +137,21 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		syncExcludes += fmt.Sprintf("--exclude=%v ", e)
 	}
 
-	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222\" %v -a %s %s",
+	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+		rsyncRemoteSystemUsername,
+		lagoonRsyncService,
 		syncExcludes,
 		sourceEnvironmentName,
 		targetEnvironmentName)
 
+	if executeRsyncRemotelyOnTarget {
+		execString = generateRemoteCommand(targetEnvironment, execString)
+	}
+
 	log.Printf("Running the following for target :- %s", execString)
 
 	if !dryRun {
-		err, _, errstring := Shellout(execString)
-
-		if err != nil {
+		if err, _, errstring := Shellout(execString); err != nil {
 			log.Println(errstring)
 			return err
 		}
@@ -172,7 +204,6 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
 
 	transferResourceName := transferResouce.Name
 
-
 	execString := fmt.Sprintf("rm -r %s", transferResourceName)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
@@ -191,11 +222,8 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
 		}
 	}
 
-
-
 	return nil
 }
-
 
 func generateNoOpSyncCommand() SyncCommand {
 	return SyncCommand{
@@ -205,9 +233,9 @@ func generateNoOpSyncCommand() SyncCommand {
 
 func generateSyncCommand(commandString string, substitutions map[string]interface{}) SyncCommand {
 	return SyncCommand{
-		command: commandString,
+		command:       commandString,
 		substitutions: substitutions,
-		NoOp: false,
+		NoOp:          false,
 	}
 }
 
