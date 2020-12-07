@@ -1,10 +1,13 @@
 DIR := $(PWD)
+GIT_ORIGIN=origin
+
 GOCMD=go
 GOPATH:=$(shell $(GOCMD) env GOPATH 2> /dev/null)
 GOOS:=$(shell $(GOCMD) env GOOS 2> /dev/null)
 GOARCH:=$(shell $(GOCMD) env GOARCH 2> /dev/null)
 
 VERSION=$(shell git describe --tags --abbrev=0)
+DATE=$(shell date +%FT%T%z)
 VERSION_FORMATTED=$(shell git describe --tags --abbrev=0 | sed 's/\./-/g')
 
 # Prep
@@ -33,21 +36,18 @@ release-test: pre-build
 #https://github.com/fmahnke/shell-semver
 release-patch: release-test
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags)))
-	$(VERSION)
-	# git tag $(VERSION)
-	# git push $(GIT_ORIGIN) main --tags
+	git tag $(VERSION)
+	git push $(GIT_ORIGIN) main --tags
 
 release-minor: release-test
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -m $(shell git describe --abbrev=0 --tags)))
-	$(VERSION)
-	# git tag $(VERSION)
-	# git push $(GIT_ORIGIN) main --tags
+	git tag $(VERSION)
+	git push $(GIT_ORIGIN) main --tags
 
 release-major: release-test
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -M $(shell git describe --abbrev=0 --tags)))
-	$(VERSION)
-	# git tag $(VERSION)
-	# git push $(GIT_ORIGIN) main --tags
+	git tag $(VERSION)
+	git push $(GIT_ORIGIN) main --tags
 
 # Clean
 clean:
