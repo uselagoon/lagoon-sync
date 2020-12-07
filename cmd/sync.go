@@ -105,7 +105,6 @@ func confirmPrompt(message string) (bool, error) {
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.PersistentFlags().StringVarP(&ProjectName, "project-name", "p", "", "The Lagoon project name of the remote system")
-	// syncCmd.MarkPersistentFlagRequired("project-name")
 	syncCmd.PersistentFlags().StringVarP(&sourceEnvironmentName, "source-environment-name", "e", "", "The Lagoon environment name of the source system")
 	syncCmd.MarkPersistentFlagRequired("source-environment-name")
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
