@@ -32,19 +32,19 @@ release-test: pre-build
 
 #https://github.com/fmahnke/shell-semver
 release-patch: release-test
-	$(eval VERSION=$(shell ${PWD}/increment_ver.sh -p $(shell git describe --abbrev=0 --tags)))
+	$(eval VERSION=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags)))
 	$(VERSION)
 	# git tag $(VERSION)
 	# git push $(GIT_ORIGIN) main --tags
 
 release-minor: release-test
-	$(eval VERSION=$(shell ${PWD}/increment_ver.sh -m $(shell git describe --abbrev=0 --tags)))
+	$(eval VERSION=$(shell ${PWD}/increment_version.sh -m $(shell git describe --abbrev=0 --tags)))
 	$(VERSION)
 	# git tag $(VERSION)
 	# git push $(GIT_ORIGIN) main --tags
 
 release-major: release-test
-	$(eval VERSION=$(shell ${PWD}/increment_ver.sh -M $(shell git describe --abbrev=0 --tags)))
+	$(eval VERSION=$(shell ${PWD}/increment_version.sh -M $(shell git describe --abbrev=0 --tags)))
 	$(VERSION)
 	# git tag $(VERSION)
 	# git push $(GIT_ORIGIN) main --tags
