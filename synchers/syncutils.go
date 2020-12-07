@@ -95,8 +95,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	executeRsyncRemotelyOnTarget :=false
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		//TODO: if we have multiple remotes, we need to treat the target environment as local, and run the rysync from there ...
+		log.Println("Note - since we're syncing across two remote systems, we're pulling the files _to_ the target")
 		executeRsyncRemotelyOnTarget = true
-		//return errors.New("In order to rsync, at least _one_ of the environments must be local")
 	}
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -107,7 +107,6 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	if syncer.GetTransferResource(sourceEnvironment).IsDirectory == true {
 		sourceEnvironmentName += "/"
 	}
-
 
 	// lagoonRsyncService keeps track of precisely where we're going to be rsyncing from.
 	lagoonRsyncService := "cli"
