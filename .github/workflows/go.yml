@@ -1,4 +1,4 @@
-name: Go
+name: Bulid, sign and release binaries
 
 on:
   workflow_dispatch:

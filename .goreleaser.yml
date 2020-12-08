@@ -2,12 +2,13 @@
 # Make sure to check the documentation at http://goreleaser.com
 before:
   hooks:
-    # You may remove this if you don't use go modules.
+    # download mods to local cache
     - go mod download
-    # you may remove this if you don't need go generate
-    # - go generate ./...
+    - go get github.com/pyros2097/go-embed
+    - make pre-build
 builds:
-  - env:
+  -
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
