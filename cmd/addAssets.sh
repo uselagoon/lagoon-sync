@@ -8,11 +8,6 @@ then
     cd binaries/
     curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-x86"
     # curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-arm"
-    
-    # Get from official source
-    # curl --progress-bar -L -o rsync.tar.gz "https://download.samba.org/pub/rsync/binaries/debian-10-x86_64/latest.tar.gz"
-    # tar -xzvf rsync.tar.gz
-    # rm rsync.tar.gz
 
     # Permissions
     chmod +x rsync
