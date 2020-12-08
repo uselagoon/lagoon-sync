@@ -18,7 +18,7 @@ type BaseMariaDbSync struct {
 }
 
 func (mariaConfig *BaseMariaDbSync) setDefaults() {
-	// If no values from config file, set some defaults (both remote and local)
+	// If no values from config files, set some expected defaults
 	if mariaConfig.DbHostname == "" {
 		mariaConfig.DbHostname = "$MARIADB_HOST"
 	}
@@ -57,6 +57,8 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
+	mariadb.Config.setDefaults()
+	mariadb.LocalOverrides.Config.setDefaults()
 
 	// unmarshal environment variables as defaults
 	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb)
