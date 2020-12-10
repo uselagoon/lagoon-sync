@@ -71,20 +71,20 @@ release-test: pre-build
 release-patch: release-test
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags)))
 	printf $(VERSION) > .version
-	git add .version & git commit -m  "Bumping version"
+	git add .version && git commit -m  "Bumping version"
 	git tag $(VERSION)
 	git push $(GIT_ORIGIN) main --tags
 
 release-minor: release-test
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -m $(shell git describe --abbrev=0 --tags)))
 	printf $(VERSION) > .version
-	git add .version & git commit -m  "Bumping version"
+	git add .version && git commit -m  "Bumping version"
 	git tag $(VERSION)
 	git push $(GIT_ORIGIN) main --tags
 
 release-major: release-test
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -M $(shell git describe --abbrev=0 --tags)))
 	printf $(VERSION) > .version
-	git add .version & git commit -m  "Bumping version"
+	git add .version && git commit -m  "Bumping version"
 	git tag $(VERSION)
 	git push $(GIT_ORIGIN) main --tags
