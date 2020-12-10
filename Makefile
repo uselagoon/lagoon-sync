@@ -73,7 +73,7 @@ release-patch:
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
 	printf $(VERSION) > ./binaries/.version
-	git add /binaries/.version && git commit -m "Bumping version"
+	git add ./binaries/.version && git commit -m "Bumping version"
 	git tag $(VERSION) -f	
 	git push $(GIT_ORIGIN) main --tags
 
@@ -82,7 +82,7 @@ release-minor:
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
 	printf $(VERSION) > ./binaries/.version
-	git add /binaries/.version && git commit -m "Bumping version"
+	git add ./binaries/.version && git commit -m "Bumping version"
 	git tag $(VERSION) -f	
 	git push $(GIT_ORIGIN) main --tags
 
@@ -91,6 +91,6 @@ release-major:
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
 	printf $(VERSION) > ./binaries/.version
-	git add /binaries/.version && git commit -m "Bumping version"
+	git add ./binaries/.version && git commit -m "Bumping version"
 	git tag $(VERSION) -f	
 	git push $(GIT_ORIGIN) main --tags
