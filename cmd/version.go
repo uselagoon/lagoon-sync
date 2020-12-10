@@ -15,6 +15,6 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version number of lagoon-sync",
 	Long:  "Print the version number of lagoon-sync",
 	Run: func(v *cobra.Command, args []string) {
-		fmt.Println("Lagoon Sync Version: ", rootCmd.Version)
+		fmt.Println("Lagoon Sync Version:", rootCmd.Version)
 	},
 }

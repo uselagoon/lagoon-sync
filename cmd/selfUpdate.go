@@ -83,7 +83,6 @@ var selfUpdateCmd = &cobra.Command{
 	Short: "Update this tool to the latest version",
 	Long:  "Update this tool to the latest version.",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("selfUpdate called")
 		finalDLUrl, err := followRedirectsToActualFile(selfUpdateDownloadURL)
 		if err != nil {
 			log.Printf("There was an error resolving the self-update url : %v", err.Error())
@@ -154,13 +153,11 @@ func doUpdate(url string) error {
 		fmt.Println(err)
 		return err
 	}
-	//fmt.Printf("Parsed checksum: %s\n", checksumRespBody)
 	checkSumOut, err := os.Create("/tmp/checksum.txt")
 	if err != nil {
 		return err
 	}
 	defer checkSumOut.Close()
-	// _, err = io.Copy(checkSumOut, checksumRespBody)
 	_, err = checkSumOut.Write(checksumRespBody)
 
 	// Open Checksum file

@@ -27,7 +27,8 @@ var rootCmd = &cobra.Command{
 
 // Read version from .version, this will get updated automatically on release.
 func Version() string {
-	version, err := ioutil.ReadFile(".version")
+	pwd, _ := os.Getwd()
+	version, err := ioutil.ReadFile(pwd + "/.version")
 	if err != nil {
 		log.Print(err)
 	}
