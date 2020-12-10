@@ -17,17 +17,17 @@ func TestSyncCommand_GetCommand(t *testing.T) {
 		{
 			name: "Tests NoOp error",
 			fields: fields{
-				command: "",
+				command:       "",
 				substitutions: nil,
-				NoOp: true,
+				NoOp:          true,
 			},
 			wantErr: true,
 		},
 		{
-			name:    "No Substitutions",
-			fields:  fields{
-				command: "No Substitutions",
-				NoOp: false,
+			name: "No Substitutions",
+			fields: fields{
+				command:       "No Substitutions",
+				NoOp:          false,
 				substitutions: nil,
 			},
 			want:    "No Substitutions",
@@ -36,13 +36,13 @@ func TestSyncCommand_GetCommand(t *testing.T) {
 		{
 			name: "Simple single substitution",
 			fields: fields{
-				command:       "{{ .thesubstitute }}",
+				command: "{{ .thesubstitute }}",
 				substitutions: map[string]interface{}{
 					"thesubstitute": "the value",
 				},
-				NoOp:          false,
+				NoOp: false,
 			},
-			want: "the value",
+			want:    "the value",
 			wantErr: false,
 		},
 	}

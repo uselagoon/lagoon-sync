@@ -242,7 +242,7 @@ func doUpdate(url string) error {
 		fmt.Printf("Verifcation error: %s", err)
 		return err
 	}
-	// fmt.Println("Signature verified OK")
+
 	for _, identity := range entity.Identities {
 		fmt.Fprintf(os.Stderr, "Good signature from \"%s\"\n", identity.UserId.Name)
 	}
