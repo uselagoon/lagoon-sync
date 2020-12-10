@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/spf13/cobra"
-
+	"github.com/amazeeio/lagoon-sync/assets"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -27,12 +26,7 @@ var rootCmd = &cobra.Command{
 
 // Read version from .version, this will get updated automatically on release.
 func Version() string {
-	pwd, _ := os.Getwd()
-	version, err := ioutil.ReadFile(pwd + "/.version")
-	if err != nil {
-		log.Print(err)
-	}
-
+	version := assets.GetVERSION()
 	return string(version)
 }
 
