@@ -35,7 +35,6 @@ func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoo
 
 	// unmarshal environment variables as defaults
 	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &drupalconfig)
-	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &drupalconfig.LocalOverrides)
 
 	if len(syncerConfigRoot.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &drupalconfig)
