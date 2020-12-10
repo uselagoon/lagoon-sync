@@ -67,7 +67,7 @@ local-build-darwin: pre-build
 release-test: pre-build
 	goreleaser release --skip-publish --skip-sign --rm-dist
 
-#https://github.com/fmahnke/shell-semver
+# Ref: https://github.com/fmahnke/shell-semver
 release-patch:
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags)))
 	git tag $(VERSION)
