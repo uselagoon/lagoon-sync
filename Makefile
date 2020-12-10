@@ -43,7 +43,7 @@ test:
 pre-build: embded-assets
 
 reset-version:
-	printf $(VERSION) > .version
+	printf $(VERSION) > ./binaries/.version
 
 
 # Build
@@ -72,7 +72,7 @@ release-patch:
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags)))
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
-	printf $(VERSION) > /binaries/.version
+	printf $(VERSION) > ./binaries/.version
 	git add /binaries/.version && git commit -m "Bumping version"
 	git tag $(VERSION) -f	
 	git push $(GIT_ORIGIN) main --tags
@@ -81,7 +81,7 @@ release-minor:
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -m $(shell git describe --abbrev=0 --tags)))
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
-	printf $(VERSION) > /binaries/.version
+	printf $(VERSION) > ./binaries/.version
 	git add /binaries/.version && git commit -m "Bumping version"
 	git tag $(VERSION) -f	
 	git push $(GIT_ORIGIN) main --tags
@@ -90,7 +90,7 @@ release-major:
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -M $(shell git describe --abbrev=0 --tags)))
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
-	printf $(VERSION) > /binaries/.version
+	printf $(VERSION) > ./binaries/.version
 	git add /binaries/.version && git commit -m "Bumping version"
 	git tag $(VERSION) -f	
 	git push $(GIT_ORIGIN) main --tags
