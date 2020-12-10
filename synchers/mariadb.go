@@ -62,7 +62,6 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 
 	// unmarshal environment variables as defaults
 	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb)
-	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb.LocalOverrides)
 
 	// if yaml config is there then unmarshall into struct and override default values
 	if len(root.LagoonSync) != 0 {
@@ -78,7 +77,6 @@ func init() {
 }
 
 // Sync related functions follow
-
 func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
