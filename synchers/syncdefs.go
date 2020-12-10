@@ -2,8 +2,9 @@ package synchers
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 // consts are defined here
@@ -23,17 +24,17 @@ type Syncer interface {
 }
 
 type SyncCommand struct {
-	command string
+	command       string
 	substitutions map[string]interface{}
-	NoOp bool // NoOp can be set to true if this command performs no operation (in situations like file transfers)
+	NoOp          bool // NoOp can be set to true if this command performs no operation (in situations like file transfers)
 }
 
 // SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()
 type SyncerTransferResource struct {
-	Name        string
-	IsDirectory bool
+	Name             string
+	IsDirectory      bool
 	ExcludeResources []string // ExcludeResources is a string list of any resources that aren't to be included in the transfer
-	SkipCleanup bool
+	SkipCleanup      bool
 }
 
 type Environment struct {
@@ -49,14 +50,14 @@ func (r Environment) getOpenshiftProjectName() string {
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
-	Project    string
-	LagoonSync map[string]interface{} `yaml:"lagoon-sync"`
+	Project             string
+	LagoonSync          map[string]interface{} `yaml:"lagoon-sync"`
+	EnvironmentDefaults map[string]interface{} `yaml:"source-environment-defaults"`
 }
 
 // takes interface, marshals back to []byte, then unmarshals to desired struct
 // from https://github.com/go-yaml/yaml/issues/13#issuecomment-428952604
 func UnmarshalIntoStruct(pluginIn, pluginOut interface{}) error {
-
 	b, err := yaml.Marshal(pluginIn)
 	if err != nil {
 		return err

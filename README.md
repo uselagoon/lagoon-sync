@@ -6,8 +6,46 @@ Lagoon-sync is part of the Lagoon cli toolset and, indeed, works closely with it
 
 ### Syncing a mariadb database
 
-`lagoon-sync sync --remote-project-name=amazeelabsv4-com --remote-environment-name=dev`git
+`lagoon-sync sync --remote-project-name=amazeelabsv4-com --remote-environment-name=dev`
 
+
+## Config files
+
+Config files that can be used in order of priority:
+- .lagoon-sync-defaults _(no yaml ext neeeded)_
+- .lagoon-sync _(no yaml ext neeeded)_
+- .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_ 
+
+If either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` env vars are set then it will use those paths instead of the main config file - e.g.
+
+```export LAGOON_SYNC_DEFAULTS_PATH="/lagoon/.lagoon-sync-defaults"```
+```export LAGOON_SYNC_PATH="/lagoon/.lagoon-sync"```
+
+
+### Example source-env overrides
+```
+source-environment-defaults:
+  postgres:
+    config:
+      hostname: "$POSTGRES_HOST"
+      username: "$POSTGRES_USERNAME"
+      password: "$POSTGRES_PASSWORD"
+      port: "5432"
+      database: "$POSTGRES_DATABASE"
+  mariadb:
+    config:
+      hostname: "$MARIADB_HOSTNAME"
+      username: "$MARIADB_USERNAME"
+      password: "$MARIADB_PASSWORD"
+      port: "$MARIADB_PORT"
+      database: "$MARIADB_DATABASE"
+  files:
+    config:
+      sync-directory: "/app/web/sites/default/files"
+  drupalconfig:
+    config:
+      syncpath: "./config/sync"
+```
 
 ## Contributing
 

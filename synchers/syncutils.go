@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"text/template"
 
@@ -269,4 +270,11 @@ func Shellout(command string) (error, string, string) {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	return err, stdout.String(), stderr.String()
+}
+
+func getEnv(key string, defaultVal string) string {
+	if _, exists := os.LookupEnv(key); exists {
+		return key
+	}
+	return defaultVal
 }

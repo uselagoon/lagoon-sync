@@ -17,6 +17,25 @@ type BaseMariaDbSync struct {
 	OutputDirectory string
 }
 
+func (mariaConfig *BaseMariaDbSync) setDefaults() {
+	// If no values from config files, set some expected defaults
+	if mariaConfig.DbHostname == "" {
+		mariaConfig.DbHostname = "$MARIADB_HOST"
+	}
+	if mariaConfig.DbUsername == "" {
+		mariaConfig.DbUsername = "$MARIADB_USERNAME"
+	}
+	if mariaConfig.DbPassword == "" {
+		mariaConfig.DbPassword = "$MARIADB_PASSWORD"
+	}
+	if mariaConfig.DbPort == "" {
+		mariaConfig.DbPort = "$MARIADB_PORT"
+	}
+	if mariaConfig.DbDatabase == "" {
+		mariaConfig.DbDatabase = "$MARIADB_DATABASE"
+	}
+}
+
 type MariadbSyncLocal struct {
 	Config BaseMariaDbSync
 }
@@ -38,7 +57,18 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
-	_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &mariadb)
+	mariadb.Config.setDefaults()
+	mariadb.LocalOverrides.Config.setDefaults()
+
+	// unmarshal environment variables as defaults
+	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb)
+	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb.LocalOverrides)
+
+	// if yaml config is there then unmarshall into struct and override default values
+	if len(root.LagoonSync) != 0 {
+		_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &mariadb)
+	}
+
 	lagoonSyncer, _ := mariadb.PrepareSyncer()
 	return lagoonSyncer, nil
 }
@@ -76,12 +106,12 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	return SyncCommand{
 		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }}"),
 		substitutions: map[string]interface{}{
-			"hostname": m.DbHostname,
-			"username": m.DbUsername,
-			"password": m.DbPassword,
-			"port": m.DbPort,
-			"tablesToIgnore": tablesWhoseDataToIgnore,
-			"database": m.DbDatabase,
+			"hostname":         m.DbHostname,
+			"username":         m.DbUsername,
+			"password":         m.DbPassword,
+			"port":             m.DbPort,
+			"tablesToIgnore":   tablesWhoseDataToIgnore,
+			"database":         m.DbDatabase,
 			"transferResource": transferResource.Name,
 		},
 	}
@@ -95,18 +125,18 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 	transferResource := m.GetTransferResource(targetEnvironment)
 	return generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < {{ .transferResource }}",
 		map[string]interface{}{
-			"hostname": l.DbHostname,
-			"username": l.DbUsername,
-			"password": l.DbPassword,
-			"port": l.DbPort,
-			"database": l.DbDatabase,
+			"hostname":         l.DbHostname,
+			"username":         l.DbUsername,
+			"password":         l.DbPassword,
+			"port":             l.DbPort,
+			"database":         l.DbDatabase,
 			"transferResource": transferResource.Name,
 		})
 }
 
 func (m MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
-		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql", m.GetOutputDirectory(),m.TransferId),
+		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: false}
 }
 

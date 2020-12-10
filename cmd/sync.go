@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/amazeeio/lagoon-sync/synchers"
 	"github.com/manifoldco/promptui"
@@ -33,24 +34,32 @@ var syncCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+		if err != nil {
+			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
+			return
+		}
+
+		// If no project flag is given, find project from env var.
+		if ProjectName == "" {
+			project, exists := os.LookupEnv("LAGOON_PROJECT")
+			if exists {
+				ProjectName = strings.Replace(project, "_", "-", -1)
+			}
+		}
+
 		sourceEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: sourceEnvironmentName,
 		}
 
-		//We assume that the target environment is local if it's not passed as an argument
+		// We assume that the target environment is local if it's not passed as an argument
 		if targetEnvironmentName == "" {
 			targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
 		}
 		targetEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: targetEnvironmentName,
-		}
-
-		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-		if err != nil {
-			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
-			return
 		}
 
 		var lagoonSyncer synchers.Syncer
@@ -95,12 +104,11 @@ func confirmPrompt(message string) (bool, error) {
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
-	syncCmd.PersistentFlags().StringVar(&ProjectName, "project-name", "", "The Lagoon project name of the remote system")
-	syncCmd.MarkPersistentFlagRequired("project-name")
-	syncCmd.PersistentFlags().StringVar(&sourceEnvironmentName, "source-environment-name", "", "The Lagoon environment name of the source system")
+	syncCmd.PersistentFlags().StringVarP(&ProjectName, "project-name", "p", "", "The Lagoon project name of the remote system")
+	syncCmd.PersistentFlags().StringVarP(&sourceEnvironmentName, "source-environment-name", "e", "", "The Lagoon environment name of the source system")
 	syncCmd.MarkPersistentFlagRequired("source-environment-name")
-	syncCmd.PersistentFlags().StringVar(&targetEnvironmentName, "target-environment-name", "", "The Lagoon environment name of the source system (defaults to local)")
-	syncCmd.PersistentFlags().StringVar(&configurationFile, "configuration-file", "./.lagoon.yml", "File containing sync configuration. Defaults to ./.lagoon.yml")
+	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
+	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
