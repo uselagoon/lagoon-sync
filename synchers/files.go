@@ -41,7 +41,6 @@ func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) 
 
 	// unmarshal environment variables as defaults
 	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &filesroot)
-	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &filesroot.LocalOverrides)
 
 	if len(root.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &filesroot)

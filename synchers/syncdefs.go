@@ -7,11 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// consts are defined here
-
 const LOCAL_ENVIRONMENT_NAME = "local"
-
-// general interfaces defined below
 
 type Syncer interface {
 	// GetRemoteCommand will return the command to be run on the source system
@@ -40,8 +36,8 @@ type SyncerTransferResource struct {
 type Environment struct {
 	ProjectName     string
 	EnvironmentName string
-	ServiceName string //This is used to determine which Lagoon service we need to rsync
-	RsyncAvailable bool
+	ServiceName     string //This is used to determine which Lagoon service we need to rsync
+	RsyncAvailable  bool
 }
 
 func (r Environment) getOpenshiftProjectName() string {

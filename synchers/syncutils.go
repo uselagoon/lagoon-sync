@@ -93,7 +93,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	}
 
 	//For now, we assert that _one_ of the environments _has_ to be local
-	executeRsyncRemotelyOnTarget :=false
+	executeRsyncRemotelyOnTarget := false
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		//TODO: if we have multiple remotes, we need to treat the target environment as local, and run the rysync from there ...
 		log.Println("Note - since we're syncing across two remote systems, we're pulling the files _to_ the target")

@@ -24,3 +24,7 @@ vendor/
 dist/
 assets/*.go
 builds/
+
+# Config files
+*.lagoon-sync
+*.lagoon-sync-defaults

@@ -5,26 +5,29 @@ import (
 	"log"
 	"os"
 
-	"github.com/spf13/cobra"
-
+	"github.com/amazeeio/lagoon-sync/assets"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var defaultCfgFile string
+var version string
 var cfgFile string
+var defaultCfgFile string
+var lagoonSyncCfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "lagoon-sync",
-	Short: "Sync resources between Lagoon hosted environment",
-	Long: `lagoon-sync is a tools for syncing resources between environments in Lagoon hosted applications.
-This includes files, databases, and configurations.
-`,
-	Version: "v0.0.3",
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Use:     "lagoon-sync",
+	Short:   "Sync resources between Lagoon hosted environment",
+	Long:    `lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications. This includes files, databases, and configurations.`,
+	Version: Version(),
+}
+
+// Read version from .version, this will get updated automatically on release.
+func Version() string {
+	version := assets.GetVERSION()
+	return string(version)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -38,6 +41,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	rootCmd.SetVersionTemplate(Version())
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -80,7 +84,6 @@ func initConfig() {
 	}
 
 	if cfgFile != "" {
-		log.Println("Config file path set: ", cfgFile)
 		if _, err := os.Stat(cfgFile); err == nil {
 			viper.SetConfigName(cfgFile)
 			// Use config file from the flag, default for this is '.lagoon.yml'
