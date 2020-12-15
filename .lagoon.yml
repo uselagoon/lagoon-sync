@@ -1,43 +1,26 @@
 docker-compose-yaml: docker-compose.yml
 
-project: amazeelabsv4_com
-
-tasks:
-  post-rollout:
-    #- run:
-    # name: config import
-    # command: cd web && drush -y cim
-    # service: cli
-    - run:
-        name: db updates
-        command: cd web && drush -y updb --cache-clear=0
-        service: cli
-    - run:
-        name: cache rebuild
-        command: cd web && drush -y cr
-        service: cli
-
-routes:
-  insecure: Redirect
-
-environments:
-  prod:
-    monitoring_urls:
-      - "www.amazeelabs.com"
-    cronjobs:
-      - name: drush cron
-        schedule: "H * * * *" # this will run the cron once per Hour
-        command: drush cron
-        service: cli
-
-    routes:
-      - varnish:
-          - amazeelabs.com
-          - www.amazeelabs.com
-          - blog.amazeelabs.com
-          - events.amazeelabs.com
-          - extreme.amazeelabs.com
-          - status.amazeelabs.com
+source-environment-defaults:
+  postgres:
+    config:
+      hostname: "$POSTGRES_HOST"
+      username: "$POSTGRES_USERNAME"
+      password: "$POSTGRES_PASSWORD"
+      port: "5432"
+      database: "$POSTGRES_DATABASE"
+  mariadb:
+    config:
+      hostname: "$MARIADB_HOST"
+      username: "$MARIADB_USERNAME"
+      password: "$MARIADB_PASSWORD"
+      port: "$MARIADB_PORT"
+      database: "$MARIADB_DATABASE"
+  files:
+    config:
+      sync-directory: "/app/web/sites/default/files"
+  drupalconfig:
+    config:
+      syncpath: "./config/sync"
 
 lagoon-sync:
     postgres:
