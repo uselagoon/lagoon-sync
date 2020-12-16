@@ -27,6 +27,7 @@ clean:
 	$(GOCLEAN)
 	rm -rf dist/
 	rm -rf builds/
+	cp assets/main.default assets/main.go
 
 deps:
 	${GOCMD} get -v
@@ -34,7 +35,7 @@ deps:
 embed-assets:
 	go-embed -compress=false -input binaries/ -output assets/main.go
 
-install: deps embed-assets
+install: clean deps embed-assets
 
 test: 
 	$(GOTEST) -v ./...
