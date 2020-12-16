@@ -27,6 +27,7 @@ clean:
 	$(GOCLEAN)
 	rm -rf dist/
 	rm -rf builds/
+	cp assets/main.default.go assets/main.go
 
 deps:
 	${GOCMD} get -v
