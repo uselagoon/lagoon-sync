@@ -1,28 +1,58 @@
 package prerequisite
 
-import "fmt"
+import (
+	"bytes"
+	"log"
+	"os/exec"
+	"strings"
+)
 
-type SyncPrerequisite struct {
+type rsyncPrerequisite struct {
 	RsyncPath string
 }
 
-func (c *SyncPrerequisite) initialise() error {
+func (c *rsyncPrerequisite) initialise() error {
 	return nil
 }
 
-func (c *SyncPrerequisite) getName() string {
-	return "rsync"
+func (p *rsyncPrerequisite) GetName() string {
+	return "rsync_path"
 }
 
-func (c *SyncPrerequisite) getValue() string {
-	return "/usr/bin/rsync"
+func (p *rsyncPrerequisite) GetValue() bool {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command("bash", "-c", "which rsync")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Print(err)
+	}
+
+	p.RsyncPath = strings.TrimSuffix(stdout.String(), "\n")
+	log.Println("Found rsync path: " + p.RsyncPath)
+
+	return true
 }
 
-func (c *SyncPrerequisite) status() int {
+func (p *rsyncPrerequisite) GatherValue() ([]GatheredPrerequisite, error) {
+	return []GatheredPrerequisite{
+		{
+			Name:   p.GetName(),
+			Value:  p.RsyncPath,
+			Status: p.Status(),
+		},
+	}, nil
+}
+
+func (p *rsyncPrerequisite) Status() int {
+	if p.RsyncPath != "" {
+		return 1
+	}
 	return 0
 }
 
 func init() {
-	fmt.Print("Sdfsfsd")
-	RegisterConfigPrerequisite("rsync-prereq", &SyncPrerequisite{})
+	RegisterConfigPrerequisite("rsync", &rsyncPrerequisite{})
 }

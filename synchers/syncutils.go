@@ -49,6 +49,14 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	return nil
 }
 
+func RunPrerequisiteCommand(remoteEnvironment Environment, syncer Syncer) error {
+	log.Printf("Running prerequisite checks on source environment (%s)", remoteEnvironment.EnvironmentName)
+
+	log.Print(syncer.GetRemoteCommand(remoteEnvironment))
+
+	return nil
+}
+
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool) error {
 
 	log.Printf("Beginning export on source environment (%s)", remoteEnvironment.EnvironmentName)
