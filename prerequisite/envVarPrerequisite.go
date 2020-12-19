@@ -27,7 +27,6 @@ func (e *EnvVarSyncPrerequisite) GetValue() bool {
 		lagoonVersion = "UNSET"
 	}
 	e.LagoonVersion = lagoonVersion
-	// log.Println("Found Lagoon version: " + e.LagoonVersion)
 
 	var lagoonProject = os.Getenv("LAGOON_PROJECT")
 	if lagoonProject == "" {

@@ -19,7 +19,6 @@ type ConfigPrerequisite interface {
 var configPrerequisiteList []ConfigPrerequisite
 
 func RegisterConfigPrerequisite(name string, config ConfigPrerequisite) {
-	log.Println("Attempting to get prerequisite config...")
 	log.Println("Registering: " + name)
 
 	configPrerequisiteList = append(configPrerequisiteList, config)

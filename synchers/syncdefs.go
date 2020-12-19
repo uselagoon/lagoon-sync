@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/amazeeio/lagoon-sync/prerequisite"
 	"gopkg.in/yaml.v2"
 )
 
 const LOCAL_ENVIRONMENT_NAME = "local"
 
 type Syncer interface {
+	GetPrerequisiteCommand(environmnt Environment) SyncCommand
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
@@ -49,6 +51,13 @@ type SyncherConfigRoot struct {
 	Project             string
 	LagoonSync          map[string]interface{} `yaml:"lagoon-sync"`
 	EnvironmentDefaults map[string]interface{} `yaml:"source-environment-defaults"`
+}
+
+type PreRequisiteResponse struct {
+	Version         string                              `json:"version"`
+	LagoonSyncPath  string                              `json:"lagoon-sync-path"`
+	EnvPrerequisite []prerequisite.GatheredPrerequisite `json:"env-config"`
+	RysncPrequisite []prerequisite.GatheredPrerequisite `json:"rsync-config"`
 }
 
 // takes interface, marshals back to []byte, then unmarshals to desired struct

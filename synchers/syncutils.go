@@ -2,6 +2,7 @@ package synchers
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -24,8 +25,14 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 
 func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, dryRun bool) error {
 	var err error
-	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun)
+	err = RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, dryRun)
+	if err != nil {
+		return err
+	}
 
+	os.Exit(1)
+
+	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun)
 	if err != nil {
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
 		return err
@@ -49,11 +56,40 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	return nil
 }
 
-func RunPrerequisiteCommand(remoteEnvironment Environment, syncer Syncer) error {
-	log.Printf("Running prerequisite checks on source environment (%s)", remoteEnvironment.EnvironmentName)
+func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool) error {
+	log.Printf("Running prerequisite checks on %s environment", environment.EnvironmentName)
 
-	log.Print(syncer.GetRemoteCommand(remoteEnvironment))
+	var execString string
 
+	command, commandErr := syncer.GetPrerequisiteCommand(environment).GetCommand()
+	if commandErr != nil {
+		return commandErr
+	}
+
+	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+		execString = command
+	} else {
+		execString = generateRemoteCommand(environment, command)
+	}
+
+	log.Printf("Running the following prerequisite command:- %s", execString)
+
+	if !dryRun {
+		err, responseJson, errstring := Shellout(execString)
+		if err != nil {
+			fmt.Println(errstring)
+			return err
+		}
+
+		data := &PreRequisiteResponse{}
+		json.Unmarshal([]byte(responseJson), &data)
+
+		fmt.Println("Response: %s", data)
+
+		// if data.RysncPrequisite != "" {
+		// 	environment.RsyncAvailable = true
+		// }
+	}
 	return nil
 }
 
@@ -100,7 +136,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		return nil
 	}
 
-	//For now, we assert that _one_ of the environments _has_ to be local
+	// For now, we assert that _one_ of the environments _has_ to be local
 	executeRsyncRemotelyOnTarget := false
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		//TODO: if we have multiple remotes, we need to treat the target environment as local, and run the rysync from there ...
@@ -154,6 +190,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		targetEnvironmentName)
 
 	if executeRsyncRemotelyOnTarget {
+		log.Print("Check if rsync is available")
+
 		execString = generateRemoteCommand(targetEnvironment, execString)
 	}
 

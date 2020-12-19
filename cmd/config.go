@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/amazeeio/lagoon-sync/prerequisite"
 	"github.com/spf13/cobra"
@@ -13,6 +16,7 @@ import (
 
 type Configuration struct {
 	Version           string                              `json:"version"`
+	LagoonSyncPath    string                              `json:"lagoon-sync-path"`
 	EnvPrerequisite   []prerequisite.GatheredPrerequisite `json:"env-config"`
 	RysncPrequisite   []prerequisite.GatheredPrerequisite `json:"rsync-config"`
 	OtherPrerequisite []prerequisite.GatheredPrerequisite `json:"other-config"`
@@ -20,9 +24,9 @@ type Configuration struct {
 }
 
 type SyncConfigFiles struct {
-	ConfigFileActive    string `json:"config-file-active"`
-	DefaultConfigFile   string `json:"default-config-path"`
-	LagoonSynConfigFile string `json:"lagoon-sync-path"`
+	ConfigFileActive             string `json:"config-file-active"`
+	DefaultConfigFile            string `json:"default-config-path"`
+	LagoonSyncDefaultsConfigFile string `json:"lagoon-sync-defaults-path"`
 }
 
 func init() {
@@ -72,15 +76,18 @@ func PrintConfigOut() {
 		}
 	}
 
+	lagoonSyncPath, exists := FindLagoonSyncOnEnv()
+
 	config := Configuration{
 		Version:           rootCmd.Version,
+		LagoonSyncPath:    lagoonSyncPath,
 		RysncPrequisite:   rsyncPrerequisites,
 		EnvPrerequisite:   envVarPrerequisites,
 		OtherPrerequisite: otherPrerequisites,
 		SyncConfigFiles: SyncConfigFiles{
-			ConfigFileActive:    viper.ConfigFileUsed(),
-			DefaultConfigFile:   defaultCfgFile,
-			LagoonSynConfigFile: lagoonSyncCfgFile,
+			ConfigFileActive:             viper.ConfigFileUsed(),
+			DefaultConfigFile:            defaultCfgFile,
+			LagoonSyncDefaultsConfigFile: lagoonSyncCfgFile,
 		},
 	}
 	configJSON, err := json.MarshalIndent(config, "", " ")
@@ -88,4 +95,22 @@ func PrintConfigOut() {
 		log.Fatalf(err.Error())
 	}
 	fmt.Println(string(configJSON))
+}
+
+func FindLagoonSyncOnEnv() (string, bool) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command("bash", "-c", "which lagoon-sync")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Print(err)
+	}
+
+	lagoonPath := strings.TrimSuffix(stdout.String(), "\n")
+	if lagoonPath != "" {
+		return lagoonPath, true
+	}
+	return "", false
 }

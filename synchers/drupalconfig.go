@@ -54,6 +54,10 @@ func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	return root, nil
 }
 
+func (root DrupalconfigSyncRoot) GetPrerequisiteCommand(environment Environment) SyncCommand {
+	return SyncCommand{}
+}
+
 func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
 	transferResource := root.GetTransferResource(environment)
 	return SyncCommand{
