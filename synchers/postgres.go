@@ -79,11 +79,14 @@ func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 	return root, nil
 }
 
-func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment) SyncCommand {
+func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+	lagoonSyncBin := "which lagoon-sync"
+
 	return SyncCommand{
-		command: fmt.Sprintf("./lagoon-sync {{ .config }}"),
+		command: fmt.Sprintf("{{ .bin }} {{ .command }}"),
 		substitutions: map[string]interface{}{
-			"config": "config",
+			"bin":     lagoonSyncBin,
+			"command": command,
 		},
 	}
 }

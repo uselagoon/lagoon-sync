@@ -31,7 +31,7 @@ func (p *rsyncPrerequisite) GetValue() bool {
 	}
 
 	p.RsyncPath = strings.TrimSuffix(stdout.String(), "\n")
-	log.Println("Found rsync path: " + p.RsyncPath)
+	//log.Println("Found rsync path: " + p.RsyncPath)
 
 	return true
 }

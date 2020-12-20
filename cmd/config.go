@@ -35,7 +35,7 @@ func init() {
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Print the onfig that is being used by lagoon-sync",
+	Short: "Print the config that is being used by lagoon-sync",
 	Run: func(v *cobra.Command, args []string) {
 		PrintConfigOut()
 	},

@@ -1,7 +1,5 @@
 package prerequisite
 
-import "log"
-
 type GatheredPrerequisite struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
@@ -19,7 +17,7 @@ type ConfigPrerequisite interface {
 var configPrerequisiteList []ConfigPrerequisite
 
 func RegisterConfigPrerequisite(name string, config ConfigPrerequisite) {
-	log.Println("Registering: " + name)
+	//log.Println("Registering: " + name)
 
 	configPrerequisiteList = append(configPrerequisiteList, config)
 }

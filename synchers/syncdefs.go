@@ -11,7 +11,7 @@ import (
 const LOCAL_ENVIRONMENT_NAME = "local"
 
 type Syncer interface {
-	GetPrerequisiteCommand(environmnt Environment) SyncCommand
+	GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
@@ -40,6 +40,8 @@ type Environment struct {
 	EnvironmentName string
 	ServiceName     string //This is used to determine which Lagoon service we need to rsync
 	RsyncAvailable  bool
+	RsyncPath       string
+	RsyncLocalPath  string
 }
 
 func (r Environment) getOpenshiftProjectName() string {

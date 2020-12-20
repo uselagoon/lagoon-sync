@@ -54,7 +54,7 @@ func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	return root, nil
 }
 
-func (root DrupalconfigSyncRoot) GetPrerequisiteCommand(environment Environment) SyncCommand {
+func (root DrupalconfigSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
 	return SyncCommand{}
 }
 
