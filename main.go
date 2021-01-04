@@ -15,7 +15,9 @@ limitations under the License.
 */
 package main
 
-import "github.com/amazeeio/lagoon-sync/cmd"
+import (
+	"github.com/amazeeio/lagoon-sync/cmd"
+)
 
 func main() {
 	cmd.Execute()

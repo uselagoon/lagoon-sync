@@ -82,6 +82,18 @@ func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 	return root, nil
 }
 
+func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+	lagoonSyncBin := "/tmp/lagoon-sync"
+
+	return SyncCommand{
+		command: fmt.Sprintf("{{ .bin }} {{ .command }} 2> /dev/null"),
+		substitutions: map[string]interface{}{
+			"bin":     lagoonSyncBin,
+			"command": command,
+		},
+	}
+}
+
 func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
 	m := root.Config
 

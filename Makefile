@@ -27,20 +27,20 @@ clean:
 	$(GOCLEAN)
 	rm -rf dist/
 	rm -rf builds/
-	rm -rf assets/*.go
+	cp assets/main.default assets/main.go
 
 deps:
 	${GOCMD} get -v
 
-embded-assets:
+embed-assets:
 	go-embed -compress=false -input binaries/ -output assets/main.go
 
-install: embded-assets deps
+install: clean deps embed-assets
 
 test: 
 	$(GOTEST) -v ./...
 
-pre-build: embded-assets
+pre-build: embed-assets
 
 reset-version:
 	printf $(VERSION) > ./binaries/.version
