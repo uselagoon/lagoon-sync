@@ -14,6 +14,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var shellToUse = "bash"
+
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
 	lagoonConfig := SyncherConfigRoot{}
@@ -24,46 +26,46 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, dryRun bool) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, dryRun bool, verboseSSH bool) error {
 	var err error
-	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, dryRun)
+	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun)
+		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		return err
 	}
 
-	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun)
+	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
-	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun)
+	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
-		return err
-	}
-
-	targetRsyncPath, err := RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, dryRun)
-	if err != nil {
-		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun)
-		return err
-	}
-	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun)
-	if err != nil {
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
-		_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun)
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
 
-	_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun)
-	_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun)
-	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun)
-	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun)
+	targetRsyncPath, err := RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	if err != nil {
+		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
+		return err
+	}
+	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	if err != nil {
+		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
+		_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+		return err
+	}
+
+	_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
+	_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
+	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 
 	return nil
 }
 
-func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool) (string, error) {
+func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool, verboseSSH bool) (string, error) {
 	log.Printf("Running prerequisite checks on %s environment", environment.EnvironmentName)
 
 	var execString string
@@ -76,7 +78,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool)
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = command
 	} else {
-		execString = generateRemoteCommand(environment, command)
+		execString = generateRemoteCommand(environment, command, verboseSSH)
 	}
 
 	log.Printf("Running the following prerequisite command:- %s", execString)
@@ -122,7 +124,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool)
 	return "", nil
 }
 
-func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool) error {
+func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
 
 	log.Printf("Beginning export on source environment (%s)", remoteEnvironment.EnvironmentName)
 
@@ -141,7 +143,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = command
 	} else {
-		execString = generateRemoteCommand(remoteEnvironment, command)
+		execString = generateRemoteCommand(remoteEnvironment, command, verboseSSH)
 	}
 
 	log.Printf("Running the following for source :- %s", execString)
@@ -156,7 +158,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	return nil
 }
 
-func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool) error {
+func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
 	log.Println("Beginning file transfer logic")
 
 	// If we're transferring to the same resource, we can skip this whole process.
@@ -211,7 +213,13 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		syncExcludes += fmt.Sprintf("--exclude=%v ", e)
 	}
 
-	execString := fmt.Sprintf("rsync -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+	verboseSSHArgument := ""
+	if verboseSSH {
+		verboseSSHArgument = "-v"
+	}
+
+	execString := fmt.Sprintf("rsync -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+		verboseSSHArgument,
 		rsyncRemoteSystemUsername,
 		lagoonRsyncService,
 		syncExcludes,
@@ -219,7 +227,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		targetEnvironmentName)
 
 	if executeRsyncRemotelyOnTarget {
-		execString = generateRemoteCommand(targetEnvironment, execString)
+		execString = generateRemoteCommand(targetEnvironment, execString, verboseSSH)
 	}
 
 	log.Printf("Running the following for target :- %s", execString)
@@ -234,7 +242,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	return nil
 }
 
-func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool) error {
+func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
 
 	log.Printf("Beginning import on target environment (%s)", targetEnvironment.EnvironmentName)
 
@@ -252,7 +260,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = command
 	} else {
-		execString = generateRemoteCommand(targetEnvironment, command)
+		execString = generateRemoteCommand(targetEnvironment, command, verboseSSH)
 	}
 
 	log.Printf("Running the following for target :- %s", execString)
@@ -268,7 +276,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 	return nil
 }
 
-func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
+func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
 	transferResouce := syncer.GetTransferResource(environment)
 
 	if transferResouce.SkipCleanup == true {
@@ -281,7 +289,7 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool) error {
 	execString := fmt.Sprintf("rm -r %s", transferResourceName)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		execString = generateRemoteCommand(environment, execString)
+		execString = generateRemoteCommand(environment, execString, verboseSSH)
 	}
 
 	log.Printf("Beginning resource cleanup on %s", environment.EnvironmentName)
@@ -328,17 +336,28 @@ func (c SyncCommand) GetCommand() (string, error) {
 	return output.String(), nil
 }
 
-func generateRemoteCommand(remoteEnvironment Environment, command string) string {
-	return fmt.Sprintf("ssh -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud '%v'",
-		remoteEnvironment.getOpenshiftProjectName(), command)
-}
+func generateRemoteCommand(remoteEnvironment Environment, command string, verboseSSH bool) string {
+	verbose := ""
+	if verboseSSH {
+		verbose = "-v"
+	}
 
-const ShellToUse = "bash"
+	serviceArgument := ""
+	if remoteEnvironment.ServiceName != "" {
+		if remoteEnvironment.ServiceName == "mongodb" {
+			shellToUse = "sh"
+		}
+		serviceArgument = fmt.Sprintf("service=%v", remoteEnvironment.ServiceName)
+	}
+
+	return fmt.Sprintf("ssh %s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud %v '%v'",
+		verbose, remoteEnvironment.getOpenshiftProjectName(), serviceArgument, command)
+}
 
 func Shellout(command string) (error, string, string) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command(ShellToUse, "-c", command)
+	cmd := exec.Command(shellToUse, "-c", command)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -413,7 +432,7 @@ func createRsync(environment Environment, syncer Syncer, lagoonVersion string) (
 	return rsyncDestinationPath, nil
 }
 
-func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool) error {
+func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool, verboseSSH bool) error {
 	log.Printf("Beginning prerequisite resource cleanup on %s", environment.EnvironmentName)
 	if rsyncPath == "" {
 		return nil
@@ -421,7 +440,7 @@ func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool)
 	execString := fmt.Sprintf("rm -r %s", rsyncPath)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		execString = generateRemoteCommand(environment, execString)
+		execString = generateRemoteCommand(environment, execString, verboseSSH)
 	}
 
 	log.Printf("Running the following: %s", execString)

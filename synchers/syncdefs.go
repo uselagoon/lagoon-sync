@@ -38,7 +38,7 @@ type SyncerTransferResource struct {
 type Environment struct {
 	ProjectName     string
 	EnvironmentName string
-	ServiceName     string //This is used to determine which Lagoon service we need to rsync
+	ServiceName     string // This is used to determine which Lagoon service we need to rsync
 	RsyncAvailable  bool
 	RsyncPath       string
 	RsyncLocalPath  string

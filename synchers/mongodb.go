@@ -48,10 +48,21 @@ func init() {
 }
 
 // Sync related functions follow
-
 func (root MongoDbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
+}
+
+func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+	lagoonSyncBin := "/tmp/lagoon-sync"
+
+	return SyncCommand{
+		command: fmt.Sprintf("{{ .bin }} {{ .command }} 2> /dev/null"),
+		substitutions: map[string]interface{}{
+			"bin":     lagoonSyncBin,
+			"command": command,
+		},
+	}
 }
 
 func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
@@ -63,24 +74,23 @@ func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 
 	transferResource := root.GetTransferResource(sourceEnvironment)
 
-	var tablesToIgnore string
-	for _, s := range m.IgnoreTable {
-		tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, s)
-	}
+	// var tablesToIgnore string
+	// for _, s := range m.IgnoreTable {
+	// 	tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, s)
+	// }
 
-	var tablesWhoseDataToIgnore string
-	for _, s := range m.IgnoreTableData {
-		tablesWhoseDataToIgnore += fmt.Sprintf("--ignore-table-data=%s.%s ", m.DbDatabase, s)
-	}
+	// var tablesWhoseDataToIgnore string
+	// for _, s := range m.IgnoreTableData {
+	// 	tablesWhoseDataToIgnore += fmt.Sprintf("--ignore-table-data=%s.%s ", m.DbDatabase, s)
+	// }
 
 	return SyncCommand{
-		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }}"),
+		command: fmt.Sprintf("mongodump --archive={{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"hostname":         m.DbHostname,
 			"username":         m.DbUsername,
 			"password":         m.DbPassword,
 			"port":             m.DbPort,
-			"tablesToIgnore":   tablesWhoseDataToIgnore,
 			"database":         m.DbDatabase,
 			"transferResource": transferResource.Name,
 		},
@@ -93,7 +103,7 @@ func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < {{ .transferResource }}",
+	return generateSyncCommand("mongorestore --archive={{ .transferResource }}",
 		map[string]interface{}{
 			"hostname":         l.DbHostname,
 			"username":         l.DbUsername,
@@ -106,7 +116,7 @@ func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 
 func (m MongoDbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
-		Name:        fmt.Sprintf("%vlagoon_sync_mongodb_%v.sql", m.GetOutputDirectory(), m.TransferId),
+		Name:        fmt.Sprintf("%vlagoon_sync_mongodb_%v.archive", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: false}
 }
 

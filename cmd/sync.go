@@ -14,9 +14,11 @@ import (
 var ProjectName string
 var sourceEnvironmentName string
 var targetEnvironmentName string
+var ServiceName string
 var configurationFile string
 var noCliInteraction bool
 var dryRun bool
+var verboseSSH bool
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
@@ -48,9 +50,15 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
+		// Set service default to 'cli'
+		if ServiceName == "" {
+			ServiceName = getServiceName(moduleName)
+		}
+
 		sourceEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: sourceEnvironmentName,
+			ServiceName:     ServiceName,
 		}
 
 		// We assume that the target environment is local if it's not passed as an argument
@@ -60,6 +68,7 @@ var syncCmd = &cobra.Command{
 		targetEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: targetEnvironmentName,
+			ServiceName:     ServiceName,
 		}
 
 		var lagoonSyncer synchers.Syncer
@@ -81,13 +90,20 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun)
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 
 		if err != nil {
 			log.Printf("There was an error running the sync process: %v", err)
 			return
 		}
 	},
+}
+
+func getServiceName(moduleName string) string {
+	if moduleName == "mongodb" {
+		return "mongodb"
+	}
+	return "cli"
 }
 
 func confirmPrompt(message string) (bool, error) {
@@ -108,8 +124,11 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&sourceEnvironmentName, "source-environment-name", "e", "", "The Lagoon environment name of the source system")
 	syncCmd.MarkPersistentFlagRequired("source-environment-name")
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
+	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
+	syncCmd.PersistentFlags().BoolVar(&verboseSSH, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
+
 }
