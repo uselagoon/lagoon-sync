@@ -79,6 +79,18 @@ func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 	return root, nil
 }
 
+func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+	lagoonSyncBin := "which lagoon-sync"
+
+	return SyncCommand{
+		command: fmt.Sprintf("{{ .bin }} {{ .command }}"),
+		substitutions: map[string]interface{}{
+			"bin":     lagoonSyncBin,
+			"command": command,
+		},
+	}
+}
+
 func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
 	m := root.Config
 	transferResource := root.GetTransferResource(environment)

@@ -58,6 +58,10 @@ func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 	return root, nil
 }
 
+func (root FilesSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+	return SyncCommand{}
+}
+
 func (root FilesSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
 	return generateNoOpSyncCommand()
 }
