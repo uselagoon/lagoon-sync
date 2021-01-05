@@ -67,6 +67,12 @@ local-build-darwin: pre-build
 release-test: pre-build
 	goreleaser release --skip-publish --skip-sign --rm-dist
 
+test-current-tag-version:
+	CURRENT=$(shell git describe --abbrev=0 --tags)
+
+test-increment-version:
+	RELEASE_TAG=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags))
+
 # Ref: https://github.com/fmahnke/shell-semver
 release-patch:
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags)))
