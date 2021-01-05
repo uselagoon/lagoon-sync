@@ -29,6 +29,11 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, dryRun bool, verboseSSH bool) error {
 	var err error
 	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	sourceEnvironment.RsyncPath = sourceRsyncPath
+
+	// fmt.Printf(sourceEnvironment.RsyncPath)
+	// os.Exit(1)
+
 	if err != nil {
 		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		return err
@@ -46,6 +51,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	}
 
 	targetRsyncPath, err := RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	targetEnvironment.RsyncPath = targetRsyncPath
 	if err != nil {
 		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 		return err
@@ -94,10 +100,10 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool,
 		json.Unmarshal([]byte(responseJson), &data)
 
 		// check if environment has rsync
-		if data.RysncPrequisite != nil {
-			environment.RsyncAvailable = true
-			for _, c := range data.RysncPrequisite {
+		if data.RysncPrerequisite != nil {
+			for _, c := range data.RysncPrerequisite {
 				if c.Value != "" {
+					environment.RsyncAvailable = true
 					environment.RsyncPath = c.Value
 				}
 			}
@@ -119,9 +125,22 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool,
 			log.Printf("Rsync path: %s", rsyncPath)
 			return rsyncPath, nil
 		}
+	} else {
+		err, responseJson, errstring := Shellout(execString)
+		if err != nil {
+			fmt.Println(errstring)
+			return "", err
+		}
+
+		data := &PreRequisiteResponse{}
+		json.Unmarshal([]byte(responseJson), &data)
+
+		if data.RysncPrerequisite != nil {
+			log.Printf("Config response: %v", data)
+		}
 	}
 
-	return "", nil
+	return "rsync", nil
 }
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
@@ -218,7 +237,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		verboseSSHArgument = "-v"
 	}
 
-	execString := fmt.Sprintf("rsync -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+	execString := fmt.Sprintf("%v -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+		sourceEnvironment.RsyncPath,
 		verboseSSHArgument,
 		rsyncRemoteSystemUsername,
 		lagoonRsyncService,
@@ -380,6 +400,8 @@ func createRsync(environment Environment, syncer Syncer, lagoonVersion string) (
 		return "Local environment doesn't have rsync", nil
 	}
 
+	log.Printf("Downloading rsync on %v", environment.EnvironmentName)
+
 	environmentName := syncer.GetTransferResource(environment).Name
 	if syncer.GetTransferResource(environment).IsDirectory == true {
 		environmentName += "/"
@@ -398,23 +420,30 @@ func createRsync(environment Environment, syncer Syncer, lagoonVersion string) (
 		log.Println(errstring)
 		return "", err
 	}
+	environment.RsyncPath = cpRsyncPath
 
-	lagoonRsyncService := "cli"
-	rsyncRemoteSystemUsername := ""
-
-	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		environmentName = fmt.Sprintf(":%s", environmentName)
-		rsyncRemoteSystemUsername = environment.getOpenshiftProjectName()
-		if environment.ServiceName != "" {
-			lagoonRsyncService = environment.ServiceName
-		}
-	}
-
-	execString := fmt.Sprintf("rsync -a %s -e \"ssh -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" :%s",
+	var execString string
+	command := fmt.Sprintf("'cat > %v && chmod +x %v' < %s",
+		rsyncDestinationPath,
+		rsyncDestinationPath,
 		rsyncLocalResource,
-		rsyncRemoteSystemUsername,
-		lagoonRsyncService,
-		rsyncDestinationPath)
+	)
+
+	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+		execString = command
+	} else {
+		serviceArgument := ""
+		if environment.ServiceName != "" {
+			if environment.ServiceName == "mongodb" {
+				shellToUse = "sh"
+			}
+			serviceArgument = fmt.Sprintf("service=%v", environment.ServiceName)
+
+		}
+
+		execString = fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud %v %v",
+			environment.getOpenshiftProjectName(), serviceArgument, command)
+	}
 
 	log.Printf("Running the following for:- %s", execString)
 

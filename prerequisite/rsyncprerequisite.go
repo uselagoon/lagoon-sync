@@ -11,7 +11,7 @@ type rsyncPrerequisite struct {
 	RsyncPath string
 }
 
-func (c *rsyncPrerequisite) initialise() error {
+func (p *rsyncPrerequisite) initialise() error {
 	return nil
 }
 
@@ -22,7 +22,7 @@ func (p *rsyncPrerequisite) GetName() string {
 func (p *rsyncPrerequisite) GetValue() bool {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command("bash", "-c", "which rsync")
+	cmd := exec.Command("bash", "-c", "which rsync || which /tmp/*rsync*")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -31,7 +31,7 @@ func (p *rsyncPrerequisite) GetValue() bool {
 	}
 
 	p.RsyncPath = strings.TrimSuffix(stdout.String(), "\n")
-	//log.Println("Found rsync path: " + p.RsyncPath)
+	log.Println("Found rsync path: " + p.RsyncPath)
 
 	return true
 }

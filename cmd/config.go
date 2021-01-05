@@ -18,7 +18,7 @@ type Configuration struct {
 	Version           string                              `json:"version"`
 	LagoonSyncPath    string                              `json:"lagoon-sync-path"`
 	EnvPrerequisite   []prerequisite.GatheredPrerequisite `json:"env-config"`
-	RysncPrequisite   []prerequisite.GatheredPrerequisite `json:"rsync-config"`
+	RysncPrerequisite []prerequisite.GatheredPrerequisite `json:"rsync-config"`
 	OtherPrerequisite []prerequisite.GatheredPrerequisite `json:"other-config"`
 	SyncConfigFiles   SyncConfigFiles                     `json:"sync-config-files"`
 }
@@ -81,7 +81,7 @@ func PrintConfigOut() {
 	config := Configuration{
 		Version:           rootCmd.Version,
 		LagoonSyncPath:    lagoonSyncPath,
-		RysncPrequisite:   rsyncPrerequisites,
+		RysncPrerequisite: rsyncPrerequisites,
 		EnvPrerequisite:   envVarPrerequisites,
 		OtherPrerequisite: otherPrerequisites,
 		SyncConfigFiles: SyncConfigFiles{

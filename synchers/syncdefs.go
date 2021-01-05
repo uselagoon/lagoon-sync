@@ -56,10 +56,10 @@ type SyncherConfigRoot struct {
 }
 
 type PreRequisiteResponse struct {
-	Version         string                              `json:"version"`
-	LagoonSyncPath  string                              `json:"lagoon-sync-path"`
-	EnvPrerequisite []prerequisite.GatheredPrerequisite `json:"env-config"`
-	RysncPrequisite []prerequisite.GatheredPrerequisite `json:"rsync-config"`
+	Version           string                              `json:"version"`
+	LagoonSyncPath    string                              `json:"lagoon-sync-path"`
+	EnvPrerequisite   []prerequisite.GatheredPrerequisite `json:"env-config"`
+	RysncPrerequisite []prerequisite.GatheredPrerequisite `json:"rsync-config"`
 }
 
 // takes interface, marshals back to []byte, then unmarshals to desired struct
