@@ -19,7 +19,7 @@ func (p *rsyncPrerequisite) GetName() string {
 }
 
 func (p *rsyncPrerequisite) GetValue() bool {
-	cmd := exec.Command("sh", "-c", "which rsync || which /tmp/*rsync*")
+	cmd := exec.Command("sh", "-c", "which rsync || which /tmp/*rsync* || true")
 	stdoutStderr, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
