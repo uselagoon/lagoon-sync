@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -30,9 +31,6 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	var err error
 	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	sourceEnvironment.RsyncPath = sourceRsyncPath
-
-	// fmt.Printf(sourceEnvironment.RsyncPath)
-	// os.Exit(1)
 
 	if err != nil {
 		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
@@ -99,7 +97,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool,
 		data := &PreRequisiteResponse{}
 		json.Unmarshal([]byte(responseJson), &data)
 
-		// check if environment has rsync
+		// Check if environment has rsync
 		if data.RysncPrerequisite != nil {
 			for _, c := range data.RysncPrerequisite {
 				if c.Value != "" {
@@ -135,12 +133,18 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool,
 		data := &PreRequisiteResponse{}
 		json.Unmarshal([]byte(responseJson), &data)
 
-		if data.RysncPrerequisite != nil {
-			log.Printf("Config response: %v", data)
+		if !data.IsEmpty() {
+			log.Printf("Config response: %v", responseJson)
+		} else {
+			log.Printf("%v-----\nCheck if lagoon-sync is available on %s\n-----", responseJson, environment.EnvironmentName)
 		}
 	}
 
 	return "rsync", nil
+}
+
+func (p *PreRequisiteResponse) IsEmpty() bool {
+	return reflect.DeepEqual(&PreRequisiteResponse{}, p)
 }
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
@@ -237,8 +241,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		verboseSSHArgument = "-v"
 	}
 
-	execString := fmt.Sprintf("%v -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
-		sourceEnvironment.RsyncPath,
+	execString := fmt.Sprintf("rsync --rsync-path=/tmp/lagoon_sync_rsync_v0_2_14 -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+		// sourceEnvironment.RsyncPath,
 		verboseSSHArgument,
 		rsyncRemoteSystemUsername,
 		lagoonRsyncService,

@@ -54,10 +54,10 @@ func (root MongoDbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "/tmp/lagoon-sync"
+	lagoonSyncBin := "$(which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync)"
 
 	return SyncCommand{
-		command: fmt.Sprintf("{{ .bin }} {{ .command }} 2> /dev/null"),
+		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),
 		substitutions: map[string]interface{}{
 			"bin":     lagoonSyncBin,
 			"command": command,
