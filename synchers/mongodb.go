@@ -7,14 +7,23 @@ import (
 )
 
 type BaseMongoDbSync struct {
-	DbHostname      string   `yaml:"hostname"`
-	DbUsername      string   `yaml:"username"`
-	DbPassword      string   `yaml:"password"`
-	DbPort          string   `yaml:"port"`
-	DbDatabase      string   `yaml:"database"`
-	IgnoreTable     []string `yaml:"ignore-table"`
-	IgnoreTableData []string `yaml:"ignore-table-data"`
+	DbHostname      string `yaml:"hostname"`
+	DbPort          string `yaml:"port"`
+	DbDatabase      string `yaml:"database"`
 	OutputDirectory string
+}
+
+func (mongoConfig *BaseMongoDbSync) setDefaults() {
+	// If no values from config files, set some expected defaults
+	if mongoConfig.DbHostname == "" {
+		mongoConfig.DbHostname = "$HOSTNAME"
+	}
+	if mongoConfig.DbPort == "" {
+		mongoConfig.DbPort = "27017"
+	}
+	if mongoConfig.DbDatabase == "" {
+		mongoConfig.DbDatabase = "local"
+	}
 }
 
 type MongoDbSyncLocal struct {
@@ -38,7 +47,17 @@ func (m MongoDbSyncPlugin) GetPluginId() string {
 
 func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mongodb := MongoDbSyncRoot{}
-	_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &mongodb)
+	mongodb.Config.setDefaults()
+	mongodb.LocalOverrides.Config.setDefaults()
+
+	// unmarshal environment variables as defaults
+	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mongodb)
+
+	// if yaml config is there then unmarshall into struct and override default values
+	if len(root.LagoonSync) != 0 {
+		_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &mongodb)
+	}
+
 	lagoonSyncer, _ := mongodb.PrepareSyncer()
 	return lagoonSyncer, nil
 }
@@ -73,23 +92,10 @@ func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	}
 
 	transferResource := root.GetTransferResource(sourceEnvironment)
-
-	// var tablesToIgnore string
-	// for _, s := range m.IgnoreTable {
-	// 	tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, s)
-	// }
-
-	// var tablesWhoseDataToIgnore string
-	// for _, s := range m.IgnoreTableData {
-	// 	tablesWhoseDataToIgnore += fmt.Sprintf("--ignore-table-data=%s.%s ", m.DbDatabase, s)
-	// }
-
 	return SyncCommand{
-		command: fmt.Sprintf("mongodump --archive={{ .transferResource }}"),
+		command: fmt.Sprintf("mongodump --host {{ .hostname }} --port {{ .port }} --db {{ .database }} --archive={{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"hostname":         m.DbHostname,
-			"username":         m.DbUsername,
-			"password":         m.DbPassword,
 			"port":             m.DbPort,
 			"database":         m.DbDatabase,
 			"transferResource": transferResource.Name,
@@ -103,11 +109,9 @@ func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return generateSyncCommand("mongorestore --archive={{ .transferResource }}",
+	return generateSyncCommand("mongorestore --drop --host {{ .hostname }} --port {{ .port }} --archive={{ .transferResource }}",
 		map[string]interface{}{
 			"hostname":         l.DbHostname,
-			"username":         l.DbUsername,
-			"password":         l.DbPassword,
 			"port":             l.DbPort,
 			"database":         l.DbDatabase,
 			"transferResource": transferResource.Name,
@@ -116,7 +120,7 @@ func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 
 func (m MongoDbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
-		Name:        fmt.Sprintf("%vlagoon_sync_mongodb_%v.archive", m.GetOutputDirectory(), m.TransferId),
+		Name:        fmt.Sprintf("%vlagoon_sync_mongodb_%v.bson", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: false}
 }
 
@@ -131,8 +135,6 @@ func (root MongoDbSyncRoot) GetOutputDirectory() string {
 func (syncConfig MongoDbSyncRoot) getEffectiveLocalDetails() BaseMongoDbSync {
 	returnDetails := BaseMongoDbSync{
 		DbHostname:      syncConfig.Config.DbHostname,
-		DbUsername:      syncConfig.Config.DbUsername,
-		DbPassword:      syncConfig.Config.DbPassword,
 		DbPort:          syncConfig.Config.DbPort,
 		DbDatabase:      syncConfig.Config.DbDatabase,
 		OutputDirectory: syncConfig.Config.OutputDirectory,
@@ -146,8 +148,6 @@ func (syncConfig MongoDbSyncRoot) getEffectiveLocalDetails() BaseMongoDbSync {
 
 	//TODO: can this be replaced with reflection?
 	assignLocalOverride(&returnDetails.DbHostname, &syncConfig.LocalOverrides.Config.DbHostname)
-	assignLocalOverride(&returnDetails.DbUsername, &syncConfig.LocalOverrides.Config.DbUsername)
-	assignLocalOverride(&returnDetails.DbPassword, &syncConfig.LocalOverrides.Config.DbPassword)
 	assignLocalOverride(&returnDetails.DbPort, &syncConfig.LocalOverrides.Config.DbPort)
 	assignLocalOverride(&returnDetails.DbDatabase, &syncConfig.LocalOverrides.Config.DbDatabase)
 	assignLocalOverride(&returnDetails.OutputDirectory, &syncConfig.LocalOverrides.Config.OutputDirectory)

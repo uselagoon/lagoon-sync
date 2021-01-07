@@ -45,18 +45,14 @@ lagoon-sync:
           database: "drupal"
     mongodb:
       config:
-        hostname:
-        username:
-        password:
-        port:
-        database:
+        hostname: "$HOSTNAME"
+        port: "$MONGODB_SERVICE_PORT"
+        database: "local"
       local:
         config:
-          hostname:
-          username:
-          password:
-          port:
-          database:
+          hostname: "$HOSTNAME"
+          port: "27017"
+          database: "local"
     mariadb:
       config:
         hostname: "$MARIADB_HOST"
