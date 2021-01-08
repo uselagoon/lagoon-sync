@@ -264,7 +264,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		execString = generateRemoteCommand(targetEnvironment, execString, verboseSSH)
 	}
 
-	log.Printf("Running the following for target :- %s", execString)
+	log.Printf("Running the following for target (%s) :- %s", targetEnvironment.EnvironmentName, execString)
 
 	if !dryRun {
 		if err, _, errstring := Shellout(execString); err != nil {
@@ -297,7 +297,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 		execString = generateRemoteCommand(targetEnvironment, command, verboseSSH)
 	}
 
-	log.Printf("Running the following for target :- %s", execString)
+	log.Printf("Running the following for target (%s) :- %s", targetEnvironment.EnvironmentName, execString)
 	if !dryRun {
 		err, _, errstring := Shellout(execString)
 		if err != nil {

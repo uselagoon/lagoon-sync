@@ -58,6 +58,15 @@ func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (
 	postgres.Config.setDefaults()
 	postgres.LocalOverrides.Config.setDefaults()
 
+	pluginIDLagoonSync := syncerConfigRoot.LagoonSync[m.GetPluginId()]
+	pluginIDEnvDefaults := syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()]
+	if pluginIDLagoonSync == nil {
+		pluginIDLagoonSync = "postgres"
+	}
+	if pluginIDEnvDefaults == nil {
+		pluginIDEnvDefaults = "postgres"
+	}
+
 	// unmarshal environment variables as defaults
 	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &postgres)
 

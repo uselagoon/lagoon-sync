@@ -50,6 +50,15 @@ func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	mongodb.Config.setDefaults()
 	mongodb.LocalOverrides.Config.setDefaults()
 
+	pluginIDLagoonSync := root.LagoonSync[m.GetPluginId()]
+	pluginIDEnvDefaults := root.EnvironmentDefaults[m.GetPluginId()]
+	if pluginIDLagoonSync == nil {
+		pluginIDLagoonSync = "mongodb"
+	}
+	if pluginIDEnvDefaults == nil {
+		pluginIDEnvDefaults = "mongodb"
+	}
+
 	// unmarshal environment variables as defaults
 	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mongodb)
 

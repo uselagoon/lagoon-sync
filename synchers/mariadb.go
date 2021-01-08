@@ -34,6 +34,12 @@ func (mariaConfig *BaseMariaDbSync) setDefaults() {
 	if mariaConfig.DbDatabase == "" {
 		mariaConfig.DbDatabase = "$MARIADB_DATABASE"
 	}
+	if mariaConfig.IgnoreTable == nil {
+		mariaConfig.IgnoreTable = []string{}
+	}
+	if mariaConfig.IgnoreTableData == nil {
+		mariaConfig.IgnoreTable = []string{}
+	}
 }
 
 type MariadbSyncLocal struct {
@@ -60,15 +66,25 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	mariadb.Config.setDefaults()
 	mariadb.LocalOverrides.Config.setDefaults()
 
+	pluginIDLagoonSync := root.LagoonSync[m.GetPluginId()]
+	pluginIDEnvDefaults := root.EnvironmentDefaults[m.GetPluginId()]
+	if pluginIDLagoonSync == nil {
+		pluginIDLagoonSync = "mariadb"
+	}
+	if pluginIDEnvDefaults == nil {
+		pluginIDEnvDefaults = "mariadb"
+	}
+
 	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb)
+	_ = UnmarshalIntoStruct(pluginIDEnvDefaults, &mariadb)
 
 	// if yaml config is there then unmarshall into struct and override default values
 	if len(root.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &mariadb)
+		_ = UnmarshalIntoStruct(pluginIDLagoonSync, &mariadb)
 	}
 
 	lagoonSyncer, _ := mariadb.PrepareSyncer()
+
 	return lagoonSyncer, nil
 }
 
@@ -83,10 +99,10 @@ func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "/tmp/lagoon-sync"
+	lagoonSyncBin := "$(which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync)"
 
 	return SyncCommand{
-		command: fmt.Sprintf("{{ .bin }} {{ .command }} 2> /dev/null"),
+		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),
 		substitutions: map[string]interface{}{
 			"bin":     lagoonSyncBin,
 			"command": command,
