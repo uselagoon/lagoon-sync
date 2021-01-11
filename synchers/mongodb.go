@@ -52,10 +52,7 @@ func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 
 	pluginIDLagoonSync := root.LagoonSync[m.GetPluginId()]
 	pluginIDEnvDefaults := root.EnvironmentDefaults[m.GetPluginId()]
-	if pluginIDLagoonSync == nil {
-		pluginIDLagoonSync = "mongodb"
-	}
-	if pluginIDEnvDefaults == nil {
+	if pluginIDLagoonSync == nil || pluginIDEnvDefaults == nil {
 		pluginIDEnvDefaults = "mongodb"
 	}
 
@@ -82,7 +79,7 @@ func (root MongoDbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "$(which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync)"
+	lagoonSyncBin := "lagoon_sync=$(which ./lagoon-sync* || which /tmp/lagoon-sync || false) && $lagoon_sync"
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),

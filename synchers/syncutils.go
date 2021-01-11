@@ -97,7 +97,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool,
 	err, configResponseJson, errstring := Shellout(execString)
 	if err != nil {
 		fmt.Println(errstring)
-		return "", err
+		// return "", err
 	}
 
 	data := &PreRequisiteResponse{}
@@ -107,7 +107,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool,
 		log.Printf("Config response: %v", configResponseJson)
 		configRespSuccessful = true
 	} else {
-		log.Printf("%v-----\nWarning: Check if lagoon-sync is available on %s\n-----", configResponseJson, environment.EnvironmentName)
+		log.Printf("%v\n-----\nWarning: lagoon-sync is not available on %s\n-----", configResponseJson, environment.EnvironmentName)
 		configRespSuccessful = false
 	}
 

@@ -20,19 +20,19 @@ type BaseMariaDbSync struct {
 func (mariaConfig *BaseMariaDbSync) setDefaults() {
 	// If no values from config files, set some expected defaults
 	if mariaConfig.DbHostname == "" {
-		mariaConfig.DbHostname = "$MARIADB_HOST"
+		mariaConfig.DbHostname = "$DB_HOST"
 	}
 	if mariaConfig.DbUsername == "" {
-		mariaConfig.DbUsername = "$MARIADB_USERNAME"
+		mariaConfig.DbUsername = "$DB_USERNAME"
 	}
 	if mariaConfig.DbPassword == "" {
-		mariaConfig.DbPassword = "$MARIADB_PASSWORD"
+		mariaConfig.DbPassword = "$DB_PASSWORD"
 	}
 	if mariaConfig.DbPort == "" {
-		mariaConfig.DbPort = "$MARIADB_PORT"
+		mariaConfig.DbPort = "$DB_PORT"
 	}
 	if mariaConfig.DbDatabase == "" {
-		mariaConfig.DbDatabase = "$MARIADB_DATABASE"
+		mariaConfig.DbDatabase = "$DB_DATABASE"
 	}
 	if mariaConfig.IgnoreTable == nil {
 		mariaConfig.IgnoreTable = []string{}
@@ -68,10 +68,7 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 
 	pluginIDLagoonSync := root.LagoonSync[m.GetPluginId()]
 	pluginIDEnvDefaults := root.EnvironmentDefaults[m.GetPluginId()]
-	if pluginIDLagoonSync == nil {
-		pluginIDLagoonSync = "mariadb"
-	}
-	if pluginIDEnvDefaults == nil {
+	if pluginIDLagoonSync == nil || pluginIDEnvDefaults == nil {
 		pluginIDEnvDefaults = "mariadb"
 	}
 
@@ -99,7 +96,7 @@ func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "$(which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync)"
+	lagoonSyncBin := "lagoon_sync=$(which ./lagoon-sync* || which /tmp/lagoon-sync || false) && $lagoon_sync"
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),

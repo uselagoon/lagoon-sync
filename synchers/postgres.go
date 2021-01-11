@@ -60,10 +60,7 @@ func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (
 
 	pluginIDLagoonSync := syncerConfigRoot.LagoonSync[m.GetPluginId()]
 	pluginIDEnvDefaults := syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()]
-	if pluginIDLagoonSync == nil {
-		pluginIDLagoonSync = "postgres"
-	}
-	if pluginIDEnvDefaults == nil {
+	if pluginIDLagoonSync == nil || pluginIDEnvDefaults == nil {
 		pluginIDEnvDefaults = "postgres"
 	}
 
@@ -89,7 +86,7 @@ func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "which lagoon-sync"
+	lagoonSyncBin := "lagoon_sync=$(which ./lagoon-sync* || which /tmp/lagoon-sync || false) && $lagoon_sync"
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }}"),
