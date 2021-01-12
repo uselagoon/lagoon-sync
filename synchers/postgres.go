@@ -2,8 +2,12 @@ package synchers
 
 import (
 	"fmt"
+	"log"
+	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 type BasePostgresSync struct {
@@ -47,6 +51,11 @@ func (postgresConfig *BasePostgresSync) setDefaults() {
 // Init related types and functions follow
 
 type PostgresSyncPlugin struct {
+	isConfigEmpty bool
+}
+
+func (m BasePostgresSync) IsBasePostgresDbStructureEmpty() bool {
+	return reflect.DeepEqual(m, BasePostgresSync{})
 }
 
 func (m PostgresSyncPlugin) GetPluginId() string {
@@ -58,18 +67,31 @@ func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (
 	postgres.Config.setDefaults()
 	postgres.LocalOverrides.Config.setDefaults()
 
-	pluginIDLagoonSync := syncerConfigRoot.LagoonSync[m.GetPluginId()]
-	pluginIDEnvDefaults := syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()]
-	if pluginIDLagoonSync == nil || pluginIDEnvDefaults == nil {
-		pluginIDEnvDefaults = "postgres"
+	// Use 'source-environment-defaults' yaml if present
+	configMap := syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()]
+	if configMap == nil {
+		// Use 'lagoon-sync' yaml as override if source-environment-deaults is not available
+		configMap = syncerConfigRoot.LagoonSync[m.GetPluginId()]
+	}
+
+	// if still missing, then exit out
+	if configMap == nil {
+		log.Fatalf("Config missing in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
 	}
 
 	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &postgres)
+	_ = UnmarshalIntoStruct(configMap, &postgres)
 
 	if len(syncerConfigRoot.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &postgres)
+		_ = UnmarshalIntoStruct(configMap, &postgres)
 	}
+
+	// check here if we have any default values - if not we bail out.
+	if postgres.Config.IsBasePostgresDbStructureEmpty() {
+		m.isConfigEmpty = true
+		log.Fatalf("No syncer configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
+	}
+
 	lagoonSyncer, _ := postgres.PrepareSyncer()
 	return lagoonSyncer, nil
 }

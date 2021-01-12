@@ -2,8 +2,11 @@ package synchers
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 type BaseDrupalconfigSync struct {
@@ -33,12 +36,26 @@ func (m DrupalConfigSyncPlugin) GetPluginId() string {
 func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	drupalconfig := DrupalconfigSyncRoot{}
 
-	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()], &drupalconfig)
-
-	if len(syncerConfigRoot.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(syncerConfigRoot.LagoonSync[m.GetPluginId()], &drupalconfig)
+	// Use 'source-environment-defaults' yaml if present
+	configMap := syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()]
+	if configMap == nil {
+		// Use 'lagoon-sync' yaml as override if source-environment-deaults is not available
+		configMap = syncerConfigRoot.LagoonSync[m.GetPluginId()]
 	}
+
+	// if still missing, then exit out
+	if configMap == nil {
+		log.Fatalf("Config missing in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
+	}
+
+	// unmarshal environment variables as defaults
+	_ = UnmarshalIntoStruct(configMap, &drupalconfig)
+
+	// if yaml config is there then unmarshall into struct and override default values if there are any
+	if len(syncerConfigRoot.LagoonSync) != 0 {
+		_ = UnmarshalIntoStruct(configMap, &drupalconfig)
+	}
+
 	lagoonSyncer, _ := drupalconfig.PrepareSyncer()
 	return lagoonSyncer, nil
 }
