@@ -32,10 +32,8 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 
 func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
 	var err error
-
-	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
-	sourceEnvironment.RsyncPath = sourceRsyncPath
-
+	sourceEnvironment, err = RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
+	sourceRsyncPath := sourceEnvironment.RsyncPath
 	if err != nil {
 		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		return err
@@ -47,8 +45,8 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	targetRsyncPath, err := RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
-	targetEnvironment.RsyncPath = targetRsyncPath
+	targetEnvironment, err = RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
+	targetRsyncPath := targetEnvironment.RsyncPath
 	if err != nil {
 		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 		return err
@@ -77,11 +75,11 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	return nil
 }
 
-func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, verboseSSH bool) (string, error) {
+func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, verboseSSH bool) (Environment, error) {
 	// We don't run prerequisite checks on these syncers for now.
 	if syncerType == "files" || syncerType == "drupalconfig" {
 		environment.RsyncPath = "rsync"
-		return "rsync", nil
+		return environment, nil
 	}
 
 	log.Printf("Running prerequisite checks on %s environment", environment.EnvironmentName)
@@ -91,7 +89,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 
 	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config").GetCommand()
 	if commandErr != nil {
-		return "", commandErr
+		return environment, commandErr
 	}
 
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -111,7 +109,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	data := &PreRequisiteResponse{}
 	json.Unmarshal([]byte(configResponseJson), &data)
 
-	if !data.IsEmpty() {
+	if !data.IsPrerequisiteResponseEmpty() {
 		log.Printf("Config response: %v", configResponseJson)
 		configRespSuccessful = true
 	} else {
@@ -138,7 +136,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	if !configRespSuccessful {
 		log.Printf("Unable to determine rsync config on %v, will attempt to use 'rsync' path instead", environment.EnvironmentName)
 		environment.RsyncPath = "rsync"
-		return "rsync", nil
+		return environment, nil
 	}
 	if environment.RsyncAvailable {
 		log.Printf("Rsync found: %v", environment.RsyncPath)
@@ -149,18 +147,18 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion)
 		if err != nil {
 			fmt.Println(errstring)
-			return "", err
+			return environment, err
 		}
 
 		log.Printf("Rsync path: %s", rsyncPath)
 		environment.RsyncPath = rsyncPath
-		return rsyncPath, nil
+		return environment, nil
 	}
 
-	return environment.RsyncPath, nil
+	return environment, nil
 }
 
-func (p *PreRequisiteResponse) IsEmpty() bool {
+func (p *PreRequisiteResponse) IsPrerequisiteResponseEmpty() bool {
 	return reflect.DeepEqual(&PreRequisiteResponse{}, p)
 }
 
