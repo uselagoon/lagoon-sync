@@ -7,7 +7,6 @@ then
     # Download
     cd binaries/
     curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-x86"
-    # curl --progress-bar -L -o rsync "https://github.com/JBBgameich/rsync-static/releases/download/continuous/rsync-arm"
 
     # Permissions
     chmod +x rsync

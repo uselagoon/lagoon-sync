@@ -2,40 +2,37 @@ package synchers
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"text/template"
 
+	"github.com/amazeeio/lagoon-sync/assets"
 	"gopkg.in/yaml.v2"
 )
 
-var shellToUse = "bash"
+var shellToUse = "sh"
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
 	lagoonConfig := SyncherConfigRoot{}
 	err := yaml.Unmarshal(data, &lagoonConfig)
+
 	if err != nil {
 		return SyncherConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
 	}
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, dryRun bool, verboseSSH bool) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
 	var err error
-	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
-	sourceEnvironment.RsyncPath = sourceRsyncPath
-
-	// fmt.Printf(sourceEnvironment.RsyncPath)
-	// os.Exit(1)
-
+	// sourceEnvironment, err = RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
+	//sourceRsyncPath := sourceEnvironment.RsyncPath
 	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		return err
 	}
 
@@ -44,18 +41,18 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
+
+	// targetEnvironment, err = RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
+	//targetRsyncPath := targetEnvironment.RsyncPath
+	if err != nil {
+		return err
+	}
 	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
 
-	targetRsyncPath, err := RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
-	targetEnvironment.RsyncPath = targetRsyncPath
-	if err != nil {
-		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
-		return err
-	}
 	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
@@ -63,84 +60,10 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
-	_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 
 	return nil
-}
-
-func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool, verboseSSH bool) (string, error) {
-	log.Printf("Running prerequisite checks on %s environment", environment.EnvironmentName)
-
-	var execString string
-
-	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config").GetCommand()
-	if commandErr != nil {
-		return "", commandErr
-	}
-
-	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		execString = command
-	} else {
-		execString = generateRemoteCommand(environment, command, verboseSSH)
-	}
-
-	log.Printf("Running the following prerequisite command:- %s", execString)
-
-	if !dryRun {
-		err, responseJson, errstring := Shellout(execString)
-		if err != nil {
-			fmt.Println(errstring)
-			return "", err
-		}
-
-		data := &PreRequisiteResponse{}
-		json.Unmarshal([]byte(responseJson), &data)
-
-		// check if environment has rsync
-		if data.RysncPrerequisite != nil {
-			for _, c := range data.RysncPrerequisite {
-				if c.Value != "" {
-					environment.RsyncAvailable = true
-					environment.RsyncPath = c.Value
-				}
-			}
-		}
-
-		lagoonVersion := ""
-		if data.Version != "" {
-			lagoonVersion = data.Version
-		}
-
-		if !environment.RsyncAvailable {
-			// add rsync to env
-			rsyncPath, err := createRsync(environment, syncer, lagoonVersion)
-			if err != nil {
-				fmt.Println(errstring)
-				return "", err
-			}
-
-			log.Printf("Rsync path: %s", rsyncPath)
-			return rsyncPath, nil
-		}
-	} else {
-		err, responseJson, errstring := Shellout(execString)
-		if err != nil {
-			fmt.Println(errstring)
-			return "", err
-		}
-
-		data := &PreRequisiteResponse{}
-		json.Unmarshal([]byte(responseJson), &data)
-
-		if data.RysncPrerequisite != nil {
-			log.Printf("Config response: %v", data)
-		}
-	}
-
-	return "rsync", nil
 }
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
@@ -168,10 +91,13 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	log.Printf("Running the following for source :- %s", execString)
 
 	if !dryRun {
-		err, _, errstring := Shellout(execString)
+		err, response, errstring := Shellout(execString)
 		if err != nil {
 			fmt.Println(errstring)
 			return err
+		}
+		if response != "" {
+			fmt.Println(response)
 		}
 	}
 	return nil
@@ -237,8 +163,9 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		verboseSSHArgument = "-v"
 	}
 
-	execString := fmt.Sprintf("%v -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
-		sourceEnvironment.RsyncPath,
+	execString := fmt.Sprintf("%v --rsync-path=%v -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+		"rsync",
+		"rsync",
 		verboseSSHArgument,
 		rsyncRemoteSystemUsername,
 		lagoonRsyncService,
@@ -250,7 +177,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		execString = generateRemoteCommand(targetEnvironment, execString, verboseSSH)
 	}
 
-	log.Printf("Running the following for target :- %s", execString)
+	log.Printf("Running the following for target (%s) :- %s", targetEnvironment.EnvironmentName, execString)
 
 	if !dryRun {
 		if err, _, errstring := Shellout(execString); err != nil {
@@ -283,10 +210,9 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 		execString = generateRemoteCommand(targetEnvironment, command, verboseSSH)
 	}
 
-	log.Printf("Running the following for target :- %s", execString)
+	log.Printf("Running the following for target (%s) :- %s", targetEnvironment.EnvironmentName, execString)
 	if !dryRun {
 		err, _, errstring := Shellout(execString)
-
 		if err != nil {
 			fmt.Println(errstring)
 			return err
@@ -391,42 +317,42 @@ func getEnv(key string, defaultVal string) string {
 	return defaultVal
 }
 
-const RsyncAssetPath = "./binaries/rsync"
+var RsyncAssetPath = "/tmp/rsync"
 
 // will add bundled rsync onto environment and return the new rsync path as string
-func createRsync(environment Environment, syncer Syncer, lagoonVersion string) (string, error) {
-	// if local, we bail out for now.
+func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string) (string, error) {
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		return "Local environment doesn't have rsync", nil
+		log.Printf("%v environment doesn't have rsync", environment.EnvironmentName)
 	}
 
-	log.Printf("Downloading rsync on %v", environment.EnvironmentName)
+	log.Printf("Downloading rsync asset on %v", environment.EnvironmentName)
 
 	environmentName := syncer.GetTransferResource(environment).Name
 	if syncer.GetTransferResource(environment).IsDirectory == true {
 		environmentName += "/"
 	}
 
-	rsyncLocalResource := fmt.Sprintf("%vlagoon_sync_rsync_%v", "./binaries/", strings.ReplaceAll(lagoonVersion, ".", "_"))
-	environment.RsyncLocalPath = rsyncLocalResource
-	rsyncDestinationPath := fmt.Sprintf("%vlagoon_sync_rsync_%v", "/tmp/", strings.ReplaceAll(lagoonVersion, ".", "_"))
-
-	// rename rsync binary with latest lagoon version
-	cpRsyncPath := fmt.Sprintf("cp %s %s",
-		RsyncAssetPath,
-		fmt.Sprintf("%vlagoon_sync_rsync_%v", "./binaries/", strings.ReplaceAll(lagoonVersion, ".", "_")))
-
-	if err, _, errstring := Shellout(cpRsyncPath); err != nil {
-		log.Println(errstring)
-		return "", err
+	// Create rsync asset
+	RsyncAssetPath, err := createRsyncAssetFromBytes(lagoonSyncVersion)
+	if err != nil {
+		log.Println(err)
 	}
-	environment.RsyncPath = cpRsyncPath
+
+	rsyncDestinationPath := fmt.Sprintf("%vlagoon_sync_rsync_%v", "/tmp/", strings.ReplaceAll(lagoonSyncVersion, ".", "_"))
+
+	environment.RsyncLocalPath = rsyncDestinationPath
+	environment.RsyncPath = RsyncAssetPath
+
+	//If local we bail out here
+	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+		return rsyncDestinationPath, nil
+	}
 
 	var execString string
 	command := fmt.Sprintf("'cat > %v && chmod +x %v' < %s",
 		rsyncDestinationPath,
 		rsyncDestinationPath,
-		rsyncLocalResource,
+		rsyncDestinationPath,
 	)
 
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -452,36 +378,55 @@ func createRsync(environment Environment, syncer Syncer, lagoonVersion string) (
 		return "", err
 	}
 
-	removeLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", rsyncLocalResource)
+	return rsyncDestinationPath, nil
+}
+
+func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
+	tempRsyncPath := "/tmp/rsync"
+	err := ioutil.WriteFile(tempRsyncPath, assets.GetRSYNC(), 0774)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if lagoonSyncVersion == "" {
+		log.Print("No lagoon-sync version set")
+	}
+
+	// Test running local rsync binary (won't run on darwin OS)
+	// localRsyncCommand := exec.Command(tempRsyncPath", "--version")
+	// stdout, err := localRsyncCommand.StdoutPipe()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// if err := localRsyncCommand.Start(); err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// r := bufio.NewReader(stdout)
+	// b, err := r.ReadBytes('\n')
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println("Local rsync ran:", string(b))
+
+	// Rename rsync binary with latest lagoon version appended.
+	versionedRsyncPath := fmt.Sprintf("%vlagoon_sync_rsync_%v", "/tmp/", strings.ReplaceAll(lagoonSyncVersion, ".", "_"))
+	cpRsyncCmd := fmt.Sprintf("cp %s %s",
+		tempRsyncPath,
+		versionedRsyncPath,
+	)
+
+	if err, _, errstring := Shellout(cpRsyncCmd); err != nil {
+		log.Println(errstring)
+		return "", err
+	}
+
+	removeLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", tempRsyncPath)
+	log.Printf("Removing temp rsync binary: %v", removeLocalRsyncCopyExecString)
 	if err, _, errstring := Shellout(removeLocalRsyncCopyExecString); err != nil {
 		log.Println(errstring)
 		return "", err
 	}
 
-	return rsyncDestinationPath, nil
-}
-
-func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool, verboseSSH bool) error {
-	log.Printf("Beginning prerequisite resource cleanup on %s", environment.EnvironmentName)
-	if rsyncPath == "" {
-		return nil
-	}
-	execString := fmt.Sprintf("rm -r %s", rsyncPath)
-
-	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		execString = generateRemoteCommand(environment, execString, verboseSSH)
-	}
-
-	log.Printf("Running the following: %s", execString)
-
-	if !dryRun {
-		err, _, errstring := Shellout(execString)
-
-		if err != nil {
-			fmt.Println(errstring)
-			return err
-		}
-	}
-
-	return nil
+	return versionedRsyncPath, nil
 }

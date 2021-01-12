@@ -1,95 +1,91 @@
 docker-compose-yaml: docker-compose.yml
 
-source-environment-defaults:
-  postgres:
-    config:
-      hostname: "$POSTGRES_HOST"
-      username: "$POSTGRES_USERNAME"
-      password: "$POSTGRES_PASSWORD"
-      port: "5432"
-      database: "$POSTGRES_DATABASE"
+# source-environment-defaults:
+#   postgres:
+#     config:
+#       hostname: "$POSTGRES_HOST"
+#       username: "$POSTGRES_USERNAME"
+#       password: "$POSTGRES_PASSWORD"
+#       port: "5432"
+#       database: "$POSTGRES_DATABASE"
+#   mariadb:
+#     config:
+#       hostname: "$MARIADB_HOST_SOURCE_ENV"
+#       username: "$MARIADB_USERNAME"
+#       password: "$MARIADB_PASSWORD"
+#       port: "$MARIADB_PORT"
+#       database: "$MARIADB_DATABASE"
+#   files:
+#     config:
+#       sync-directory: "/app/web/sites/default/files"
+#   drupalconfig:
+#     config:
+#       syncpath: "./config/sync"
+
+lagoon-sync:
   mariadb:
     config:
-      hostname: "$MARIADB_HOST"
+      hostname: "$MARIADB_HOST_LAGOON_SYNC"
       username: "$MARIADB_USERNAME"
       password: "$MARIADB_PASSWORD"
       port: "$MARIADB_PORT"
       database: "$MARIADB_DATABASE"
-  files:
-    config:
-      sync-directory: "/app/web/sites/default/files"
-  drupalconfig:
-    config:
-      syncpath: "./config/sync"
-
-lagoon-sync:
-    postgres:
-      config:
-        hostname: "$POSTGRES_HOST"
-        username: "$POSTGRES_USERNAME"
-        password: "$POSTGRES_PASSWORD"
-        port: "5432"
-        database: "$POSTGRES_DATABASE"
-        exclude-table:
-          - cachewhatever
-          - someothertable
-        exclude-table-data:
-          - cache_data
-          - cache_menu
-      local:
-        config:
-          hostname: "drupal"
-          username: "drupal"
-          password: "drupal"
-          port: "3306"
-          database: "drupal"
-    mongodb:
-      config:
-        hostname:
-        username:
-        password:
-        port:
-        database:
-      local:
-        config:
-          hostname:
-          username:
-          password:
-          port:
-          database:
-    mariadb:
-      config:
-        hostname: "$MARIADB_HOST"
-        username: "$MARIADB_USERNAME"
-        password: "$MARIADB_PASSWORD"
-        port: "$MARIADB_PORT"
-        database: "$MARIADB_DATABASE"
-        ignore-table:
-          - cachewhatever
-          - someothertable
-        ignore-table-data:
-          - cache_data
-          - cache_menu
-      local:
-        config:
-          hostname: "drupal"
-          username: "drupal"
-          password: "drupal"
-          port: "3306"
-          database: "drupal"
-    files:
-      config:
-        sync-directory: "/app/storage"
-        exclude:
-          - "app"
-          - "framework"
-      local:
-        config:
-          sync-directory: "/tmp/storageout"
-    drupalconfig:
-      config:
-        syncpath: "./config/sync"
-      local:
-        overrides:
-          config:
-            syncpath: "./config/sync"
+      ignore-table:
+        - "cachewhatever"
+        - "someothertable"
+      ignore-table-data:
+        - "cache_data"
+        - "cache_menu"
+#     local:
+#       config:
+#         hostname: "drupal"
+#         username: "drupal"
+#         password: "drupal"
+#         port: "3306"
+#         database: "drupal"
+#     postgres:
+#       config:
+#         hostname: "$POSTGRES_HOST"
+#         username: "$POSTGRES_USERNAME"
+#         password: "$POSTGRES_PASSWORD"
+#         port: "5432"
+#         database: "$POSTGRES_DATABASE"
+#         exclude-table:
+#           - cachewhatever
+#           - someothertable
+#         exclude-table-data:
+#           - cache_data
+#           - cache_menu
+#       local:
+#         config:
+#           hostname: "drupal"
+#           username: "drupal"
+#           password: "drupal"
+#           port: "3306"
+#           database: "drupal"
+#     mongodb:
+#       config:
+#         hostname: "$HOSTNAME"
+#         port: "$MONGODB_SERVICE_PORT"
+#         database: "local"
+#       local:
+#         config:
+#           hostname: "$HOSTNAME"
+#           port: "27017"
+#           database: "local"
+#     files:
+#       config:
+#         sync-directory: "/app/storage"
+#         exclude:
+#           - "app"
+#           - "framework"
+#       local:
+#         config:
+#           sync-directory: "/tmp/storageout"
+#     drupalconfig:
+#       config:
+#         syncpath: "./config/sync"
+#       local:
+#         overrides:
+#           config:
+#             syncpath: "./config/sync"

@@ -1,7 +1,6 @@
 package prerequisite
 
 import (
-	"bytes"
 	"log"
 	"os/exec"
 	"strings"
@@ -20,18 +19,14 @@ func (p *rsyncPrerequisite) GetName() string {
 }
 
 func (p *rsyncPrerequisite) GetValue() bool {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command("bash", "-c", "which rsync || which /tmp/*rsync*")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+	cmd := exec.Command("sh", "-c", "which rsync || which /tmp/*rsync* || true")
+	stdoutStderr, err := cmd.Output()
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 	}
 
-	p.RsyncPath = strings.TrimSuffix(stdout.String(), "\n")
-	log.Println("Found rsync path: " + p.RsyncPath)
+	p.RsyncPath = strings.TrimSuffix(string(stdoutStderr), "\n")
+	//log.Println("Found rsync path: " + p.RsyncPath)
 
 	return true
 }

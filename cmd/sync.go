@@ -9,18 +9,19 @@ import (
 	"github.com/amazeeio/lagoon-sync/synchers"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var ProjectName string
 var sourceEnvironmentName string
 var targetEnvironmentName string
+var SyncerType string
 var ServiceName string
 var configurationFile string
 var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
 
-// syncCmd represents the sync command
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
 	Short: "Sync a resource type",
@@ -28,7 +29,7 @@ var syncCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		moduleName := args[0]
+		SyncerType := args[0]
 
 		lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
 		if err != nil {
@@ -38,8 +39,8 @@ var syncCmd = &cobra.Command{
 
 		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
 		if err != nil {
-			log.Printf("There was an issue unmarshalling the sync configuration: %v", err)
-			return
+			log.Printf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+			os.Exit(1)
 		}
 
 		// If no project flag is given, find project from env var.
@@ -52,7 +53,7 @@ var syncCmd = &cobra.Command{
 
 		// Set service default to 'cli'
 		if ServiceName == "" {
-			ServiceName = getServiceName(moduleName)
+			ServiceName = getServiceName(SyncerType)
 		}
 
 		sourceEnvironment := synchers.Environment{
@@ -72,8 +73,7 @@ var syncCmd = &cobra.Command{
 		}
 
 		var lagoonSyncer synchers.Syncer
-		lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(moduleName, configRoot)
-
+		lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 		if err != nil {
 			log.Println(err.Error())
 			return
@@ -82,7 +82,7 @@ var syncCmd = &cobra.Command{
 		if noCliInteraction == false {
 			confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct?",
 				ProjectName,
-				moduleName,
+				SyncerType,
 				sourceEnvironmentName, targetEnvironmentName))
 			if err != nil || confirmationResult == false {
 				log.Printf("User cancelled sync - exiting")
@@ -90,7 +90,7 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, verboseSSH)
 
 		if err != nil {
 			log.Printf("There was an error running the sync process: %v", err)
@@ -99,9 +99,9 @@ var syncCmd = &cobra.Command{
 	},
 }
 
-func getServiceName(moduleName string) string {
-	if moduleName == "mongodb" {
-		return "mongodb"
+func getServiceName(SyncerType string) string {
+	if SyncerType == "mongodb" {
+		return SyncerType
 	}
 	return "cli"
 }

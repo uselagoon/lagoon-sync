@@ -2,8 +2,12 @@ package synchers
 
 import (
 	"fmt"
+	"log"
+	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 type BaseMariaDbSync struct {
@@ -34,6 +38,12 @@ func (mariaConfig *BaseMariaDbSync) setDefaults() {
 	if mariaConfig.DbDatabase == "" {
 		mariaConfig.DbDatabase = "$MARIADB_DATABASE"
 	}
+	if mariaConfig.IgnoreTable == nil {
+		mariaConfig.IgnoreTable = []string{}
+	}
+	if mariaConfig.IgnoreTableData == nil {
+		mariaConfig.IgnoreTable = []string{}
+	}
 }
 
 type MariadbSyncLocal struct {
@@ -49,6 +59,11 @@ type MariadbSyncRoot struct {
 // Init related types and functions follow
 
 type MariadbSyncPlugin struct {
+	isConfigEmpty bool
+}
+
+func (m BaseMariaDbSync) IsBaseMariaDbStructureEmpty() bool {
+	return reflect.DeepEqual(m, BaseMariaDbSync{})
 }
 
 func (m MariadbSyncPlugin) GetPluginId() string {
@@ -60,15 +75,34 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	mariadb.Config.setDefaults()
 	mariadb.LocalOverrides.Config.setDefaults()
 
-	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &mariadb)
+	// Use 'source-environment-defaults' yaml if present
+	configMap := root.EnvironmentDefaults[m.GetPluginId()]
+	if configMap == nil {
+		// Use 'lagoon-sync' yaml as override if source-environment-deaults is not available
+		configMap = root.LagoonSync[m.GetPluginId()]
+	}
 
-	// if yaml config is there then unmarshall into struct and override default values
+	// if still missing, then exit out
+	if configMap == nil {
+		log.Fatalf("Config missing in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
+	}
+
+	// unmarshal environment variables as defaults
+	_ = UnmarshalIntoStruct(configMap, &mariadb)
+
+	// if yaml config is there then unmarshall into struct and override default values if there are any
 	if len(root.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &mariadb)
+		_ = UnmarshalIntoStruct(configMap, &mariadb)
+	}
+
+	// check here if we have any default values - if not we bail out.
+	if mariadb.Config.IsBaseMariaDbStructureEmpty() {
+		m.isConfigEmpty = true
+		log.Fatalf("No syncer configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
 	}
 
 	lagoonSyncer, _ := mariadb.PrepareSyncer()
+
 	return lagoonSyncer, nil
 }
 
@@ -83,10 +117,10 @@ func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "/tmp/lagoon-sync"
+	lagoonSyncBin := "lagoon_sync=$(which ./lagoon-sync* || which /tmp/lagoon-sync || false) && $lagoon_sync"
 
 	return SyncCommand{
-		command: fmt.Sprintf("{{ .bin }} {{ .command }} 2> /dev/null"),
+		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),
 		substitutions: map[string]interface{}{
 			"bin":     lagoonSyncBin,
 			"command": command,

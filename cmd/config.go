@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -98,17 +97,14 @@ func PrintConfigOut() {
 }
 
 func FindLagoonSyncOnEnv() (string, bool) {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command("bash", "-c", "which lagoon-sync")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+	cmd := exec.Command("sh", "-c", "which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync || true")
+	stdoutStderr, err := cmd.Output()
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
+		log.Fatal(string(stdoutStderr))
 	}
 
-	lagoonPath := strings.TrimSuffix(stdout.String(), "\n")
+	lagoonPath := strings.TrimSuffix(string(stdoutStderr), "\n")
 	if lagoonPath != "" {
 		return lagoonPath, true
 	}

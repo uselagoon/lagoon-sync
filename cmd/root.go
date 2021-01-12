@@ -129,4 +129,8 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		log.Println("Using config file:", viper.ConfigFileUsed())
 	}
+	if err := viper.ReadInConfig(); err != nil {
+		log.Print("Aborting - No config file found such as 'lagoon-sync, lagoon-sync-defaults or .lagoon.yml', there may also be an issue with your yaml syntax, or you forgot to export a sync file path e.g 'export LAGOON_SYNC_PATH=\".lagoon-sync\"'")
+		os.Exit(1)
+	}
 }
