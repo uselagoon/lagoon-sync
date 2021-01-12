@@ -10,7 +10,7 @@ docker-compose-yaml: docker-compose.yml
 #       database: "$POSTGRES_DATABASE"
 #   mariadb:
 #     config:
-#       hostname: "$MARIADB_HOST"
+#       hostname: "$MARIADB_HOST_SOURCE_ENV"
 #       username: "$MARIADB_USERNAME"
 #       password: "$MARIADB_PASSWORD"
 #       port: "$MARIADB_PORT"
@@ -22,7 +22,27 @@ docker-compose-yaml: docker-compose.yml
 #     config:
 #       syncpath: "./config/sync"
 
-# lagoon-sync:
+lagoon-sync:
+  mariadb:
+    config:
+      hostname: "$MARIADB_HOST_LAGOON_SYNC"
+      username: "$MARIADB_USERNAME"
+      password: "$MARIADB_PASSWORD"
+      port: "$MARIADB_PORT"
+      database: "$MARIADB_DATABASE"
+      ignore-table:
+        - "cachewhatever"
+        - "someothertable"
+      ignore-table-data:
+        - "cache_data"
+        - "cache_menu"
+#     local:
+#       config:
+#         hostname: "drupal"
+#         username: "drupal"
+#         password: "drupal"
+#         port: "3306"
+#         database: "drupal"
 #     postgres:
 #       config:
 #         hostname: "$POSTGRES_HOST"
@@ -53,26 +73,6 @@ docker-compose-yaml: docker-compose.yml
 #           hostname: "$HOSTNAME"
 #           port: "27017"
 #           database: "local"
-#     mariadb:
-#       config:
-#         hostname: "$MARIADB_HOST"
-#         username: "$MARIADB_USERNAME"
-#         password: "$MARIADB_PASSWORD"
-#         port: "$MARIADB_PORT"
-#         database: "$MARIADB_DATABASE"
-#         ignore-table:
-#           - cachewhatever
-#           - someothertable
-#         ignore-table-data:
-#           - cache_data
-#           - cache_menu
-#       local:
-#         config:
-#           hostname: "drupal"
-#           username: "drupal"
-#           password: "drupal"
-#           port: "3306"
-#           database: "drupal"
 #     files:
 #       config:
 #         sync-directory: "/app/storage"
