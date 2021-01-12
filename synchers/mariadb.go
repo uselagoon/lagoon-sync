@@ -20,19 +20,19 @@ type BaseMariaDbSync struct {
 func (mariaConfig *BaseMariaDbSync) setDefaults() {
 	// If no values from config files, set some expected defaults
 	if mariaConfig.DbHostname == "" {
-		mariaConfig.DbHostname = "$DB_HOST"
+		mariaConfig.DbHostname = "$MARIADB_HOST"
 	}
 	if mariaConfig.DbUsername == "" {
-		mariaConfig.DbUsername = "$DB_USERNAME"
+		mariaConfig.DbUsername = "$MARIADB_USERNAME"
 	}
 	if mariaConfig.DbPassword == "" {
-		mariaConfig.DbPassword = "$DB_PASSWORD"
+		mariaConfig.DbPassword = "$MARIADB_PASSWORD"
 	}
 	if mariaConfig.DbPort == "" {
-		mariaConfig.DbPort = "$DB_PORT"
+		mariaConfig.DbPort = "$MARIADB_PORT"
 	}
 	if mariaConfig.DbDatabase == "" {
-		mariaConfig.DbDatabase = "$DB_DATABASE"
+		mariaConfig.DbDatabase = "$MARIADB_DATABASE"
 	}
 	if mariaConfig.IgnoreTable == nil {
 		mariaConfig.IgnoreTable = []string{}

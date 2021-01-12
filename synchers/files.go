@@ -13,7 +13,7 @@ type BaseFilesSync struct {
 
 func (filesConfig *BaseFilesSync) setDefaults() {
 	if filesConfig.SyncPath == "" {
-		filesConfig.SyncPath = "/app/sites/default/files"
+		filesConfig.SyncPath = "/app/web/sites/default/files"
 	}
 }
 
@@ -38,13 +38,22 @@ func (m FilesSyncPlugin) GetPluginId() string {
 
 func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	filesroot := FilesSyncRoot{}
+	filesroot.Config.setDefaults()
+
+	pluginIDLagoonSync := root.LagoonSync[m.GetPluginId()]
+	pluginIDEnvDefaults := root.EnvironmentDefaults[m.GetPluginId()]
+	if pluginIDLagoonSync == nil || pluginIDEnvDefaults == nil {
+		pluginIDEnvDefaults = "files"
+	}
 
 	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(root.EnvironmentDefaults[m.GetPluginId()], &filesroot)
+	_ = UnmarshalIntoStruct(pluginIDEnvDefaults, &filesroot)
 
+	// if yaml config is there then unmarshall into struct and override default values
 	if len(root.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(root.LagoonSync[m.GetPluginId()], &filesroot)
+		_ = UnmarshalIntoStruct(pluginIDLagoonSync, &filesroot)
 	}
+
 	lagoonSyncer, _ := filesroot.PrepareSyncer()
 	return lagoonSyncer, nil
 }

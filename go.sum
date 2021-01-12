@@ -164,6 +164,8 @@ github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084/go.mod h1:TjEm7z
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/pyros2097/go-embed v0.0.0-20200430035352-0689b0033fd1 h1:SvGZTAKrz9v2Pwkm9S5kEKQs0RkIusMBqxbN7Of63uI=
 github.com/pyros2097/go-embed v0.0.0-20200430035352-0689b0033fd1/go.mod h1:/Pm5mr3VMg5ErYEDpCZGgWmp7vwN6VpcOG05QVhT37A=
+github.com/pyros2097/go-embed v0.0.0-20210109052941-d7cf67a0c154 h1:CcxaLLZjFFnugPFfiZ46nLBrGcgtPeA7Qk8cjtif/tA=
+github.com/pyros2097/go-embed v0.0.0-20210109052941-d7cf67a0c154/go.mod h1:/Pm5mr3VMg5ErYEDpCZGgWmp7vwN6VpcOG05QVhT37A=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=

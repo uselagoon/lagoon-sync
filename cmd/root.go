@@ -129,4 +129,8 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		log.Println("Using config file:", viper.ConfigFileUsed())
 	}
+	if err := viper.ReadInConfig(); err != nil {
+		log.Print("Aborting - No config file found such as 'lagoon-sync, lagoon-sync-defaults or .lagoon.yml'")
+		os.Exit(1)
+	}
 }

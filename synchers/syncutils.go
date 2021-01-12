@@ -23,15 +23,17 @@ var shellToUse = "sh"
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
 	lagoonConfig := SyncherConfigRoot{}
 	err := yaml.Unmarshal(data, &lagoonConfig)
+
 	if err != nil {
 		return SyncherConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
 	}
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, dryRun bool, verboseSSH bool) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
 	var err error
-	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
+
+	sourceRsyncPath, err := RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
 	sourceEnvironment.RsyncPath = sourceRsyncPath
 
 	if err != nil {
@@ -45,7 +47,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	targetRsyncPath, err := RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	targetRsyncPath, err := RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
 	targetEnvironment.RsyncPath = targetRsyncPath
 	if err != nil {
 		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
@@ -75,7 +77,13 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	return nil
 }
 
-func RunPrerequisiteCommand(environment Environment, syncer Syncer, dryRun bool, verboseSSH bool) (string, error) {
+func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, verboseSSH bool) (string, error) {
+	// We don't run prerequisite checks on these syncers for now.
+	if syncerType == "files" || syncerType == "drupalconfig" {
+		environment.RsyncPath = "rsync"
+		return "rsync", nil
+	}
+
 	log.Printf("Running prerequisite checks on %s environment", environment.EnvironmentName)
 
 	var execString string
@@ -181,10 +189,13 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	log.Printf("Running the following for source :- %s", execString)
 
 	if !dryRun {
-		err, _, errstring := Shellout(execString)
+		err, response, errstring := Shellout(execString)
 		if err != nil {
 			fmt.Println(errstring)
 			return err
+		}
+		if response != "" {
+			fmt.Println(response)
 		}
 	}
 	return nil

@@ -61,7 +61,7 @@ func (root DrupalconfigSyncRoot) GetPrerequisiteCommand(environment Environment,
 func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
 	transferResource := root.GetTransferResource(environment)
 	return SyncCommand{
-		command: fmt.Sprintf("drush config-export --destination=%s", transferResource.Name),
+		command: fmt.Sprintf("drush config-export --destination=%s || true", transferResource.Name),
 	}
 }
 
@@ -70,7 +70,7 @@ func (m DrupalconfigSyncRoot) GetLocalCommand(environment Environment) SyncComma
 	transferResource := m.GetTransferResource(environment)
 
 	return SyncCommand{
-		command: fmt.Sprintf("drush -y config-import --source=%s", transferResource.Name),
+		command: fmt.Sprintf("drush -y config-import --source=%s || true", transferResource.Name),
 	}
 
 }
