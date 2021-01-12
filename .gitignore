@@ -17,6 +17,9 @@ vendor/
 # Goland cruft
 .idea/
 
+# VS code
+.vscode
+
 # Build output
 ./builds
 
