@@ -1,10 +1,6 @@
 package prerequisite
 
-import (
-	"log"
-	"os/exec"
-	"strings"
-)
+import "reflect"
 
 type GatheredPrerequisite struct {
 	Name   string `json:"name"`
@@ -12,19 +8,33 @@ type GatheredPrerequisite struct {
 	Status int    `json:"status"`
 }
 
+type PreRequisiteResponse struct {
+	Version           string                 `json:"version"`
+	LagoonSyncPath    string                 `json:"lagoon-sync-path"`
+	EnvPrerequisite   []GatheredPrerequisite `json:"env-config"`
+	RysncPrerequisite []GatheredPrerequisite `json:"rsync-config"`
+}
+
 type PrerequisiteGatherer interface {
-	handlesPrerequisite(name string) bool
-	GatherPrerequisites() []GatheredPrerequisite
+	GetName() string
+	GetValue() bool
+	GatherPrerequisites() ([]GatheredPrerequisite, error)
+	Status() int
+	// HandlesPrerquisite() bool
 }
 
-var prereqGathererMap []PrerequisiteGatherer
+var PrerequisiteGathererList []PrerequisiteGatherer
 
-func RegisterGatherer(name string, gatherer PrerequisiteGatherer) {
-	prereqGathererMap = append(prereqGathererMap, gatherer)
+func RegisterPrerequisiteGatherer(name string, config PrerequisiteGatherer) {
+	PrerequisiteGathererList = append(PrerequisiteGathererList, config)
 }
 
-func GetGatherersMap() []PrerequisiteGatherer {
-	return prereqGathererMap
+func GetPrerequisiteGatherer() []PrerequisiteGatherer {
+	return PrerequisiteGathererList
+}
+
+func (p *PreRequisiteResponse) IsPrerequisiteResponseEmpty() bool {
+	return reflect.DeepEqual(&PreRequisiteResponse{}, p)
 }
 
 func getStatusFromString(prereq string) int {
@@ -32,46 +42,4 @@ func getStatusFromString(prereq string) int {
 		return 1
 	}
 	return 0
-}
-
-//
-
-// type PreRequisiteResponse struct {
-// 	Version        string `json:"version"`
-// 	LagoonSyncPath string `json:"lagoon-sync-path"`
-// 	//EnvPrerequisite   []prerequisite.GatheredPrerequisite `json:"env-config"`
-// 	//RysncPrerequisite []prerequisite.GatheredPrerequisite `json:"rsync-config"`
-// }
-
-// type ConfigPrerequisite interface {
-// 	initialise() error
-// 	GetName() string
-// 	GetValue() bool
-// 	GatherValue() ([]GatheredPrerequisite, error)
-// 	Status() int
-// }
-
-// var configPrerequisiteList []ConfigPrerequisite
-
-// func RegisterConfigPrerequisite(name string, config ConfigPrerequisite) {
-// 	//log.Println("Registering: " + name)
-
-// 	configPrerequisiteList = append(configPrerequisiteList, config)
-// }
-
-//
-
-func FindLagoonSyncOnEnv() (string, bool) {
-	cmd := exec.Command("sh", "-c", "which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync || true")
-	stdoutStderr, err := cmd.Output()
-	if err != nil {
-		log.Fatal(err)
-		log.Fatal(string(stdoutStderr))
-	}
-
-	lagoonPath := strings.TrimSuffix(string(stdoutStderr), "\n")
-	if lagoonPath != "" {
-		return lagoonPath, true
-	}
-	return "", false
 }

@@ -43,14 +43,6 @@ var syncCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		configRoot, err = synchers.GatheredPrerequisitesToLagoonSyncStructure(configRoot)
-		if err != nil {
-			log.Printf("There was an issue gathering sync configuration: %v", err)
-			os.Exit(1)
-		}
-
-		// log.Fatalln("Configroot: ", configRoot)
-
 		// If no project flag is given, find project from env var.
 		if ProjectName == "" {
 			project, exists := os.LookupEnv("LAGOON_PROJECT")

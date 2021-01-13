@@ -11,7 +11,7 @@ import (
 const LOCAL_ENVIRONMENT_NAME = "local"
 
 type Syncer interface {
-	// GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
+	GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
@@ -44,7 +44,7 @@ type Environment struct {
 	RsyncLocalPath  string
 }
 
-func (r Environment) getOpenshiftProjectName() string {
+func (r Environment) GetOpenshiftProjectName() string {
 	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
 }
 
@@ -63,4 +63,19 @@ func UnmarshalIntoStruct(pluginIn interface{}, pluginOut interface{}) error {
 		return err
 	}
 	return yaml.Unmarshal(b, pluginOut)
+}
+
+func GenerateRemoteCommand(remoteEnvironment Environment, command string, verboseSSH bool) string {
+	verbose := ""
+	if verboseSSH {
+		verbose = "-v"
+	}
+
+	serviceArgument := ""
+	if remoteEnvironment.ServiceName != "" {
+		serviceArgument = fmt.Sprintf("service=%v", remoteEnvironment.ServiceName)
+	}
+
+	return fmt.Sprintf("ssh %s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud %v '%v'",
+		verbose, remoteEnvironment.GetOpenshiftProjectName(), serviceArgument, command)
 }

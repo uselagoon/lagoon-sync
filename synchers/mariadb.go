@@ -83,33 +83,33 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 		_ = UnmarshalIntoStruct(configMap, &mariadb)
 	}
 
-	if envVars := root.Prerequisites; envVars != nil {
-		// Use prerequisites if present
-		log.Println(envVars)
-		log.Println(configMap)
+	// if envVars := root.Prerequisites; envVars != nil {
+	// 	// Use prerequisites if present
+	// 	log.Println(envVars)
+	// 	log.Println(configMap)
 
-		for k, g := range envVars {
-			fmt.Println("name: ", envVars[k].Name)
-			fmt.Println("status: ", g.Status)
-			fmt.Println("value: ", g.Value)
+	// 	for k, g := range envVars {
+	// 		fmt.Println("name: ", envVars[k].Name)
+	// 		fmt.Println("status: ", g.Status)
+	// 		fmt.Println("value: ", g.Value)
 
-			//cast configMap to map
-			configMap := configMap.(map[interface{}]interface{})
-			for j, c := range configMap {
-				configMap = c.(map[interface{}]interface{})
+	// 		//cast configMap to map
+	// 		configMap := configMap.(map[interface{}]interface{})
+	// 		for j, c := range configMap {
+	// 			configMap = c.(map[interface{}]interface{})
 
-				fmt.Println("envVar name: ", envVars[k].Name)
-				fmt.Println("map name: ", configMap[envVars[k].Name])
+	// 			fmt.Println("envVar name: ", envVars[k].Name)
+	// 			fmt.Println("map name: ", configMap[envVars[k].Name])
 
-				if j == "config" {
-					switch envVars[k].Name {
-					case configMap[envVars[k].Name]:
-						configMap["hostname"] = "New"
-					}
-				}
-			}
-		}
-	}
+	// 			if j == "config" {
+	// 				switch envVars[k].Name {
+	// 				case configMap[envVars[k].Name]:
+	// 					configMap["hostname"] = "New"
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// if still missing, then exit out
 	if configMap == nil {
