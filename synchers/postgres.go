@@ -67,9 +67,10 @@ func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (
 	postgres.Config.setDefaults()
 	postgres.LocalOverrides.Config.setDefaults()
 
-	// Use 'source-environment-defaults' yaml if present
-	configMap := syncerConfigRoot.EnvironmentDefaults[m.GetPluginId()]
-	if configMap == nil {
+	// Use 'environment-defaults' if present
+	envVars := syncerConfigRoot.Prerequisites
+	var configMap interface{}
+	if envVars == nil {
 		// Use 'lagoon-sync' yaml as override if source-environment-deaults is not available
 		configMap = syncerConfigRoot.LagoonSync[m.GetPluginId()]
 	}

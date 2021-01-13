@@ -75,11 +75,40 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	mariadb.Config.setDefaults()
 	mariadb.LocalOverrides.Config.setDefaults()
 
-	// Use 'source-environment-defaults' yaml if present
-	configMap := root.EnvironmentDefaults[m.GetPluginId()]
-	if configMap == nil {
-		// Use 'lagoon-sync' yaml as override if source-environment-deaults is not available
-		configMap = root.LagoonSync[m.GetPluginId()]
+	// Use 'lagoon-sync' yaml as default
+	configMap := root.LagoonSync[m.GetPluginId()]
+
+	// if yaml config is there then unmarshall into struct and override default values if there are any
+	if len(root.LagoonSync) != 0 {
+		_ = UnmarshalIntoStruct(configMap, &mariadb)
+	}
+
+	if envVars := root.Prerequisites; envVars != nil {
+		// Use prerequisites if present
+		log.Println(envVars)
+		log.Println(configMap)
+
+		for k, g := range envVars {
+			fmt.Println("name: ", envVars[k].Name)
+			fmt.Println("status: ", g.Status)
+			fmt.Println("value: ", g.Value)
+
+			//cast configMap to map
+			configMap := configMap.(map[interface{}]interface{})
+			for j, c := range configMap {
+				configMap = c.(map[interface{}]interface{})
+
+				fmt.Println("envVar name: ", envVars[k].Name)
+				fmt.Println("map name: ", configMap[envVars[k].Name])
+
+				if j == "config" {
+					switch envVars[k].Name {
+					case configMap[envVars[k].Name]:
+						configMap["hostname"] = "New"
+					}
+				}
+			}
+		}
 	}
 
 	// if still missing, then exit out
@@ -87,18 +116,9 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 		log.Fatalf("Config missing in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
 	}
 
-	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(configMap, &mariadb)
-
-	// if yaml config is there then unmarshall into struct and override default values if there are any
-	if len(root.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(configMap, &mariadb)
-	}
-
-	// check here if we have any default values - if not we bail out.
 	if mariadb.Config.IsBaseMariaDbStructureEmpty() {
 		m.isConfigEmpty = true
-		log.Fatalf("No syncer configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
+		log.Fatalf("No configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
 	}
 
 	lagoonSyncer, _ := mariadb.PrepareSyncer()

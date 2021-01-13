@@ -12,10 +12,31 @@ import (
 	"text/template"
 
 	"github.com/amazeeio/lagoon-sync/assets"
+	"github.com/amazeeio/lagoon-sync/prerequisite"
 	"gopkg.in/yaml.v2"
 )
 
 var shellToUse = "sh"
+
+func GatheredPrerequisitesToLagoonSyncStructure(configRoot SyncherConfigRoot) (SyncherConfigRoot, error) {
+
+	// Run the preReq Gatherers
+	gathererSlice := prerequisite.GetGatherersMap()
+
+	var envVars []prerequisite.GatheredPrerequisite
+
+	for _, g := range gathererSlice {
+		// if g.handlesPrerequisite("") {
+		gatheredPrereq := g.GatherPrerequisites()
+		envVars = append(envVars, gatheredPrereq...)
+		// }
+	}
+
+	// combine with ConfigRoot that has previously gathered config from config files
+	configRoot.Prerequisites = envVars
+
+	return configRoot, nil
+}
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {

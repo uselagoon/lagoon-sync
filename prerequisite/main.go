@@ -1,6 +1,12 @@
 package prerequisite
 
+import "log"
+
 func init() {
+
+	var preReqGatherers []GatheredPrerequisite
+
+	log.Println("Gatherers: ", preReqGatherers)
 
 	// run the prerequsite gatherers
 	// prerequisiteConfig := prerequisite.GetConfigPrerequisite()

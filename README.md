@@ -26,7 +26,7 @@ To see which config file is active and other configuration settings you can run 
 
 ### Example source-env overrides
 ```
-source-environment-defaults:
+lagoon-sync:
   postgres:
     config:
       hostname: "$POSTGRES_HOST"

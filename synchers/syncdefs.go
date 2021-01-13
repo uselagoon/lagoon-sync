@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/amazeeio/lagoon-sync/prerequisite"
 	"gopkg.in/yaml.v2"
 )
 
@@ -49,14 +50,14 @@ func (r Environment) getOpenshiftProjectName() string {
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
-	Project             string
-	LagoonSync          map[string]interface{} `yaml:"lagoon-sync"`
-	EnvironmentDefaults map[string]interface{} `yaml:"source-environment-defaults"`
+	Project       string                 `yaml:"project"`
+	LagoonSync    map[string]interface{} `yaml:"lagoon-sync"`
+	Prerequisites []prerequisite.GatheredPrerequisite
 }
 
 // takes interface, marshals back to []byte, then unmarshals to desired struct
 // from https://github.com/go-yaml/yaml/issues/13#issuecomment-428952604
-func UnmarshalIntoStruct(pluginIn, pluginOut interface{}) error {
+func UnmarshalIntoStruct(pluginIn interface{}, pluginOut interface{}) error {
 	b, err := yaml.Marshal(pluginIn)
 	if err != nil {
 		return err

@@ -43,9 +43,10 @@ func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) 
 	filesroot := FilesSyncRoot{}
 	filesroot.Config.setDefaults()
 
-	// Use 'source-environment-defaults' yaml if present
-	configMap := root.EnvironmentDefaults[m.GetPluginId()]
-	if configMap == nil {
+	// Use 'environment-defaults' if present
+	envVars := root.Prerequisites
+	var configMap interface{}
+	if envVars == nil {
 		// Use 'lagoon-sync' yaml as override if source-environment-deaults is not available
 		configMap = root.LagoonSync[m.GetPluginId()]
 	}
