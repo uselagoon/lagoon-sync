@@ -28,19 +28,18 @@ type SyncConfigFiles struct {
 	LagoonSyncDefaultsConfigFile string `json:"lagoon-sync-defaults-path"`
 }
 
-func init() {
-	rootCmd.AddCommand(configCmd)
-}
-
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Print the config that is being used by lagoon-sync",
 	Run: func(v *cobra.Command, args []string) {
-		PrintConfigOut()
+		configJSON := PrintConfigOut()
+
+		fmt.Println(string(configJSON))
+
 	},
 }
 
-func PrintConfigOut() {
+func PrintConfigOut() []byte {
 	defaultCfgFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if !exists {
 		defaultCfgFile = "false"
@@ -89,11 +88,12 @@ func PrintConfigOut() {
 			LagoonSyncDefaultsConfigFile: lagoonSyncCfgFile,
 		},
 	}
-	configJSON, err := json.MarshalIndent(config, "", " ")
+	configUnmarshalled, err := json.MarshalIndent(config, "", " ")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	fmt.Println(string(configJSON))
+
+	return configUnmarshalled
 }
 
 func FindLagoonSyncOnEnv() (string, bool) {
@@ -109,4 +109,8 @@ func FindLagoonSyncOnEnv() (string, bool) {
 		return lagoonPath, true
 	}
 	return "", false
+}
+
+func init() {
+	rootCmd.AddCommand(configCmd)
 }

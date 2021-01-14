@@ -94,11 +94,11 @@ var syncCmd = &cobra.Command{
 		}
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, verboseSSH)
-
 		if err != nil {
-			log.Printf("There was an error running the sync process: %v", err)
-			return
+			log.Fatalf("There was an error running the sync process: %v", err)
 		}
+
+		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
 	},
 }
 

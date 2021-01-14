@@ -9,17 +9,19 @@ import (
 	"text/template"
 
 	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
 var shellToUse = "sh"
+var debug = viper.Get("no-debug")
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
 	lagoonConfig := SyncherConfigRoot{}
 	err := yaml.Unmarshal(data, &lagoonConfig)
 
-	if err != nil {
+	if err != nil && debug == false {
 		return SyncherConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
 	}
 	return lagoonConfig, nil
@@ -30,10 +32,9 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	sourceEnvironment, err = RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
 	sourceRsyncPath := sourceEnvironment.RsyncPath
 	if err != nil {
+		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		return err
 	}
-
-	fmt.Printf(sourceRsyncPath)
 
 	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
@@ -44,24 +45,28 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	targetEnvironment, err = RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
 	targetRsyncPath := targetEnvironment.RsyncPath
 	if err != nil {
+		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 		return err
 	}
 
-	fmt.Print(targetRsyncPath)
-
 	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
+		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
 
 	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
+		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
+		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
 
+	_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
+	_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 
@@ -77,9 +82,8 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 		return nil
 	}
 
-	//
-
-	// preReqCommand, err := syncer.GetPrerequisiteCommand(remoteEnvironment, "config").GetCommand()
+	//@TOOD: Use prerequisite gatherers instead of running 'lagoon-sync config' command on remote.
+	// preReqCommand, err := syncer.GetPrerequisiteCommand(remoteEnvironment, "env | sort").GetCommand()
 	// sourceRsyncPath := remoteEnv.RsyncPath
 	// if err != nil {
 	// 	return err
@@ -102,11 +106,11 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 
 	if !dryRun {
 		err, response, errstring := utils.Shellout(execString)
-		if err != nil {
+		if err != nil && debug == false {
 			fmt.Println(errstring)
 			return err
 		}
-		if response != "" {
+		if response != "" && debug == false {
 			fmt.Println(response)
 		}
 	}
@@ -174,8 +178,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	}
 
 	execString := fmt.Sprintf("%v --rsync-path=%v -e \"ssh %v -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
-		"rsync",
-		"rsync",
+		targetEnvironment.RsyncPath,
+		sourceEnvironment.RsyncPath,
 		verboseSSHArgument,
 		rsyncRemoteSystemUsername,
 		lagoonRsyncService,

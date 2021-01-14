@@ -15,6 +15,7 @@ var version string
 var cfgFile string
 var defaultCfgFile string
 var lagoonSyncCfgFile string
+var NoDebug bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -48,6 +49,8 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./.lagoon.yml", "config file (default is .lagoon.yaml)")
+	rootCmd.PersistentFlags().BoolVar(&NoDebug, "no-debug", false, "Hides debug information from being printed")
+	viper.BindPFlag("no-debug", rootCmd.PersistentFlags().Lookup("no-debug"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -64,13 +67,14 @@ func initConfig() {
 	}
 	// Search config in home directory with name ".lagoon-sync" (without extension).
 	viper.AddConfigPath(home)
-
 	viper.SetConfigType("yaml")
 
 	// Find default config file for env vars (e.g. 'lagoon-sync-defaults')
 	defaultCfgFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if exists {
-		log.Println("Default config file path set: ", defaultCfgFile)
+		if !NoDebug {
+			log.Println("Default config file path set: ", defaultCfgFile)
+		}
 	} else {
 		defaultCfgFile = "/lagoon/.lagoon-sync-defaults"
 	}
@@ -78,45 +82,48 @@ func initConfig() {
 	// Find lagoon-sync config file (e.g. 'lagoon-sync')
 	lagoonSyncCfgFile, exists := os.LookupEnv("LAGOON_SYNC_PATH")
 	if exists {
-		log.Println("Lagoon sync config file path set: ", lagoonSyncCfgFile)
+		if !NoDebug {
+			log.Println("Lagoon sync config file path set: ", lagoonSyncCfgFile)
+		}
 	} else {
 		lagoonSyncCfgFile = "/lagoon/.lagoon-sync"
 	}
 
+	if !NoDebug {
+		fmt.Println(cfgFile)
+		fmt.Println(defaultCfgFile)
+		fmt.Println(lagoonSyncCfgFile)
+	}
+
+	//@TMP - adding for testing, as currently there is a odd env var bug on lagoon envs
+	viper.SetConfigName(".lagoon-sync")
+	viper.SetConfigFile(lagoonSyncCfgFile)
+
 	if cfgFile != "" {
+		// Use config file from the flag, default for this is '.lagoon.yml'
 		if _, err := os.Stat(cfgFile); err == nil {
-			viper.SetConfigName(cfgFile)
-			// Use config file from the flag, default for this is '.lagoon.yml'
+			viper.SetConfigName(".lagoon.yml")
 			viper.SetConfigFile(cfgFile)
-		} else if os.IsNotExist(err) {
-			if _, err := os.Stat(defaultCfgFile); err == nil {
-				viper.SetConfigName(".lagoon-sync-defaults")
-				viper.SetConfigFile(defaultCfgFile)
-				cfgFile = defaultCfgFile
-			}
-			if _, err := os.Stat(lagoonSyncCfgFile); err == nil {
-				viper.SetConfigName(".lagoon-sync")
-				viper.SetConfigFile(lagoonSyncCfgFile)
-				cfgFile = lagoonSyncCfgFile
+		}
+		if os.IsNotExist(err) {
+			if !NoDebug {
+				log.Printf("'.lagoon.yml' is missing.")
 			}
 		}
-	}
-	if defaultCfgFile != "" {
+
+		// Set '.lagoon-sync-defaults' as config file is it exists.
 		if _, err := os.Stat(defaultCfgFile); err == nil {
 			viper.SetConfigName(".lagoon-sync-defaults")
-			// Use the default config file.
 			viper.SetConfigFile(defaultCfgFile)
-			cfgFile = defaultCfgFile
 		}
 		if err != nil {
 			fmt.Println(err)
 		}
-	}
-	if lagoonSyncCfgFile != "" {
+
+		// Set '.lagoon-sync' as config file is it exists.
 		if _, err := os.Stat(lagoonSyncCfgFile); err == nil {
 			viper.SetConfigName(".lagoon-sync")
 			viper.SetConfigFile(lagoonSyncCfgFile)
-			cfgFile = lagoonSyncCfgFile
 		}
 		if err != nil {
 			fmt.Println(err)
@@ -127,9 +134,12 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		log.Println("Using config file:", viper.ConfigFileUsed())
+		if !NoDebug {
+			log.Println("Using config file:", viper.ConfigFileUsed())
+		}
 	}
-	if err := viper.ReadInConfig(); err != nil {
+	if err != nil {
+		log.Printf("Error reading config file: %s", err)
 		log.Print("Aborting - No config file found such as 'lagoon-sync, lagoon-sync-defaults or .lagoon.yml', there may also be an issue with your yaml syntax, or you forgot to export a sync file path e.g 'export LAGOON_SYNC_PATH=\".lagoon-sync\"'")
 		os.Exit(1)
 	}

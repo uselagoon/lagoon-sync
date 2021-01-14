@@ -10,6 +10,7 @@ import (
 	"github.com/amazeeio/lagoon-sync/assets"
 	"github.com/amazeeio/lagoon-sync/prerequisite"
 	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/spf13/viper"
 )
 
 func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, verboseSSH bool) (Environment, error) {
@@ -24,7 +25,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	var execString string
 	var configRespSuccessful bool
 
-	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config").GetCommand()
+	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config --no-debug").GetCommand()
 	if commandErr != nil {
 		return environment, commandErr
 	}
@@ -46,7 +47,9 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	json.Unmarshal([]byte(configResponseJson), &data)
 
 	if !data.IsPrerequisiteResponseEmpty() {
-		log.Printf("Config response: %v", configResponseJson)
+		if debug := viper.Get("no-debug"); debug == false {
+			log.Printf("Config response: %v", configResponseJson)
+		}
 		configRespSuccessful = true
 	} else {
 		log.Printf("%v\n-----\nWarning: lagoon-sync is not available on %s\n-----", configResponseJson, environment.EnvironmentName)
@@ -123,10 +126,7 @@ var RsyncAssetPath = "/tmp/rsync"
 
 // will add bundled rsync onto environment and return the new rsync path as string
 func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string) (string, error) {
-	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		log.Printf("%v environment doesn't have rsync", environment.EnvironmentName)
-	}
-
+	log.Printf("%v environment doesn't have rsync", environment.EnvironmentName)
 	log.Printf("Downloading rsync asset on %v", environment.EnvironmentName)
 
 	environmentName := syncer.GetTransferResource(environment).Name
@@ -145,7 +145,7 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 	environment.RsyncLocalPath = rsyncDestinationPath
 	environment.RsyncPath = RsyncAssetPath
 
-	//If local we bail out here
+	// If local we bail out here
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		return rsyncDestinationPath, nil
 	}
@@ -173,6 +173,14 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 	log.Printf("Running the following for:- %s", execString)
 
 	if err, _, errstring := utils.Shellout(execString); err != nil {
+		log.Println(errstring)
+		return "", err
+	}
+
+	// Remove local versioned rsync (post ssh transfer) - otherwise rsync will be avialable on target at /tmp/
+	removeLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", rsyncDestinationPath)
+	log.Printf("Removing rsync binary locally stored: %v", removeLocalRsyncCopyExecString)
+	if err, _, errstring := utils.Shellout(removeLocalRsyncCopyExecString); err != nil {
 		log.Println(errstring)
 		return "", err
 	}
@@ -220,9 +228,9 @@ func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 		return "", err
 	}
 
-	removeLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", tempRsyncPath)
-	log.Printf("Removing temp rsync binary: %v", removeLocalRsyncCopyExecString)
-	if err, _, errstring := utils.Shellout(removeLocalRsyncCopyExecString); err != nil {
+	removeTempLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", tempRsyncPath)
+	log.Printf("Removing temp rsync binary: %v", removeTempLocalRsyncCopyExecString)
+	if err, _, errstring := utils.Shellout(removeTempLocalRsyncCopyExecString); err != nil {
 		log.Println(errstring)
 		return "", err
 	}
