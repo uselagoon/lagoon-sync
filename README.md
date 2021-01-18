@@ -24,7 +24,7 @@ If either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` env vars are set the
 To see which config file is active and other configuration settings you can run the `go run main.go config` command which return this data as json.
 
 
-### Example source-env overrides
+### Example sync config overrides
 ```
 lagoon-sync:
   postgres:

@@ -170,7 +170,7 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 			environment.GetOpenshiftProjectName(), serviceArgument, command)
 	}
 
-	log.Printf("Running the following for:- %s", execString)
+	log.Printf("Running the following for %s:- %s", environment.EnvironmentName, execString)
 
 	if err, _, errstring := utils.Shellout(execString); err != nil {
 		log.Println(errstring)

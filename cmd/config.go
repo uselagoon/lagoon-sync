@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/amazeeio/lagoon-sync/prerequisite"
+	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -24,7 +23,7 @@ type Configuration struct {
 
 type SyncConfigFiles struct {
 	ConfigFileActive             string `json:"config-file-active"`
-	DefaultConfigFile            string `json:"default-config-path"`
+	LagoonSyncConfigFile         string `json:"lagoon-sync-path"`
 	LagoonSyncDefaultsConfigFile string `json:"lagoon-sync-defaults-path"`
 }
 
@@ -40,9 +39,9 @@ var configCmd = &cobra.Command{
 }
 
 func PrintConfigOut() []byte {
-	defaultCfgFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
+	lagoonSyncDefaultsFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if !exists {
-		defaultCfgFile = "false"
+		lagoonSyncDefaultsFile = "false"
 	}
 	lagoonSyncCfgFile, exists := os.LookupEnv("LAGOON_SYNC_PATH")
 	if !exists {
@@ -74,7 +73,7 @@ func PrintConfigOut() []byte {
 		}
 	}
 
-	lagoonSyncPath, exists := FindLagoonSyncOnEnv()
+	lagoonSyncPath, exists := utils.FindLagoonSyncOnEnv()
 
 	config := Configuration{
 		Version:           rootCmd.Version,
@@ -84,8 +83,8 @@ func PrintConfigOut() []byte {
 		OtherPrerequisite: otherPrerequisites,
 		SyncConfigFiles: SyncConfigFiles{
 			ConfigFileActive:             viper.ConfigFileUsed(),
-			DefaultConfigFile:            defaultCfgFile,
-			LagoonSyncDefaultsConfigFile: lagoonSyncCfgFile,
+			LagoonSyncConfigFile:         lagoonSyncCfgFile,
+			LagoonSyncDefaultsConfigFile: lagoonSyncDefaultsFile,
 		},
 	}
 	configUnmarshalled, err := json.MarshalIndent(config, "", " ")
@@ -94,21 +93,6 @@ func PrintConfigOut() []byte {
 	}
 
 	return configUnmarshalled
-}
-
-func FindLagoonSyncOnEnv() (string, bool) {
-	cmd := exec.Command("sh", "-c", "which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync || true")
-	stdoutStderr, err := cmd.Output()
-	if err != nil {
-		log.Fatal(err)
-		log.Fatal(string(stdoutStderr))
-	}
-
-	lagoonPath := strings.TrimSuffix(string(stdoutStderr), "\n")
-	if lagoonPath != "" {
-		return lagoonPath, true
-	}
-	return "", false
 }
 
 func init() {

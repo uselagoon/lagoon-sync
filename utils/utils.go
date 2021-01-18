@@ -7,7 +7,7 @@ import (
 )
 
 func FindLagoonSyncOnEnv() (string, bool) {
-	cmd := exec.Command("sh", "-c", "which ./lagoon-sync || which /tmp/lagoon-sync* || which lagoon-sync || true")
+	cmd := exec.Command("sh", "-c", "which /*/lagoon-sync* || false")
 	stdoutStderr, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

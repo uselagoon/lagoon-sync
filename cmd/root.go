@@ -13,7 +13,7 @@ import (
 
 var version string
 var cfgFile string
-var defaultCfgFile string
+var lagoonSyncDefaultsFile string
 var lagoonSyncCfgFile string
 var NoDebug bool
 
@@ -70,13 +70,13 @@ func initConfig() {
 	viper.SetConfigType("yaml")
 
 	// Find default config file for env vars (e.g. 'lagoon-sync-defaults')
-	defaultCfgFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
+	lagoonSyncDefaultsFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if exists {
 		if !NoDebug {
-			log.Println("Default config file path set: ", defaultCfgFile)
+			log.Println("Default config file path set: ", lagoonSyncDefaultsFile)
 		}
 	} else {
-		defaultCfgFile = "/lagoon/.lagoon-sync-defaults"
+		lagoonSyncDefaultsFile = "/lagoon/.lagoon-sync-defaults"
 	}
 
 	// Find lagoon-sync config file (e.g. 'lagoon-sync')
@@ -87,12 +87,6 @@ func initConfig() {
 		}
 	} else {
 		lagoonSyncCfgFile = "/lagoon/.lagoon-sync"
-	}
-
-	if !NoDebug {
-		fmt.Println(cfgFile)
-		fmt.Println(defaultCfgFile)
-		fmt.Println(lagoonSyncCfgFile)
 	}
 
 	//@TMP - adding for testing, as currently there is a odd env var bug on lagoon envs
@@ -112,9 +106,9 @@ func initConfig() {
 		}
 
 		// Set '.lagoon-sync-defaults' as config file is it exists.
-		if _, err := os.Stat(defaultCfgFile); err == nil {
+		if _, err := os.Stat(lagoonSyncDefaultsFile); err == nil {
 			viper.SetConfigName(".lagoon-sync-defaults")
-			viper.SetConfigFile(defaultCfgFile)
+			viper.SetConfigFile(lagoonSyncDefaultsFile)
 		}
 		if err != nil {
 			fmt.Println(err)

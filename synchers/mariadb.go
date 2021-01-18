@@ -87,20 +87,20 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	// 	// Use prerequisites if present
 	// 	log.Println(envVars)
 	// 	log.Println(configMap)
-
+	//
 	// 	for k, g := range envVars {
 	// 		fmt.Println("name: ", envVars[k].Name)
 	// 		fmt.Println("status: ", g.Status)
 	// 		fmt.Println("value: ", g.Value)
-
+	//
 	// 		//cast configMap to map
 	// 		configMap := configMap.(map[interface{}]interface{})
 	// 		for j, c := range configMap {
 	// 			configMap = c.(map[interface{}]interface{})
-
+	//
 	// 			fmt.Println("envVar name: ", envVars[k].Name)
 	// 			fmt.Println("map name: ", configMap[envVars[k].Name])
-
+	//
 	// 			if j == "config" {
 	// 				switch envVars[k].Name {
 	// 				case configMap[envVars[k].Name]:
@@ -113,7 +113,7 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 
 	// if still missing, then exit out
 	if configMap == nil {
-		log.Fatalf("Config missing in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
+		log.Fatalf("Syncer config is missing and unable to proceed in %v: %v", viper.GetViper().ConfigFileUsed(), mariadb)
 	}
 
 	if mariadb.Config.IsBaseMariaDbStructureEmpty() {
@@ -137,7 +137,7 @@ func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "lagoon_sync=$(which ./lagoon-sync* || which /tmp/lagoon-sync || false) && $lagoon_sync"
+	lagoonSyncBin := "lagoon_sync=$(which /*/lagoon-sync* || false) && $lagoon_sync"
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),

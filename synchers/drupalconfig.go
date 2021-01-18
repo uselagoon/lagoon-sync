@@ -40,13 +40,13 @@ func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoo
 	envVars := syncerConfigRoot.Prerequisites
 	var configMap interface{}
 	if envVars == nil {
-		// Use 'lagoon-sync' yaml as override if source-environment-deaults is not available
+		// Use 'lagoon-sync' yaml as override if env vars are not available
 		configMap = syncerConfigRoot.LagoonSync[m.GetPluginId()]
 	}
 
 	// if still missing, then exit out
 	if configMap == nil {
-		log.Fatalf("Config missing in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
+		log.Fatalf("Syncer config is missing and unable to proceed in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
 	}
 
 	// unmarshal environment variables as defaults

@@ -16,13 +16,13 @@ lagoon-sync:
       ignore-table-data:
         - "cache_data"
         - "cache_menu"
-#     local:
-#       config:
-#         hostname: "drupal"
-#         username: "drupal"
-#         password: "drupal"
-#         port: "3306"
-#         database: "drupal"
+    local:
+      config:
+        hostname: "drupal"
+        username: "drupal"
+        password: "drupal"
+        port: "3306"
+        database: "drupal"
 #     postgres:
 #       config:
 #         hostname: "$POSTGRES_HOST"
@@ -43,16 +43,16 @@ lagoon-sync:
 #           password: "drupal"
 #           port: "3306"
 #           database: "drupal"
-#     mongodb:
-#       config:
-#         hostname: "$HOSTNAME"
-#         port: "$MONGODB_SERVICE_PORT"
-#         database: "local"
-#       local:
-#         config:
-#           hostname: "$HOSTNAME"
-#           port: "27017"
-#           database: "local"
+  mongodb:
+    config:
+      hostname: "$HOSTNAME"
+      port: "$MONGODB_SERVICE_PORT"
+      database: "local"
+    local:
+      config:
+        hostname: "$HOSTNAME"
+        port: "27017"
+        database: "local"
 #     files:
 #       config:
 #         sync-directory: "/app/storage"
