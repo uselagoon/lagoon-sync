@@ -83,7 +83,7 @@ var syncCmd = &cobra.Command{
 		}
 
 		if noCliInteraction == false {
-			confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct?",
+			confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
 				ProjectName,
 				SyncerType,
 				sourceEnvironmentName, targetEnvironmentName))
