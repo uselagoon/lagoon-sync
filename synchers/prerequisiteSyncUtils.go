@@ -25,7 +25,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	var execString string
 	var configRespSuccessful bool
 
-	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config --no-debug").GetCommand()
+	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config --show-debug").GetCommand()
 	if commandErr != nil {
 		return environment, commandErr
 	}
@@ -47,7 +47,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	json.Unmarshal([]byte(configResponseJson), &data)
 
 	if !data.IsPrerequisiteResponseEmpty() {
-		if debug := viper.Get("no-debug"); debug == false {
+		if debug := viper.Get("show-debug"); debug == false {
 			log.Printf("Config response: %v", configResponseJson)
 		}
 		configRespSuccessful = true
@@ -198,23 +198,6 @@ func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 	if lagoonSyncVersion == "" {
 		log.Print("No lagoon-sync version set")
 	}
-
-	// Test running local rsync binary (won't run on darwin OS)
-	// localRsyncCommand := exec.Command(tempRsyncPath", "--version")
-	// stdout, err := localRsyncCommand.StdoutPipe()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// if err := localRsyncCommand.Start(); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// r := bufio.NewReader(stdout)
-	// b, err := r.ReadBytes('\n')
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println("Local rsync ran:", string(b))
 
 	// Rename rsync binary with latest lagoon version appended.
 	versionedRsyncPath := fmt.Sprintf("%vlagoon_sync_rsync_%v", "/tmp/", strings.ReplaceAll(lagoonSyncVersion, ".", "_"))

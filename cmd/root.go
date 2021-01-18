@@ -15,7 +15,7 @@ var version string
 var cfgFile string
 var lagoonSyncDefaultsFile string
 var lagoonSyncCfgFile string
-var NoDebug bool
+var ShowDebug bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -40,6 +40,16 @@ func Execute() {
 	}
 }
 
+// Reports whether a file exists.
+func FileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.SetVersionTemplate(Version())
@@ -49,8 +59,8 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./.lagoon.yml", "config file (default is .lagoon.yaml)")
-	rootCmd.PersistentFlags().BoolVar(&NoDebug, "no-debug", false, "Hides debug information from being printed")
-	viper.BindPFlag("no-debug", rootCmd.PersistentFlags().Lookup("no-debug"))
+	rootCmd.PersistentFlags().BoolVar(&ShowDebug, "show-debug", false, "Shows debug information")
+	viper.BindPFlag("show-debug", rootCmd.PersistentFlags().Lookup("show-debug"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -67,12 +77,15 @@ func initConfig() {
 	}
 	// Search config in home directory with name ".lagoon-sync" (without extension).
 	viper.AddConfigPath(home)
+	viper.AddConfigPath("/lagoon")
+	viper.AddConfigPath("/tmp")
+	viper.SetConfigName(cfgFile)
 	viper.SetConfigType("yaml")
 
 	// Find default config file for env vars (e.g. 'lagoon-sync-defaults')
 	lagoonSyncDefaultsFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if exists {
-		if !NoDebug {
+		if ShowDebug {
 			log.Println("Default config file path set: ", lagoonSyncDefaultsFile)
 		}
 	} else {
@@ -82,7 +95,7 @@ func initConfig() {
 	// Find lagoon-sync config file (e.g. 'lagoon-sync')
 	lagoonSyncCfgFile, exists := os.LookupEnv("LAGOON_SYNC_PATH")
 	if exists {
-		if !NoDebug {
+		if ShowDebug {
 			log.Println("Lagoon sync config file path set: ", lagoonSyncCfgFile)
 		}
 	} else {
@@ -91,32 +104,32 @@ func initConfig() {
 
 	if cfgFile != "" {
 		// Use config file from the flag, default for this is '.lagoon.yml'
-		if _, err := os.Stat(cfgFile); err == nil {
-			viper.SetConfigName(".lagoon.yml")
-			viper.SetConfigFile(cfgFile)
-		}
-		if os.IsNotExist(err) {
-			if !NoDebug {
-				log.Printf("'.lagoon.yml' is missing.")
+		if FileExists(cfgFile) {
+			if ShowDebug {
+				log.Print("Setting config file: ", cfgFile)
 			}
+			viper.SetConfigName(cfgFile)
+			viper.SetConfigFile(cfgFile)
 		}
 
 		// Set '.lagoon-sync-defaults' as config file is it exists.
-		if _, err := os.Stat(lagoonSyncDefaultsFile); err == nil {
-			viper.SetConfigName(".lagoon-sync-defaults")
+		if FileExists(lagoonSyncDefaultsFile) {
+			if ShowDebug {
+				log.Print("Setting config file: ", lagoonSyncDefaultsFile)
+			}
+			viper.SetConfigName(lagoonSyncDefaultsFile)
 			viper.SetConfigFile(lagoonSyncDefaultsFile)
-		}
-		if err != nil {
-			fmt.Println(err)
+			cfgFile = lagoonSyncDefaultsFile
 		}
 
 		// Set '.lagoon-sync' as config file is it exists.
-		if _, err := os.Stat(lagoonSyncCfgFile); err == nil {
-			viper.SetConfigName(".lagoon-sync")
+		if FileExists(lagoonSyncCfgFile) {
+			if ShowDebug {
+				log.Print("Setting config file: ", lagoonSyncCfgFile)
+			}
+			viper.SetConfigName(lagoonSyncCfgFile)
 			viper.SetConfigFile(lagoonSyncCfgFile)
-		}
-		if err != nil {
-			fmt.Println(err)
+			cfgFile = lagoonSyncCfgFile
 		}
 	}
 
@@ -124,13 +137,13 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		if !NoDebug {
-			log.Println("Using config file:", viper.ConfigFileUsed())
-		}
+		log.Println("Using config file: ", viper.ConfigFileUsed())
 	}
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		log.Printf("Error reading config file: %s", err)
-		log.Print("Aborting - No config file found such as 'lagoon-sync, lagoon-sync-defaults or .lagoon.yml', there may also be an issue with your yaml syntax, or you forgot to export a sync file path e.g 'export LAGOON_SYNC_PATH=\".lagoon-sync\"'")
+		if ShowDebug {
+			log.Print("No config file found such as 'lagoon-sync, lagoon-sync-defaults or .lagoon.yml', there may also be an issue with your yaml syntax")
+		}
 		os.Exit(1)
 	}
 }

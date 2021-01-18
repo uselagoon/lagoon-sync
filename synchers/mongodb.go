@@ -68,9 +68,9 @@ func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 		configMap = root.LagoonSync[m.GetPluginId()]
 	}
 
-	// if still missing, then exit out
+	// if config from active config file is empty, then use defaults
 	if configMap == nil {
-		log.Fatalf("Syncer config is missing and unable to proceed in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
+		log.Printf("Syncer config is empty in %v, so using defaults: %v", viper.GetViper().ConfigFileUsed(), mongodb)
 	}
 
 	// unmarshal environment variables as defaults
