@@ -14,7 +14,7 @@ import (
 )
 
 var shellToUse = "sh"
-var debug = viper.Get("no-debug")
+var debug = viper.Get("show-debug")
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
 func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
@@ -81,13 +81,6 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 		log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
 		return nil
 	}
-
-	//@TOOD: Use prerequisite gatherers instead of running 'lagoon-sync config' command on remote.
-	// preReqCommand, err := syncer.GetPrerequisiteCommand(remoteEnvironment, "env | sort").GetCommand()
-	// sourceRsyncPath := remoteEnv.RsyncPath
-	// if err != nil {
-	// 	return err
-	// }
 
 	command, commandErr := syncer.GetRemoteCommand(remoteEnvironment).GetCommand()
 	if commandErr != nil {

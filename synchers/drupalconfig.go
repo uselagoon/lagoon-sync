@@ -44,9 +44,9 @@ func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoo
 		configMap = syncerConfigRoot.LagoonSync[m.GetPluginId()]
 	}
 
-	// if still missing, then exit out
+	// if config from active config file is empty, then use defaults
 	if configMap == nil {
-		log.Fatalf("Syncer config is missing and unable to proceed in %v: %v", viper.GetViper().ConfigFileUsed(), configMap)
+		log.Printf("Syncer config is empty in %v, so using defaults: %v", viper.GetViper().ConfigFileUsed(), drupalconfig)
 	}
 
 	// unmarshal environment variables as defaults
