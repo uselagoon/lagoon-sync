@@ -89,10 +89,6 @@ func initConfig() {
 		lagoonSyncCfgFile = "/lagoon/.lagoon-sync"
 	}
 
-	//@TMP - adding for testing, as currently there is a odd env var bug on lagoon envs
-	viper.SetConfigName(".lagoon-sync")
-	viper.SetConfigFile(lagoonSyncCfgFile)
-
 	if cfgFile != "" {
 		// Use config file from the flag, default for this is '.lagoon.yml'
 		if _, err := os.Stat(cfgFile); err == nil {
