@@ -48,7 +48,7 @@ func PrintConfigOut() []byte {
 		lagoonSyncCfgFile = "false"
 	}
 
-	// run the prerequsite gatherers
+	// Run the prerequsite gatherers
 	prerequisiteConfig := prerequisite.GetPrerequisiteGatherer()
 	var RsyncPrerequisites []prerequisite.GatheredPrerequisite
 	var envVarPrerequisites []prerequisite.GatheredPrerequisite

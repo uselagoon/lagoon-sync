@@ -3,9 +3,11 @@ package synchers
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/spf13/viper"
 )
 
@@ -33,6 +35,11 @@ type FilesSyncLocal struct {
 // Init related types and functions follow
 
 type FilesSyncPlugin struct {
+	isConfigEmpty bool
+}
+
+func (m BaseFilesSync) IsBaseFilesSyncStructEmpty() bool {
+	return reflect.DeepEqual(m, BaseFilesSync{})
 }
 
 func (m FilesSyncPlugin) GetPluginId() string {
@@ -43,25 +50,23 @@ func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) 
 	filesroot := FilesSyncRoot{}
 	filesroot.Config.setDefaults()
 
-	// Use 'environment-defaults' if present
-	envVars := root.Prerequisites
-	var configMap interface{}
-	if envVars == nil {
-		// Use 'lagoon-sync' yaml as override if env vars are not available
-		configMap = root.LagoonSync[m.GetPluginId()]
-	}
+	// Use 'lagoon-sync' yaml as override if env vars are not available
+	configMap := root.LagoonSync[m.GetPluginId()]
 
-	// if config from active config file is empty, then use defaults
-	if configMap == nil {
-		log.Printf("Syncer config is empty in %v, so using defaults: %v", viper.GetViper().ConfigFileUsed(), filesroot)
-	}
-
-	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(configMap, &filesroot)
-
-	// if yaml config is there then unmarshall into struct and override default values if there are any
+	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if len(root.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(configMap, &filesroot)
+		utils.LogDebugInfo("Config that will be used for sync", filesroot)
+	}
+
+	// If config from active config file is empty, then use defaults
+	if configMap == nil {
+		utils.LogDebugInfo("Active syncer config is empty, so using defaults", filesroot)
+	}
+
+	if filesroot.Config.IsBaseFilesSyncStructEmpty() && &filesroot == nil {
+		m.isConfigEmpty = true
+		log.Fatalf("No configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
 	}
 
 	lagoonSyncer, _ := filesroot.PrepareSyncer()

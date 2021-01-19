@@ -10,7 +10,6 @@ import (
 	"github.com/amazeeio/lagoon-sync/assets"
 	"github.com/amazeeio/lagoon-sync/prerequisite"
 	"github.com/amazeeio/lagoon-sync/utils"
-	"github.com/spf13/viper"
 )
 
 func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, verboseSSH bool) (Environment, error) {
@@ -20,7 +19,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 		return environment, nil
 	}
 
-	log.Printf("Running prerequisite checks on %s environment", environment.EnvironmentName)
+	utils.LogProcessStep("Running prerequisite checks on", environment.EnvironmentName)
 
 	var execString string
 	var configRespSuccessful bool
@@ -36,7 +35,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 		execString = GenerateRemoteCommand(environment, command, verboseSSH)
 	}
 
-	log.Printf("Running the following prerequisite command:- %s", execString)
+	utils.LogExecutionStep("Running the following prerequisite command", execString)
 
 	err, configResponseJson, errstring := utils.Shellout(execString)
 	if err != nil {
@@ -47,12 +46,10 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	json.Unmarshal([]byte(configResponseJson), &data)
 
 	if !data.IsPrerequisiteResponseEmpty() {
-		if debug := viper.Get("show-debug"); debug == false {
-			log.Printf("Config response: %v", configResponseJson)
-		}
+		utils.LogDebugInfo("'lagoon-sync config' response", configResponseJson)
 		configRespSuccessful = true
 	} else {
-		log.Printf("%v\n-----\nWarning: lagoon-sync is not available on %s\n-----", configResponseJson, environment.EnvironmentName)
+		utils.LogWarning("'lagoon-sync' is not available on", environment.EnvironmentName)
 		configRespSuccessful = false
 	}
 
@@ -73,12 +70,12 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 
 	// Check if prerequisite checks were successful.
 	if !configRespSuccessful {
-		log.Printf("Unable to determine rsync config on %v, will attempt to use 'rsync' path instead", environment.EnvironmentName)
+		utils.LogDebugInfo("Unable to determine rsync config, will attempt to use 'rsync' path instead", environment.EnvironmentName)
 		environment.RsyncPath = "rsync"
 		return environment, nil
 	}
 	if environment.RsyncAvailable {
-		log.Printf("Rsync found: %v", environment.RsyncPath)
+		utils.LogDebugInfo("Rsync found", environment.RsyncPath)
 	}
 
 	if !dryRun && !environment.RsyncAvailable {
@@ -89,7 +86,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 			return environment, err
 		}
 
-		log.Printf("Rsync path: %s", rsyncPath)
+		utils.LogDebugInfo("Rsync path", rsyncPath)
 		environment.RsyncPath = rsyncPath
 		return environment, nil
 	}
@@ -98,17 +95,19 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 }
 
 func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool, verboseSSH bool) error {
-	log.Printf("Beginning prerequisite resource cleanup on %s", environment.EnvironmentName)
 	if rsyncPath == "" || rsyncPath == "rsync" || !strings.Contains(rsyncPath, "/tmp/") {
 		return nil
 	}
+
+	utils.LogProcessStep("Beginning prerequisite resource cleanup on", environment.EnvironmentName)
+
 	execString := fmt.Sprintf("rm -r %s", rsyncPath)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		execString = GenerateRemoteCommand(environment, execString, verboseSSH)
 	}
 
-	log.Printf("Running the following: %s", execString)
+	utils.LogExecutionStep("Running the following", execString)
 
 	if !dryRun {
 		err, _, errstring := utils.Shellout(execString)
@@ -126,8 +125,8 @@ var RsyncAssetPath = "/tmp/rsync"
 
 // will add bundled rsync onto environment and return the new rsync path as string
 func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string) (string, error) {
-	log.Printf("%v environment doesn't have rsync", environment.EnvironmentName)
-	log.Printf("Downloading rsync asset on %v", environment.EnvironmentName)
+	utils.LogDebugInfo("%v environment doesn't have rsync", environment.EnvironmentName)
+	utils.LogDebugInfo("Downloading rsync asset on", environment.EnvironmentName)
 
 	environmentName := syncer.GetTransferResource(environment).Name
 	if syncer.GetTransferResource(environment).IsDirectory == true {
@@ -170,7 +169,7 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 			environment.GetOpenshiftProjectName(), serviceArgument, command)
 	}
 
-	log.Printf("Running the following for %s:- %s", environment.EnvironmentName, execString)
+	utils.LogExecutionStep(fmt.Sprintf("Running the following for %s", environment.EnvironmentName), execString)
 
 	if err, _, errstring := utils.Shellout(execString); err != nil {
 		log.Println(errstring)
@@ -192,11 +191,11 @@ func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 	tempRsyncPath := "/tmp/rsync"
 	err := ioutil.WriteFile(tempRsyncPath, assets.GetRSYNC(), 0774)
 	if err != nil {
-		log.Fatal(err)
+		utils.LogFatalError("Unable to write to file", err)
 	}
 
 	if lagoonSyncVersion == "" {
-		log.Print("No lagoon-sync version set")
+		utils.LogDebugInfo("No lagoon-sync version set", nil)
 	}
 
 	// Rename rsync binary with latest lagoon version appended.
@@ -212,7 +211,8 @@ func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 	}
 
 	removeTempLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", tempRsyncPath)
-	log.Printf("Removing temp rsync binary: %v", removeTempLocalRsyncCopyExecString)
+	utils.LogExecutionStep("Removing temp rsync binary", removeTempLocalRsyncCopyExecString)
+
 	if err, _, errstring := utils.Shellout(removeTempLocalRsyncCopyExecString); err != nil {
 		log.Println(errstring)
 		return "", err

@@ -2,11 +2,11 @@ package synchers
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/spf13/viper"
 )
 
@@ -67,30 +67,23 @@ func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (
 	postgres.Config.setDefaults()
 	postgres.LocalOverrides.Config.setDefaults()
 
-	// Use 'environment-defaults' if present
-	envVars := syncerConfigRoot.Prerequisites
-	var configMap interface{}
-	if envVars == nil {
-		// Use 'lagoon-sync' yaml as override if env vars are not available
-		configMap = syncerConfigRoot.LagoonSync[m.GetPluginId()]
-	}
+	// Use 'lagoon-sync' yaml as default
+	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
 
-	// if config from active config file is empty, then use defaults
-	if configMap == nil {
-		log.Printf("Syncer config is empty in %v, so using defaults: %v", viper.GetViper().ConfigFileUsed(), postgres)
-	}
-
-	// unmarshal environment variables as defaults
-	_ = UnmarshalIntoStruct(configMap, &postgres)
-
+	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if len(syncerConfigRoot.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(configMap, &postgres)
+		utils.LogDebugInfo("Config that will be used for sync", postgres)
 	}
 
-	// check here if we have any default values - if not we bail out.
-	if postgres.Config.IsBasePostgresDbStructureEmpty() {
+	// If config from active config file is empty, then use defaults
+	if configMap == nil {
+		utils.LogDebugInfo("Active syncer config is empty, so using defaults", postgres)
+	}
+
+	if postgres.Config.IsBasePostgresDbStructureEmpty() && &postgres == nil {
 		m.isConfigEmpty = true
-		log.Fatalf("No syncer configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
+		utils.LogFatalError("No syncer configuration could be found in", viper.GetViper().ConfigFileUsed())
 	}
 
 	lagoonSyncer, _ := postgres.PrepareSyncer()
@@ -109,7 +102,7 @@ func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "lagoon_sync=$(which /*/lagoon-sync* || false) && $lagoon_sync"
+	lagoonSyncBin, _ := utils.FindLagoonSyncOnEnv()
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }}"),

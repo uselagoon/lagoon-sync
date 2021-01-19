@@ -2,11 +2,11 @@ package synchers
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/spf13/viper"
 )
 
@@ -78,23 +78,23 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	// Use 'lagoon-sync' yaml as default
 	configMap := root.LagoonSync[m.GetPluginId()]
 
-	// if yaml config is there then unmarshall into struct and override default values if there are any
+	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if len(root.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(configMap, &mariadb)
+		utils.LogDebugInfo("Config that will be used for sync", mariadb)
 	}
 
-	// if config from active config file is empty, then use defaults
+	// If config from active config file is empty, then use defaults
 	if configMap == nil {
-		log.Printf("Syncer config is empty in %v, so using defaults: %v", viper.GetViper().ConfigFileUsed(), mariadb)
+		utils.LogDebugInfo("Active syncer config is empty, so using defaults", mariadb)
 	}
 
-	if mariadb.Config.IsBaseMariaDbStructureEmpty() {
+	if mariadb.Config.IsBaseMariaDbStructureEmpty() && &mariadb == nil {
 		m.isConfigEmpty = true
-		log.Fatalf("No configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
+		utils.LogFatalError("No syncer configuration could be found in", viper.GetViper().ConfigFileUsed())
 	}
 
 	lagoonSyncer, _ := mariadb.PrepareSyncer()
-
 	return lagoonSyncer, nil
 }
 
@@ -109,7 +109,8 @@ func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "lagoon_sync=$(which /*/lagoon-sync* || false) && $lagoon_sync"
+	// lagoonSyncBin := "lagoon_sync=$(which lagoon-sync || false) && $lagoon_sync"
+	lagoonSyncBin, _ := utils.FindLagoonSyncOnEnv()
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),
