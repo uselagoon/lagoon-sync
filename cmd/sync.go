@@ -63,16 +63,19 @@ var syncCmd = &cobra.Command{
 			ProjectName:     ProjectName,
 			EnvironmentName: sourceEnvironmentName,
 			ServiceName:     ServiceName,
+			RsyncPath: "rsync",
 		}
 
 		// We assume that the target environment is local if it's not passed as an argument
 		if targetEnvironmentName == "" {
 			targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
 		}
+
 		targetEnvironment := synchers.Environment{
 			ProjectName:     ProjectName,
 			EnvironmentName: targetEnvironmentName,
 			ServiceName:     ServiceName,
+			RsyncPath: "rsync",
 		}
 
 		var lagoonSyncer synchers.Syncer
