@@ -2,11 +2,11 @@ package synchers
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/spf13/viper"
 )
 
@@ -68,9 +68,9 @@ func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 		configMap = root.LagoonSync[m.GetPluginId()]
 	}
 
-	// if config from active config file is empty, then use defaults
+	// If config from active config file is empty, then use defaults
 	if configMap == nil {
-		log.Printf("Syncer config is empty in %v, so using defaults: %v", viper.GetViper().ConfigFileUsed(), mongodb)
+		utils.LogDebugInfo("Active syncer config is empty, so using defaults", mongodb)
 	}
 
 	// unmarshal environment variables as defaults
@@ -78,12 +78,12 @@ func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 
 	if len(root.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(configMap, &mongodb)
+		utils.LogDebugInfo("Config that will be used for sync", mongodb)
 	}
 
-	// check here if we have any default values - if not we bail out.
-	if mongodb.Config.IsBaseMongoDbStructureEmpty() {
+	if mongodb.Config.IsBaseMongoDbStructureEmpty() && &mongodb == nil {
 		m.isConfigEmpty = true
-		log.Fatalf("No syncer configuration could be found for %v in %v", m.GetPluginId(), viper.GetViper().ConfigFileUsed())
+		utils.LogFatalError("No syncer configuration could be found in", viper.GetViper().ConfigFileUsed())
 	}
 
 	lagoonSyncer, _ := mongodb.PrepareSyncer()
@@ -101,7 +101,7 @@ func (root MongoDbSyncRoot) PrepareSyncer() (Syncer, error) {
 }
 
 func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	lagoonSyncBin := "lagoon_sync=$(which /*/lagoon-sync* || false) && $lagoon_sync"
+	lagoonSyncBin, _ := utils.FindLagoonSyncOnEnv()
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),

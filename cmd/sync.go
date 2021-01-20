@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/amazeeio/lagoon-sync/synchers"
+	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,17 +31,16 @@ var syncCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		SyncerType := args[0]
+		viper.Set("syncer-type", args[0])
 
 		lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
 		if err != nil {
-			log.Println("Couldn't load lagoon config file - " + err.Error())
-			os.Exit(1)
+			utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
 		}
 
 		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
 		if err != nil {
-			log.Printf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
-			os.Exit(1)
+			log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
 		}
 
 		// If no project flag is given, find project from env var.
@@ -78,8 +78,11 @@ var syncCmd = &cobra.Command{
 		var lagoonSyncer synchers.Syncer
 		lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 		if err != nil {
-			log.Println(err.Error())
-			return
+			utils.LogFatalError(err.Error(), nil)
+		}
+
+		if ProjectName == "" {
+			utils.LogFatalError("No Project name given", nil)
 		}
 
 		if noCliInteraction == false {
@@ -88,17 +91,18 @@ var syncCmd = &cobra.Command{
 				SyncerType,
 				sourceEnvironmentName, targetEnvironmentName))
 			if err != nil || confirmationResult == false {
-				log.Printf("User cancelled sync - exiting")
-				os.Exit(1)
+				utils.LogFatalError("User cancelled sync - exiting", nil)
 			}
 		}
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, verboseSSH)
 		if err != nil {
-			log.Fatalf("There was an error running the sync process: %v", err)
+			utils.LogFatalError("There was an error running the sync process", err)
 		}
 
-		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
+		if !dryRun {
+			log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
+		}
 	},
 }
 

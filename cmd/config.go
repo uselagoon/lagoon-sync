@@ -32,9 +32,7 @@ var configCmd = &cobra.Command{
 	Short: "Print the config that is being used by lagoon-sync",
 	Run: func(v *cobra.Command, args []string) {
 		configJSON := PrintConfigOut()
-
 		fmt.Println(string(configJSON))
-
 	},
 }
 
@@ -48,7 +46,9 @@ func PrintConfigOut() []byte {
 		lagoonSyncCfgFile = "false"
 	}
 
-	// run the prerequsite gatherers
+	lagoonSyncPath, exists := utils.FindLagoonSyncOnEnv()
+
+	// Run the prerequsite gatherers
 	prerequisiteConfig := prerequisite.GetPrerequisiteGatherer()
 	var RsyncPrerequisites []prerequisite.GatheredPrerequisite
 	var envVarPrerequisites []prerequisite.GatheredPrerequisite
@@ -72,8 +72,6 @@ func PrintConfigOut() []byte {
 			}
 		}
 	}
-
-	lagoonSyncPath, exists := utils.FindLagoonSyncOnEnv()
 
 	config := Configuration{
 		Version:           rootCmd.Version,

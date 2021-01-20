@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/amazeeio/lagoon-sync/assets"
+	"github.com/amazeeio/lagoon-sync/utils"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,16 +38,6 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-// Reports whether a file exists.
-func FileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }
 
 func init() {
@@ -85,9 +75,7 @@ func initConfig() {
 	// Find default config file for env vars (e.g. 'lagoon-sync-defaults')
 	lagoonSyncDefaultsFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if exists {
-		if ShowDebug {
-			log.Println("Default config file path set: ", lagoonSyncDefaultsFile)
-		}
+		utils.LogDebugInfo("LAGOON_SYNC_DEFAULTS_PATH env var found", lagoonSyncDefaultsFile)
 	} else {
 		lagoonSyncDefaultsFile = "/lagoon/.lagoon-sync-defaults"
 	}
@@ -95,38 +83,27 @@ func initConfig() {
 	// Find lagoon-sync config file (e.g. 'lagoon-sync')
 	lagoonSyncCfgFile, exists := os.LookupEnv("LAGOON_SYNC_PATH")
 	if exists {
-		if ShowDebug {
-			log.Println("Lagoon sync config file path set: ", lagoonSyncCfgFile)
-		}
+		utils.LogDebugInfo("LAGOON_SYNC_PATH env var found", lagoonSyncCfgFile)
 	} else {
 		lagoonSyncCfgFile = "/lagoon/.lagoon-sync"
 	}
 
 	if cfgFile != "" {
 		// Use config file from the flag, default for this is '.lagoon.yml'
-		if FileExists(cfgFile) {
-			if ShowDebug {
-				log.Print("Setting config file: ", cfgFile)
-			}
+		if utils.FileExists(cfgFile) {
 			viper.SetConfigName(cfgFile)
 			viper.SetConfigFile(cfgFile)
 		}
 
 		// Set '.lagoon-sync-defaults' as config file is it exists.
-		if FileExists(lagoonSyncDefaultsFile) {
-			if ShowDebug {
-				log.Print("Setting config file: ", lagoonSyncDefaultsFile)
-			}
+		if utils.FileExists(lagoonSyncDefaultsFile) {
 			viper.SetConfigName(lagoonSyncDefaultsFile)
 			viper.SetConfigFile(lagoonSyncDefaultsFile)
 			cfgFile = lagoonSyncDefaultsFile
 		}
 
 		// Set '.lagoon-sync' as config file is it exists.
-		if FileExists(lagoonSyncCfgFile) {
-			if ShowDebug {
-				log.Print("Setting config file: ", lagoonSyncCfgFile)
-			}
+		if utils.FileExists(lagoonSyncCfgFile) {
 			viper.SetConfigName(lagoonSyncCfgFile)
 			viper.SetConfigFile(lagoonSyncCfgFile)
 			cfgFile = lagoonSyncCfgFile
@@ -137,13 +114,9 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		log.Println("Using config file: ", viper.ConfigFileUsed())
+		utils.LogDebugInfo("Using config file", viper.ConfigFileUsed())
 	}
 	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Error reading config file: %s", err)
-		if ShowDebug {
-			log.Print("No config file found such as 'lagoon-sync, lagoon-sync-defaults or .lagoon.yml', there may also be an issue with your yaml syntax")
-		}
-		os.Exit(1)
+		utils.LogFatalError("Unable to read in config file", err)
 	}
 }

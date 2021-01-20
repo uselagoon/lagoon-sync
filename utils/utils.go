@@ -2,12 +2,23 @@ package utils
 
 import (
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 )
 
+// Reports whether a file exists.
+func FileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
 func FindLagoonSyncOnEnv() (string, bool) {
-	cmd := exec.Command("sh", "-c", "which /*/lagoon-sync* || false")
+	cmd := exec.Command("sh", "-c", "which lagoon-sync || false")
 	stdoutStderr, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

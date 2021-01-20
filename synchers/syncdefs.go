@@ -11,11 +11,13 @@ import (
 const LOCAL_ENVIRONMENT_NAME = "local"
 
 type Syncer interface {
+	// GetPrequisiteCommand will return the command to run on source or target environment to extract information.
 	GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
 	GetLocalCommand(environment Environment) SyncCommand
+	// GetTransferResource will return the command that executes the transfer
 	GetTransferResource(environment Environment) SyncerTransferResource
 	// PrepareSyncer does any preparations required on a Syncer before it is used
 	PrepareSyncer() (Syncer, error)

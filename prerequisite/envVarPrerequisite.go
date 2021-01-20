@@ -4,7 +4,8 @@ import (
 	"os"
 )
 
-type EnvVaRsyncPrerequisite struct {
+type EnvVarRsyncPrerequisite struct {
+	SyncerType        string
 	LagoonVersion     string
 	LagoonProject     string
 	LagoonEnvironment string
@@ -17,6 +18,7 @@ type EnvVaRsyncPrerequisite struct {
 }
 
 type DbEnvVars struct {
+	DbType   string
 	Hostname string
 	Username string
 	Password string
@@ -24,30 +26,21 @@ type DbEnvVars struct {
 	Database string
 }
 
-func (e *EnvVaRsyncPrerequisite) GetName() string {
+func (e *EnvVarRsyncPrerequisite) GetName() string {
 	return "env-vars"
 }
 
-func (e *EnvVaRsyncPrerequisite) GetValue() bool {
+func (e *EnvVarRsyncPrerequisite) GetValue() bool {
 	var lagoonVersion = os.Getenv("LAGOON_VERSION")
-	if lagoonVersion == "" {
-		lagoonVersion = "UNSET"
-	}
 	e.LagoonVersion = lagoonVersion
 
 	var lagoonProject = os.Getenv("LAGOON_PROJECT")
 	if lagoonProject == "" {
 		lagoonProject = os.Getenv("LAGOON_SAFE_PROJECT")
 	}
-	if lagoonProject == "" {
-		lagoonProject = "UNSET"
-	}
 	e.LagoonProject = lagoonProject
 
 	var lagoonEnvironment = os.Getenv("LAGOON_GIT_SAFE_BRANCH")
-	if lagoonEnvironment == "" {
-		lagoonEnvironment = "UNSET"
-	}
 	e.LagoonEnvironment = lagoonEnvironment
 
 	e.MariaDb = getMariaDbEnvVars()
@@ -57,8 +50,9 @@ func (e *EnvVaRsyncPrerequisite) GetValue() bool {
 	return true
 }
 
-func (e *EnvVaRsyncPrerequisite) GatherPrerequisites() ([]GatheredPrerequisite, error) {
-	return []GatheredPrerequisite{
+func (e *EnvVarRsyncPrerequisite) GatherPrerequisites() ([]GatheredPrerequisite, error) {
+
+	gatheredPrerequisite := []GatheredPrerequisite{
 		{
 			Name:   "lagoon_version",
 			Value:  e.LagoonVersion,
@@ -74,115 +68,122 @@ func (e *EnvVaRsyncPrerequisite) GatherPrerequisites() ([]GatheredPrerequisite, 
 			Value:  e.LagoonEnvironment,
 			Status: getStatusFromString(e.LagoonEnvironment),
 		},
-		{
-			Name:   "mariadb_hostname",
-			Value:  e.MariaDb.Hostname,
-			Status: getStatusFromString(e.MariaDb.Hostname),
-		},
-		{
-			Name:   "mariadb_username",
-			Value:  e.MariaDb.Username,
-			Status: getStatusFromString(e.MariaDb.Username),
-		},
-		{
-			Name:   "mariadb_password",
-			Value:  e.MariaDb.Password,
-			Status: getStatusFromString(e.MariaDb.Password),
-		},
-		{
-			Name:   "mariadb_port",
-			Value:  e.MariaDb.Port,
-			Status: getStatusFromString(e.MariaDb.Port),
-		},
-		{
-			Name:   "mariadb_database",
-			Value:  e.MariaDb.Database,
-			Status: getStatusFromString(e.MariaDb.Database),
-		},
-		{
-			Name:   "mongodb_hostname",
-			Value:  e.MongoDb.Hostname,
-			Status: getStatusFromString(e.MongoDb.Hostname),
-		},
-		{
-			Name:   "mongodb_username",
-			Value:  e.MongoDb.Username,
-			Status: getStatusFromString(e.MongoDb.Username),
-		},
-		{
-			Name:   "mongodb_password",
-			Value:  e.MongoDb.Password,
-			Status: getStatusFromString(e.MongoDb.Password),
-		},
-		{
-			Name:   "mongodb_port",
-			Value:  e.MongoDb.Port,
-			Status: getStatusFromString(e.MariaDb.Port),
-		},
-		{
-			Name:   "mongodb_database",
-			Value:  e.MongoDb.Database,
-			Status: getStatusFromString(e.MariaDb.Database),
-		},
-		{
-			Name:   "postgresdb_hostname",
-			Value:  e.PostgresDb.Hostname,
-			Status: getStatusFromString(e.PostgresDb.Hostname),
-		},
-		{
-			Name:   "postgresdb_username",
-			Value:  e.PostgresDb.Username,
-			Status: getStatusFromString(e.PostgresDb.Username),
-		},
-		{
-			Name:   "postgresdb_password",
-			Value:  e.PostgresDb.Password,
-			Status: getStatusFromString(e.PostgresDb.Password),
-		},
-		{
-			Name:   "postgresdb_port",
-			Value:  e.PostgresDb.Port,
-			Status: getStatusFromString(e.PostgresDb.Port),
-		},
-		{
-			Name:   "postgresdb_database",
-			Value:  e.PostgresDb.Database,
-			Status: getStatusFromString(e.PostgresDb.Database),
-		},
-	}, nil
+	}
+
+	if e.MariaDb.DbType != "" {
+		gatheredPrerequisite = append(gatheredPrerequisite,
+			GatheredPrerequisite{
+				Name:   "mariadb_hostname",
+				Value:  e.MariaDb.Hostname,
+				Status: getStatusFromString(e.MariaDb.Hostname),
+			},
+			GatheredPrerequisite{
+				Name:   "mariadb_username",
+				Value:  e.MariaDb.Username,
+				Status: getStatusFromString(e.MariaDb.Username),
+			},
+			GatheredPrerequisite{
+				Name:   "mariadb_password",
+				Value:  e.MariaDb.Password,
+				Status: getStatusFromString(e.MariaDb.Password),
+			},
+			GatheredPrerequisite{
+				Name:   "mariadb_port",
+				Value:  e.MariaDb.Port,
+				Status: getStatusFromString(e.MariaDb.Port),
+			},
+			GatheredPrerequisite{
+				Name:   "mariadb_database",
+				Value:  e.MariaDb.Database,
+				Status: getStatusFromString(e.MariaDb.Database),
+			},
+		)
+	}
+
+	if e.MongoDb.DbType != "" {
+		gatheredPrerequisite = append(gatheredPrerequisite,
+			GatheredPrerequisite{
+				Name:   "mongodb_hostname",
+				Value:  e.MongoDb.Hostname,
+				Status: getStatusFromString(e.MongoDb.Hostname),
+			},
+			GatheredPrerequisite{
+				Name:   "mongodb_username",
+				Value:  e.MongoDb.Username,
+				Status: getStatusFromString(e.MongoDb.Username),
+			},
+			GatheredPrerequisite{
+				Name:   "mongodb_password",
+				Value:  e.MongoDb.Password,
+				Status: getStatusFromString(e.MongoDb.Password),
+			},
+			GatheredPrerequisite{
+				Name:   "mongodb_port",
+				Value:  e.MongoDb.Port,
+				Status: getStatusFromString(e.MariaDb.Port),
+			},
+			GatheredPrerequisite{
+				Name:   "mongodb_database",
+				Value:  e.MongoDb.Database,
+				Status: getStatusFromString(e.MariaDb.Database),
+			},
+		)
+	}
+
+	if e.PostgresDb.DbType != "" {
+		gatheredPrerequisite = append(gatheredPrerequisite,
+			GatheredPrerequisite{
+				Name:   "postgresdb_hostname",
+				Value:  e.PostgresDb.Hostname,
+				Status: getStatusFromString(e.PostgresDb.Hostname),
+			},
+			GatheredPrerequisite{
+				Name:   "postgresdb_username",
+				Value:  e.PostgresDb.Username,
+				Status: getStatusFromString(e.PostgresDb.Username),
+			},
+			GatheredPrerequisite{
+				Name:   "postgresdb_password",
+				Value:  e.PostgresDb.Password,
+				Status: getStatusFromString(e.PostgresDb.Password),
+			},
+			GatheredPrerequisite{
+				Name:   "postgresdb_port",
+				Value:  e.PostgresDb.Port,
+				Status: getStatusFromString(e.PostgresDb.Port),
+			},
+			GatheredPrerequisite{
+				Name:   "postgresdb_database",
+				Value:  e.PostgresDb.Database,
+				Status: getStatusFromString(e.PostgresDb.Database),
+			},
+		)
+	}
+
+	return gatheredPrerequisite, nil
 }
 
-func (e *EnvVaRsyncPrerequisite) Status() int {
+func (e *EnvVarRsyncPrerequisite) Status() int {
 	return 0
 }
 
 func getMariaDbEnvVars() DbEnvVars {
-	var hostname = os.Getenv("MARIADB_HOSTNAME")
-	if hostname == "" {
-		hostname = "UNSET"
+	var hostname, mariadbHostExists = os.LookupEnv("MARIADB_HOSTNAME")
+	if !mariadbHostExists {
+		hostname, mariadbHostExists = os.LookupEnv("AMAZEEIO_DB_HOST")
 	}
-
 	var username = os.Getenv("MARIADB_USERNAME")
-	if username == "" {
-		username = "UNSET"
-	}
-
 	var password = os.Getenv("MARIADB_PASSWORD")
-	if password == "" {
-		password = "UNSET"
-	}
-
 	var port = os.Getenv("MARIADB_PORT")
-	if port == "" {
-		port = "UNSET"
-	}
-
 	var database = os.Getenv("MARIADB_DATABASE")
-	if database == "" {
-		database = "UNSET"
+
+	var dbType = ""
+	if mariadbHostExists {
+		dbType = "mariadb"
 	}
 
 	return DbEnvVars{
+		DbType:   dbType,
 		Hostname: hostname,
 		Username: username,
 		Password: password,
@@ -192,32 +193,22 @@ func getMariaDbEnvVars() DbEnvVars {
 }
 
 func getMongoDbEnvVars() DbEnvVars {
-	var hostname = os.Getenv("HOSTNAME")
-	if hostname == "" {
-		hostname = "UNSET"
-	}
-
+	var hostname, mongodbHostExists = os.LookupEnv("MONGODB_HOSTNAME")
 	var username = os.Getenv("MONGODB_USERNAME")
-	if username == "" {
-		username = "UNSET"
-	}
-
 	var password = os.Getenv("MONGODB_PASSWORD")
-	if password == "" {
-		password = "UNSET"
-	}
-
 	var port = os.Getenv("MONGODB_SERVICE_PORT")
-	if port == "" {
-		port = "UNSET"
-	}
-
 	var database = os.Getenv("MONGODB_DATABASE")
 	if database == "" {
 		database = "local"
 	}
 
+	var dbType = ""
+	if mongodbHostExists {
+		dbType = "mongodb"
+	}
+
 	return DbEnvVars{
+		DbType:   dbType,
 		Hostname: hostname,
 		Username: username,
 		Password: password,
@@ -227,32 +218,22 @@ func getMongoDbEnvVars() DbEnvVars {
 }
 
 func getPostgresDbEnvVars() DbEnvVars {
-	var hostname = os.Getenv("POSTGRES_HOST")
-	if hostname == "" {
-		hostname = "UNSET"
-	}
-
+	var hostname, postgresHostExists = os.LookupEnv("POSTGRES_HOST")
 	var username = os.Getenv("POSTGRES_USERNAME")
-	if username == "" {
-		username = "UNSET"
-	}
-
 	var password = os.Getenv("POSTGRES_PASSWORD")
-	if password == "" {
-		password = "UNSET"
-	}
-
 	var port = os.Getenv("POSTGRES_PORT")
 	if port == "" {
 		port = "5432"
 	}
-
 	var database = os.Getenv("POSTGRES_DATABASE")
-	if database == "" {
-		database = "UNSET"
+
+	var dbType = ""
+	if postgresHostExists {
+		dbType = "postgres"
 	}
 
 	return DbEnvVars{
+		DbType:   dbType,
 		Hostname: hostname,
 		Username: username,
 		Password: password,
@@ -261,10 +242,6 @@ func getPostgresDbEnvVars() DbEnvVars {
 	}
 }
 
-// func (e *EnvVaRsyncPrerequisite) HandlesPrerequisite(name string) bool {
-// 	return false
-// }
-
 func init() {
-	RegisterPrerequisiteGatherer("env-vars", &EnvVaRsyncPrerequisite{})
+	RegisterPrerequisiteGatherer("env-vars", &EnvVarRsyncPrerequisite{})
 }

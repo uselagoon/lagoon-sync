@@ -75,7 +75,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
 
-	log.Printf("Beginning export on source environment (%s)", remoteEnvironment.EnvironmentName)
+	utils.LogProcessStep("Beginning export on source environment", remoteEnvironment.EnvironmentName)
 
 	if syncer.GetRemoteCommand(remoteEnvironment).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
@@ -95,7 +95,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 		execString = GenerateRemoteCommand(remoteEnvironment, command, verboseSSH)
 	}
 
-	log.Printf("Running the following for source :- %s", execString)
+	utils.LogExecutionStep("Running the following for source", execString)
 
 	if !dryRun {
 		err, response, errstring := utils.Shellout(execString)
@@ -111,11 +111,11 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 }
 
 func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
-	log.Println("Beginning file transfer logic")
+	utils.LogProcessStep("Beginning file transfer logic", nil)
 
 	// If we're transferring to the same resource, we can skip this whole process.
 	if sourceEnvironment.EnvironmentName == targetEnvironment.EnvironmentName {
-		log.Println("Source and target environments are the same, skipping transfer")
+		utils.LogDebugInfo("Source and target environments are the same, skipping transfer", nil)
 		return nil
 	}
 
@@ -123,12 +123,13 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	executeRsyncRemotelyOnTarget := false
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		//TODO: if we have multiple remotes, we need to treat the target environment as local, and run the rysync from there ...
-		log.Println("Note - since we're syncing across two remote systems, we're pulling the files _to_ the target")
+		utils.LogWarning(fmt.Sprintf("Using %s syncer for remote to remote transfer is expirimental at present", viper.Get("syncer-type")), nil)
+		utils.LogDebugInfo("Since we're syncing across two remote systems, we're pulling the files to the target", targetEnvironment.EnvironmentName)
 		executeRsyncRemotelyOnTarget = true
 	}
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		return errors.New("In order to rsync, at least _one_ of the environments must be remote")
+		utils.LogFatalError("In order to rsync, at least _one_ of the environments must be remote", nil)
 	}
 
 	sourceEnvironmentName := syncer.GetTransferResource(sourceEnvironment).Name
@@ -185,12 +186,11 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		execString = GenerateRemoteCommand(targetEnvironment, execString, verboseSSH)
 	}
 
-	log.Printf("Running the following for target (%s) :- %s", targetEnvironment.EnvironmentName, execString)
+	utils.LogExecutionStep(fmt.Sprintf("Running the following for target (%s)", targetEnvironment.EnvironmentName), execString)
 
 	if !dryRun {
 		if err, _, errstring := utils.Shellout(execString); err != nil {
-			log.Println(errstring)
-			return err
+			utils.LogFatalError(errstring, nil)
 		}
 	}
 
@@ -199,7 +199,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 
 func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
 
-	log.Printf("Beginning import on target environment (%s)", targetEnvironment.EnvironmentName)
+	utils.LogProcessStep("Beginning import on target environment", targetEnvironment.EnvironmentName)
 
 	if syncer.GetRemoteCommand(targetEnvironment).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", targetEnvironment.EnvironmentName)
@@ -218,12 +218,11 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 		execString = GenerateRemoteCommand(targetEnvironment, command, verboseSSH)
 	}
 
-	log.Printf("Running the following for target (%s) :- %s", targetEnvironment.EnvironmentName, execString)
+	utils.LogExecutionStep(fmt.Sprintf("Running the following for target (%s)", targetEnvironment.EnvironmentName), execString)
 	if !dryRun {
 		err, _, errstring := utils.Shellout(execString)
 		if err != nil {
-			fmt.Println(errstring)
-			return err
+			utils.LogFatalError(errstring, nil)
 		}
 	}
 
@@ -239,22 +238,19 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, verboseSSH
 	}
 
 	transferResourceName := transferResouce.Name
-
 	execString := fmt.Sprintf("rm -r %s", transferResourceName)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		execString = GenerateRemoteCommand(environment, execString, verboseSSH)
 	}
 
-	log.Printf("Beginning resource cleanup on %s", environment.EnvironmentName)
-	log.Printf("Running the following: %s", execString)
+	utils.LogProcessStep("Beginning resource cleanup on", environment.EnvironmentName)
+	utils.LogExecutionStep("Running the following", execString)
 
 	if !dryRun {
 		err, _, errstring := utils.Shellout(execString)
-
 		if err != nil {
-			fmt.Println(errstring)
-			return err
+			utils.LogFatalError(errstring, nil)
 		}
 	}
 

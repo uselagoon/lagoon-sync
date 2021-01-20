@@ -2,11 +2,10 @@ package synchers
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
-	"github.com/spf13/viper"
+	"github.com/amazeeio/lagoon-sync/utils"
 )
 
 type BaseDrupalconfigSync struct {
@@ -35,26 +34,19 @@ func (m DrupalConfigSyncPlugin) GetPluginId() string {
 
 func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	drupalconfig := DrupalconfigSyncRoot{}
+	drupalconfig.Config.OutputDirectory = drupalconfig.GetOutputDirectory()
 
-	// Use prerequisites if present
-	envVars := syncerConfigRoot.Prerequisites
-	var configMap interface{}
-	if envVars == nil {
-		// Use 'lagoon-sync' yaml as override if env vars are not available
-		configMap = syncerConfigRoot.LagoonSync[m.GetPluginId()]
-	}
-
-	// if config from active config file is empty, then use defaults
-	if configMap == nil {
-		log.Printf("Syncer config is empty in %v, so using defaults: %v", viper.GetViper().ConfigFileUsed(), drupalconfig)
-	}
-
-	// unmarshal environment variables as defaults
+	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
 	_ = UnmarshalIntoStruct(configMap, &drupalconfig)
 
-	// if yaml config is there then unmarshall into struct and override default values if there are any
+	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if len(syncerConfigRoot.LagoonSync) != 0 {
 		_ = UnmarshalIntoStruct(configMap, &drupalconfig)
+	}
+
+	// If config from active config file is empty, then use defaults
+	if configMap == nil {
+		utils.LogDebugInfo("Active syncer config is empty, so using defaults", &drupalconfig)
 	}
 
 	lagoonSyncer, _ := drupalconfig.PrepareSyncer()
@@ -64,8 +56,6 @@ func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoo
 func init() {
 	RegisterSyncer(DrupalConfigSyncPlugin{})
 }
-
-// Sync functions below
 
 func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
