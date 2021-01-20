@@ -243,5 +243,5 @@ func getPostgresDbEnvVars() DbEnvVars {
 }
 
 func init() {
-	RegisterPrerequisiteGatherer("env-vars", &EnvVarRsyncPrerequisite{})
+	//RegisterPrerequisiteGatherer("env-vars", &EnvVarRsyncPrerequisite{})
 }

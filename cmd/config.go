@@ -49,36 +49,36 @@ func PrintConfigOut() []byte {
 	lagoonSyncPath, exists := utils.FindLagoonSyncOnEnv()
 
 	// Run the prerequsite gatherers
-	prerequisiteConfig := prerequisite.GetPrerequisiteGatherer()
-	var RsyncPrerequisites []prerequisite.GatheredPrerequisite
-	var envVarPrerequisites []prerequisite.GatheredPrerequisite
-	var otherPrerequisites []prerequisite.GatheredPrerequisite
-
-	for _, c := range prerequisiteConfig {
-		if c.GetValue() {
-			gatheredConfig, err := c.GatherPrerequisites()
-			if err != nil {
-				log.Println(err.Error())
-				continue
-			}
-
-			switch c.GetName() {
-			case "rsync_path":
-				RsyncPrerequisites = append(RsyncPrerequisites, gatheredConfig...)
-			case "env-vars":
-				envVarPrerequisites = append(envVarPrerequisites, gatheredConfig...)
-			default:
-				otherPrerequisites = append(otherPrerequisites, gatheredConfig...)
-			}
-		}
-	}
+	//prerequisiteConfig := prerequisite.GetPrerequisiteGatherer()
+	//var RsyncPrerequisites []prerequisite.GatheredPrerequisite
+	//var envVarPrerequisites []prerequisite.GatheredPrerequisite
+	//var otherPrerequisites []prerequisite.GatheredPrerequisite
+	//
+	//for _, c := range prerequisiteConfig {
+	//	if c.GetValue() {
+	//		gatheredConfig, err := c.GatherPrerequisites()
+	//		if err != nil {
+	//			log.Println(err.Error())
+	//			continue
+	//		}
+	//
+	//		switch c.GetName() {
+	//		case "rsync_path":
+	//			RsyncPrerequisites = append(RsyncPrerequisites, gatheredConfig...)
+	//		case "env-vars":
+	//			envVarPrerequisites = append(envVarPrerequisites, gatheredConfig...)
+	//		default:
+	//			otherPrerequisites = append(otherPrerequisites, gatheredConfig...)
+	//		}
+	//	}
+	//}
 
 	config := Configuration{
 		Version:           rootCmd.Version,
 		LagoonSyncPath:    lagoonSyncPath,
-		RysncPrerequisite: RsyncPrerequisites,
-		EnvPrerequisite:   envVarPrerequisites,
-		OtherPrerequisite: otherPrerequisites,
+		//RysncPrerequisite: RsyncPrerequisites,
+		//EnvPrerequisite:   envVarPrerequisites,
+		//OtherPrerequisite: otherPrerequisites,
 		SyncConfigFiles: SyncConfigFiles{
 			ConfigFileActive:             viper.ConfigFileUsed(),
 			LagoonSyncConfigFile:         lagoonSyncCfgFile,

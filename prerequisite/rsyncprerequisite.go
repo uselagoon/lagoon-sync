@@ -48,5 +48,5 @@ func (p *RsyncPrerequisite) Status() int {
 // }
 
 func init() {
-	RegisterPrerequisiteGatherer("rsync", &RsyncPrerequisite{})
+	//RegisterPrerequisiteGatherer("rsync", &RsyncPrerequisite{})
 }

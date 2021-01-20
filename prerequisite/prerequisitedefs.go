@@ -17,9 +17,10 @@ type PreRequisiteResponse struct {
 
 type PrerequisiteGatherer interface {
 	GetName() string
-	GetValue() bool
+	//GetValue() bool
+	HandlesPrerequisite(string) bool
 	GatherPrerequisites() ([]GatheredPrerequisite, error)
-	Status() int
+	//Status() int
 }
 
 var PrerequisiteGathererList []PrerequisiteGatherer
@@ -28,7 +29,7 @@ func RegisterPrerequisiteGatherer(name string, config PrerequisiteGatherer) {
 	PrerequisiteGathererList = append(PrerequisiteGathererList, config)
 }
 
-func GetPrerequisiteGatherer() []PrerequisiteGatherer {
+func getPrerequisiteGatherers() []PrerequisiteGatherer {
 	return PrerequisiteGathererList
 }
 

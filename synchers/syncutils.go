@@ -29,12 +29,6 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 
 func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
 	var err error
-	//sourceEnvironment, err = RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
-	sourceRsyncPath := sourceEnvironment.RsyncPath
-	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
-		return err
-	}
 
 	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
@@ -42,31 +36,19 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	//targetEnvironment, err = RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
-	targetRsyncPath := targetEnvironment.RsyncPath
-	if err != nil {
-		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
-		return err
-	}
-
 	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
 
 	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
-		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
 	}
 
-	_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
-	_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
 	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 

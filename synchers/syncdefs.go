@@ -11,8 +11,6 @@ import (
 const LOCAL_ENVIRONMENT_NAME = "local"
 
 type Syncer interface {
-	// GetPrequisiteCommand will return the command to run on source or target environment to extract information.
-	GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
