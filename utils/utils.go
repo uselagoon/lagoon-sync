@@ -18,7 +18,7 @@ func FileExists(name string) bool {
 }
 
 func FindLagoonSyncOnEnv() (string, bool) {
-	cmd := exec.Command("sh", "-c", "lagoon_sync=$(which lagoon-sync || false) && $lagoon_sync")
+	cmd := exec.Command("sh", "-c", "which lagoon-sync || false")
 	stdoutStderr, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

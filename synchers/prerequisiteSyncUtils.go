@@ -24,7 +24,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	var execString string
 	var configRespSuccessful bool
 
-	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config --show-debug").GetCommand()
+	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config").GetCommand()
 	if commandErr != nil {
 		return environment, commandErr
 	}

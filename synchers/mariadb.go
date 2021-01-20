@@ -102,14 +102,12 @@ func init() {
 	RegisterSyncer(MariadbSyncPlugin{})
 }
 
-// Sync related functions follow
 func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
 }
 
 func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
-	// lagoonSyncBin := "lagoon_sync=$(which lagoon-sync || false) && $lagoon_sync"
 	lagoonSyncBin, _ := utils.FindLagoonSyncOnEnv()
 
 	return SyncCommand{

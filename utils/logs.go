@@ -11,9 +11,9 @@ import (
 
 func LogProcessStep(message string, output interface{}) {
 	if output == nil {
-		fmt.Printf("\x1b[32;1m%s\x1b[0m", message)
+		fmt.Printf("\x1b[32;1m%s\x1b[0m\n", message)
 	} else if output != nil {
-		fmt.Printf("\x1b[32;1m%s\x1b[0m: %s", message, output)
+		fmt.Printf("\x1b[32;1m%s\x1b[0m: %s\n", message, output)
 	}
 }
 

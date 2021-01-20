@@ -20,7 +20,6 @@ type PrerequisiteGatherer interface {
 	GetValue() bool
 	GatherPrerequisites() ([]GatheredPrerequisite, error)
 	Status() int
-	// HandlesPrerquisite() bool
 }
 
 var PrerequisiteGathererList []PrerequisiteGatherer
