@@ -77,6 +77,10 @@ func init() {
 	RegisterSyncer(FilesSyncPlugin{})
 }
 
+func (m FilesSyncRoot) IsInitialized() (bool, error) {
+	return true, nil
+}
+
 func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
