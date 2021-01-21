@@ -94,6 +94,10 @@ func init() {
 	RegisterSyncer(PostgresSyncPlugin{})
 }
 
+func (m PostgresSyncRoot) IsInitialized() (bool, error) {
+	return true, nil
+}
+
 // Sync related functions below
 
 func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {

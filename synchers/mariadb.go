@@ -1,9 +1,11 @@
 package synchers
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/amazeeio/lagoon-sync/utils"
@@ -19,31 +21,6 @@ type BaseMariaDbSync struct {
 	IgnoreTable     []string `yaml:"ignore-table"`
 	IgnoreTableData []string `yaml:"ignore-table-data"`
 	OutputDirectory string
-}
-
-func (mariaConfig *BaseMariaDbSync) setDefaults() {
-	// If no values from config files, set some expected defaults
-	if mariaConfig.DbHostname == "" {
-		mariaConfig.DbHostname = "$MARIADB_HOST"
-	}
-	if mariaConfig.DbUsername == "" {
-		mariaConfig.DbUsername = "$MARIADB_USERNAME"
-	}
-	if mariaConfig.DbPassword == "" {
-		mariaConfig.DbPassword = "$MARIADB_PASSWORD"
-	}
-	if mariaConfig.DbPort == "" {
-		mariaConfig.DbPort = "$MARIADB_PORT"
-	}
-	if mariaConfig.DbDatabase == "" {
-		mariaConfig.DbDatabase = "$MARIADB_DATABASE"
-	}
-	if mariaConfig.IgnoreTable == nil {
-		mariaConfig.IgnoreTable = []string{}
-	}
-	if mariaConfig.IgnoreTableData == nil {
-		mariaConfig.IgnoreTable = []string{}
-	}
 }
 
 type MariadbSyncLocal struct {
@@ -70,10 +47,10 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 	return "mariadb"
 }
 
+
+
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
-	mariadb.Config.setDefaults()
-	mariadb.LocalOverrides.Config.setDefaults()
 
 	// Use 'lagoon-sync' yaml as default
 	configMap := root.LagoonSync[m.GetPluginId()]
@@ -100,6 +77,33 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 
 func init() {
 	RegisterSyncer(MariadbSyncPlugin{})
+}
+
+func (m MariadbSyncRoot) IsInitialized() (bool, error) {
+
+	  var missingEnvvars []string
+
+		if m.Config.DbHostname == "" {
+			missingEnvvars = append(missingEnvvars, "hostname")
+		}
+		if m.Config.DbUsername == "" {
+			missingEnvvars = append(missingEnvvars, "username")
+		}
+		if m.Config.DbPassword == "" {
+			missingEnvvars = append(missingEnvvars, "password")
+		}
+		if m.Config.DbPort == "" {
+			missingEnvvars = append(missingEnvvars, "port")
+		}
+		if m.Config.DbDatabase == "" {
+			missingEnvvars = append(missingEnvvars, "database")
+		}
+
+		if len(missingEnvvars) > 0 {
+			return false, errors.New(fmt.Sprintf("Missing configuration values: %v", strings.Join(missingEnvvars, ",")))
+		}
+
+	return true, nil
 }
 
 func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {

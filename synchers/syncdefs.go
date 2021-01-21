@@ -21,6 +21,8 @@ type Syncer interface {
 	GetTransferResource(environment Environment) SyncerTransferResource
 	// PrepareSyncer does any preparations required on a Syncer before it is used
 	PrepareSyncer() (Syncer, error)
+	// IsInitialized will tell client code if the syncer is ready to rumble
+	IsInitialized() (bool, error)
 }
 
 type SyncCommand struct {
