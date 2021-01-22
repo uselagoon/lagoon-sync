@@ -3,25 +3,25 @@
 Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the Lagoon cli toolset and, indeed, works closely with its parent project.
 
 Lagoon-sync offers:
-- Sync commands for databases such as `mariadb`, `postgres` and `mongodb`
-- Any php/node-based framework support such as Drupal, Laravel or Node.js
-- Standard file transfer support with `files` syncer
-- Has built in default configuration values for syncing out-the-box
-- Provides an easy way to override sync configuration via `.lagoon.yml` or `.lagoon-sync.yml` files
-- Offers `--dry-run` flag to see what commands would be executed before running a transfer
-- `config` command shows configuration on current environment
-- There is a `--show-debug` flag to output more verbose logging for debugging
-- Lagoon-sync uses `rsync` for the transfer of data and will automatically detect and install `rsync` if it is not available on target environments
-- Self-updatingg with `selfUpdate` command
+* Sync commands for databases such as `mariadb`, `postgres` and `mongodb`
+* Any php/node-based framework support such as Drupal, Laravel or Node.js
+* Standard file transfer support with `files` syncer
+* Has built in default configuration values for syncing out-the-box
+* Provides an easy way to override sync configuration via `.lagoon.yml` or `.lagoon-sync.yml` files
+* Offers `--dry-run` flag to see what commands would be executed before running a transfer
+* `--no-interaction` can be used to auto-run all processes without prompt - useful for CI/builds 
+* `config` command shows the configuration of the current environment
+* There is a `--show-debug` flag to output more verbose logging for debugging
+* Lagoon-sync uses `rsync` for the transfer of data and will automatically detect and install `rsync` if it is not available on target environments
+* Self-updatingg with `selfUpdate` command
 
 
 # Installing
 
 You can run `lagoon-sync` as a single binary by downloading from `https://github.com/amazeeio/lagoon-sync/releases/`.
-
-MacOS: `lagoon-sync_*.*.*_darwin_amd64`
-Linux (3 variants available): `lagoon-sync_*.*.*_linux_386`
-Windows: `lagoon-sync_*.*.*_windows_amd64.exe`
+* MacOS: `lagoon-sync_*.*.*_darwin_amd64`
+* Linux: `lagoon-sync_*.*.*_linux_386`
+* Windows: `lagoon-sync_*.*.*_windows_amd64.exe`
 
 To install via bash:
 
@@ -35,7 +35,8 @@ Lagoon-sync has the following core commands:
 
 ```
 $ lagoon-sync
-lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications. This includes files, databases, and configurations.
+lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications. 
+This includes files, databases, and configurations.
 
 Usage:
   lagoon-sync [command]
@@ -59,8 +60,7 @@ Use "lagoon-sync [command] --help" for more information about a command.
 
 ## sync
 
-Sync transfers are ran with `sync` and requires at least a syncer type `[mariadb|files|mongodb|postgres|etc.]`, a valid project name `-p` and source environment `-e`. By default, if you do not provide an optional target environment `-t` then `local` is used.
-
+Sync transfers are executed with `$lagoon-sync sync <syncer>` and requires at least a syncer type `[mariadb|files|mongodb|postgres|drupalconfig]`, a valid project name `-p` and source environment `-e`. By default, if you do not provide an optional target environment `-t` then `local` is used.
 
 ```
 lagoon-sync sync
@@ -88,7 +88,7 @@ Global Flags:
 
 The `config` command will output all current cconfiguation information it can find on the environment. This is used for example to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both locations in order to transfer.
 
-This can be ran with:
+This can be run with:
 
 `$ lagoon-sync config`
 
@@ -186,7 +186,7 @@ Applying update...
 Successfully updated binary at: /usr/bin/lagoon-sync
 ```
 
-You can check version with `lagoon-sync --version`
+You can check version with `$ lagoon-sync --version`
 
 ## Installing binary from script - Drupal example
 
@@ -200,11 +200,15 @@ wget -q -O - https://gist.githubusercontent.com/timclifford/cec9fe3ddf8d0805e480
 
 Setting up locally:
 
-* `make all`       Installs missing dependencies, runs tests and build locally.
-* `make build`     Compiles binary based on current go env.
-* `make clean`     Remove all build files and assets.
+* `make all`                          Installs missing dependencies, runs tests and build locally.
+* `make build`                        Compiles binary based on current go env.
+* `make local-build-linux`            Compile linix binary.
+* `make local-build-darwin`           Compile macOS (darwin) binary.
+* `make check-current-tag-version`    Check the current version.
+* `make clean`                        Remove all build files and assets.
+
 ## Releases
 
-We are using [goreleaser](https://github.com/goreleaser/goreleaser) for the official build, release and publish steps that will be ran from a github action on a pushed tag.
+We are using [goreleaser](https://github.com/goreleaser/goreleaser) for the official build, release and publish steps that will be run from a GitHub Action on a pushed tag event.
 
-Locally, we can run `make release-test` to check if our changes will build. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.
+Prior to that, we locally test our release to ensure that it will successfully build with `make release-test`. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.

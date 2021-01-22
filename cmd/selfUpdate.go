@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/inconshreveable/go-update"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/openpgp"
@@ -21,7 +22,7 @@ import (
 
 const selfUpdateDownloadURL = "https://api.github.com/repos/amazeeio/lagoon-sync/releases/latest"
 
-var osArch, downloadPath, checkSumFileUrl, sigFileUrl, checksumStr string
+var osArch, downloadPath, checkSumFileURL, sigFileURL, checksumStr string
 
 var publicKey = strings.NewReader(`
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -120,10 +121,10 @@ func followRedirectsToActualFile(url string) (string, error) {
 			downloadPath = str
 		}
 		if strings.Contains(str, "checksums.txt") && !strings.Contains(str, "checksums.txt.sig") {
-			checkSumFileUrl = str
+			checkSumFileURL = str
 		}
 		if strings.Contains(str, "checksums.txt.sig") {
-			sigFileUrl = str
+			sigFileURL = str
 		}
 	}
 
@@ -131,7 +132,7 @@ func followRedirectsToActualFile(url string) (string, error) {
 }
 
 func doUpdate(url string) error {
-	fmt.Printf("Downloading binary from %s\n", url)
+	utils.LogProcessStep("Downloading binary from", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -148,7 +149,7 @@ func doUpdate(url string) error {
 		return err
 	}
 
-	checksumRespBody, err := getChecksum(checkSumFileUrl)
+	checksumRespBody, err := getChecksum(checkSumFileURL)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -171,7 +172,8 @@ func doUpdate(url string) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, osArch) {
-			fmt.Printf("Checksum for %s: %s\n", osArch, line[0:64])
+			checksumOSArch := osArch + ":" + line[0:64]
+			fmt.Printf("\x1b[37mChecksum for: %s\x1b[0m\n", checksumOSArch)
 			checksumStr = line[0:64]
 		}
 	}
@@ -185,7 +187,7 @@ func doUpdate(url string) error {
 		return err
 	}
 
-	sigFileResp, err := http.Get(sigFileUrl)
+	sigFileResp, err := http.Get(sigFileURL)
 	if err != nil {
 		panic(err)
 	}
@@ -202,29 +204,24 @@ func doUpdate(url string) error {
 	// Write signature body to file
 	_, err = io.Copy(sigOut, sigFileResp.Body)
 
-	/*
-		Verification step
-		This
-		We need to verify the complete signed checksum using openpgp (as go-updater requires pub key in PEM format, but
-		goreleaser uses GPG).
-	*/
+	// Verification step
+	// Note: We need to verify the complete signed checksum using openpgp (as go-updater requires public key in PEM format, but
+	// goreleaser uses GPG).
+
 	// Load from public key reader abover, instead of os.Open
 	keyring, err := openpgp.ReadArmoredKeyRing(publicKey)
 	if err != nil {
-		fmt.Println("Public key error: " + err.Error())
-		return err
+		utils.LogFatalError("Public key error", err.Error())
 	}
 	// Target checksum we need to verify that it hasn't been manipulated
 	verificationTarget, err := os.Open("/tmp/checksum.txt")
 	if err != nil {
-		fmt.Printf("Can't open checksum target: %s", err)
-		return err
+		utils.LogFatalError("Can't open checksum target", err)
 	}
 	// Signature of the new executable, signed by the private key during GH release
 	sig, err := os.Open("/tmp/checksum.txt.sig")
 	if err != nil {
-		fmt.Printf("Can't open signature: %s", err)
-		return err
+		utils.LogFatalError("Can't open signature", err)
 	}
 
 	// When the signature is binary instead of armored, the error was EOF.
@@ -233,39 +230,44 @@ func doUpdate(url string) error {
 	entity, err := openpgp.CheckDetachedSignature(keyring, verificationTarget, sig)
 	if err == io.EOF {
 		// If signature has EOF issues, the client failure is just "EOF", which is not helpful
-		return fmt.Errorf("No valid signatures found in target checksum file")
+		cleanUpSelfUpdate("/tmp/checksum.txt.sig", "/tmp/checksum.txt")
+		utils.LogFatalError("No valid signatures found in target checksum file", err)
 	}
 	if err != nil {
-		fmt.Printf("Verifcation error: %s", err)
-		return err
+		cleanUpSelfUpdate("/tmp/checksum.txt.sig", "/tmp/checksum.txt")
+		utils.LogFatalError("Verifcation error", err)
 	}
 
 	for _, identity := range entity.Identities {
-		fmt.Fprintf(os.Stderr, "Good signature from \"%s\"\n", identity.UserId.Name)
+		sigYear, sigMonth, sigDay := identity.SelfSignature.CreationTime.Date()
+		sigInfo := fmt.Sprintf("\"%s\" (created %v %s %v)", identity.UserId.Name, sigDay, sigMonth, sigYear)
+
+		fmt.Fprintf(os.Stderr, "\x1b[32mGood signature from %s\x1b[0m\n", sigInfo)
 	}
 
-	fmt.Printf("Applying update...\n")
+	fmt.Printf("\x1b[36;1mApplying update...\x1b[0m\n")
+
 	// We have now verified at this step using opengpg, so we only define additional go-update options.
 	opts := update.Options{
 		TargetPath: exec,
 		Hash:       crypto.SHA256,
 		Checksum:   checksum,
-		// Signature:  signature,
-		// Verifier:   update.NewRSAVerifier(),
 	}
 
 	// If we get this far, then we can apply the update
 	err = update.Apply(resp.Body, opts)
 	if err != nil {
 		fmt.Println(err)
+		cleanUpSelfUpdate("/tmp/checksum.txt.sig", "/tmp/checksum.txt")
 		os.Exit(2)
 	}
-	fmt.Printf("Successfully updated binary at: %s\n", exec)
+	fmt.Printf("\x1b[32mSuccessfully updated binary at:\x1b[0m %s\n", exec)
+	cleanUpSelfUpdate("/tmp/checksum.txt.sig", "/tmp/checksum.txt")
 	return err
 }
 
 func getChecksum(url string) ([]byte, error) {
-	checkSumFileResp, err := http.Get(checkSumFileUrl)
+	checkSumFileResp, err := http.Get(checkSumFileURL)
 	if err != nil {
 		panic(err)
 	}
@@ -283,16 +285,20 @@ func getChecksum(url string) ([]byte, error) {
 	return checkSumFileRespBodyText, err
 }
 
+func cleanUpSelfUpdate(signatureFile string, checksumFile string) error {
+	execString := fmt.Sprintf("rm -rf %s %s", signatureFile, checksumFile)
+	fmt.Printf("\x1b[37mCleanup checksum files with: %s\x1b[0m\n", execString)
+
+	if !dryRun {
+		err, _, errstring := utils.Shellout(execString)
+		if err != nil {
+			utils.LogFatalError(errstring, nil)
+		}
+	}
+
+	return nil
+}
+
 func init() {
 	rootCmd.AddCommand(selfUpdateCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	//selfUpdateCmd.PersistentFlags().String("os", "", "Define os to update")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// selfUpdateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
