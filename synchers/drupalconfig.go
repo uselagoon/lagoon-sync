@@ -62,6 +62,10 @@ func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	return root, nil
 }
 
+func (m DrupalconfigSyncRoot) IsInitialized() (bool, error) {
+	return true, nil
+}
+
 func (root DrupalconfigSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
 	return SyncCommand{}
 }

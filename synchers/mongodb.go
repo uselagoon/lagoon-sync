@@ -94,6 +94,10 @@ func init() {
 	RegisterSyncer(MongoDbSyncPlugin{})
 }
 
+func (m MongoDbSyncRoot) IsInitialized() (bool, error) {
+	return true, nil
+}
+
 // Sync related functions follow
 func (root MongoDbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)

@@ -106,7 +106,7 @@ To transfer between remote environments you can pass in a target argument such a
 
 `$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
 
-This command would attempt to sync mariadb databases from `prod` to `dev` environments. 
+This command would attempt to sync mariadb databases from `prod` to `dev` environments.
 
 ## Configuring lagoon-sync
 
@@ -133,7 +133,7 @@ $ lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
 To recap, the configuration files that can be used by default, in order of priority when available are:
 * /lagoon/.lagoon-sync-defaults
 * /lagoon/.lagoon-sync
-* .lagoon.yml 
+* .lagoon.yml
 
 ### Custom configuration files
 If you don't want your configuration file inside `/lagoon` and want to give it another name then you can define a custom file and tell sync to use that by providing the file path. This can be done with `--config` flag such as:

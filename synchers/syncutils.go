@@ -29,6 +29,11 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 
 func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
 	var err error
+
+	if _, err := lagoonSyncer.IsInitialized(); err != nil {
+		return err
+	}
+
 	sourceEnvironment, err = RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, verboseSSH)
 	sourceRsyncPath := sourceEnvironment.RsyncPath
 	if err != nil {
