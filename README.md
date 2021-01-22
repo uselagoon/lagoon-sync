@@ -90,7 +90,7 @@ The `config` command will output all current cconfiguation information it can fi
 
 This can be ran with:
 
-`lagoon-sync config`
+`$ lagoon-sync config`
 
 ## Example syncs
 
@@ -99,45 +99,66 @@ As with all sync commands, if you run into issues you can run `--show-debug` to 
 ### Mariadb sync from remote source -> local environment
 An example sync between a `mariadb` database from a remote source environment to your local instance may go as follows:
 
-Running `lagoon-sync sync mariadb -p amazeelabsv4-com -e dev --dry-run` would dry-run a process that takes a database dump, runs a data transfer and then finally syncs the local database with the latest dump.
+Running `$ lagoon-sync sync mariadb -p amazeelabsv4-com -e dev --dry-run` would dry-run a process that takes a database dump, runs a data transfer and then finally syncs the local database with the latest dump.
 
 ### Mariadb sync from remote source -> remote target environment
 To transfer between remote environments you can pass in a target argument such as:
 
-`lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
+`$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
 
 This command would attempt to sync mariadb databases from `prod` to `dev` environments. 
 
 ## Configuring lagoon-sync
 
-It is possible to configure the data consumed by lagoon-sync via adding `lagoon-sync` to an existing `.lagoon.yml` file or via a configuration file such as (`.lagoon-sync`)
+It is possible to configure the data consumed by lagoon-sync via adding a `lagoon-sync:` key to an existing `.lagoon.yml` file or via a configuration file such as (`.lagoon-sync`). See the `.lagoon.yml` and `.example-lagoon-sync` in the root of this repo for examples.
 
+If a `.lagoon.yml` is available within the project, then this file will be used as the active configuration file to attempt to gather configuration data from by default.
 
-Config files that can be used in order of priority:
-- .lagoon-sync-defaults _(no yaml ext neeeded)_
-- .lagoon-sync _(no yaml ext neeeded)_
-- .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_ 
+Next, if a `.lagoon-sync` or `.lagoon-sync-defaults` file is added to the `/lagoon` directory then these will be used as the active configuration file. Running the sync with `--show-debug` you are able to see the configuration that will be run prior to running the process:
 
-If either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` env vars are set then it will use those paths instead of the main config file - e.g.
+```
+$ lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+2021/01/22 11:34:10 (DEBUG) Using config file: /lagoon/.lagoon-sync
+2021/01/22 11:34:10 (DEBUG) Config that will be used for sync:
+ {
+  "Config": {
+    "DbHostname": "MARIADB_HOST",
+    "DbUsername": "$MARIADB_USERNAME",
+    "DbPassword": "$MARIADB_PASSWORD",
+    "DbPort": "$MARIADB_PORT",
+    "DbDatabase": "$MARIADB_DATABASE",
+    ...
+```
 
-```export LAGOON_SYNC_DEFAULTS_PATH="/lagoon/.lagoon-sync-defaults"```
-```export LAGOON_SYNC_PATH="/lagoon/.lagoon-sync"```
+To recap, the configuration files that can be used by default, in order of priority when available are:
+* /lagoon/.lagoon-sync-defaults
+* /lagoon/.lagoon-sync
+* .lagoon.yml 
 
-To see which config file is active and other configuration settings you can run the `config` command.
+### Custom configuration files
+If you don't want your configuration file inside `/lagoon` and want to give it another name then you can define a custom file and tell sync to use that by providing the file path. This can be done with `--config` flag such as:
+
+```
+$ lagoon-sync sync mariadb -p mysite-com -e dev --config=/app/.lagoon-sync --show-debug
+2021/01/22 11:43:50 (DEBUG) Using config file: /app/.lagoon-sync
+```
+
+You can also use an environment variable to set the config sync path with either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH`.
+
+```
+LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+2021/01/22 11:46:42 (DEBUG) LAGOON_SYNC_PATH env var found: /app/.lagoon-sync
+2021/01/22 11:46:42 (DEBUG) Using config file: /app/.lagoon-sync
+```
+
+To double check which config file is active you can also run the `$ lagoon-sync config` command.
 
 ### Example sync config overrides
 ```
 lagoon-sync:
-  postgres:
-    config:
-      hostname: "$POSTGRES_HOST"
-      username: "$POSTGRES_USERNAME"
-      password: "$POSTGRES_PASSWORD"
-      port: "5432"
-      database: "$POSTGRES_DATABASE"
   mariadb:
     config:
-      hostname: "$MARIADB_HOSTNAME"
+      hostname: "$MARIADB_HOST"
       username: "$MARIADB_USERNAME"
       password: "$MARIADB_PASSWORD"
       port: "$MARIADB_PORT"
@@ -153,7 +174,7 @@ lagoon-sync:
 # Useful things
 ## Updating lagoon-sync
 
-It's possible to safely update your lagoon-sync binrary by running the `selfUpdate` command.
+It's possible to safely update your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command.
 
 ```
 $ lagoon-sync selfUpdate
@@ -179,11 +200,11 @@ wget -q -O - https://gist.githubusercontent.com/timclifford/cec9fe3ddf8d0805e480
 
 Setting up locally:
 
-`make all`       Installs missing dependencies, runs tests and build locally.
-`make build`     Compiles binary based on current go env.
-`make clean`     Remove all build files and assets.
+* `make all`       Installs missing dependencies, runs tests and build locally.
+* `make build`     Compiles binary based on current go env.
+* `make clean`     Remove all build files and assets.
 ## Releases
 
-We are using goreleaser for the official build, release and publish steps that will be ran from a github action on a pushed tag.
+We are using [goreleaser](https://github.com/goreleaser/goreleaser) for the official build, release and publish steps that will be ran from a github action on a pushed tag.
 
 Locally, we can run `make release-test` to check if our changes will build. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.
