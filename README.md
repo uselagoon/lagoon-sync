@@ -1,6 +1,6 @@
 # Lagoon-sync
 
-Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the Lagoon cli toolset and, indeed, works closely with its parent project.
+Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the [Lagoon cli](https://github.com/amazeeio/lagoon-cli) toolset and, indeed, works closely with its parent project.
 
 Lagoon-sync offers:
 * Sync commands for databases such as `mariadb`, `postgres` and `mongodb`
@@ -13,7 +13,7 @@ Lagoon-sync offers:
 * `config` command shows the configuration of the current environment
 * There is a `--show-debug` flag to output more verbose logging for debugging
 * Lagoon-sync uses `rsync` for the transfer of data and will automatically detect and install `rsync` if it is not available on target environments
-* Self-updatingg with `selfUpdate` command
+* Secure cross-platform self-updating with `selfUpdate` command
 
 
 # Installing
@@ -86,7 +86,7 @@ Global Flags:
 
 ## config
 
-The `config` command will output all current cconfiguation information it can find on the environment. This is used for example to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both locations in order to transfer.
+The `config` command will output all current configuation information it can find on the environment. This is used for example to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a static copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both environments in order to transfer.
 
 This can be run with:
 
@@ -118,11 +118,12 @@ Next, if a `.lagoon-sync` or `.lagoon-sync-defaults` file is added to the `/lago
 
 ```
 $ lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+
 2021/01/22 11:34:10 (DEBUG) Using config file: /lagoon/.lagoon-sync
 2021/01/22 11:34:10 (DEBUG) Config that will be used for sync:
  {
   "Config": {
-    "DbHostname": "MARIADB_HOST",
+    "DbHostname": "$MARIADB_HOST",
     "DbUsername": "$MARIADB_USERNAME",
     "DbPassword": "$MARIADB_PASSWORD",
     "DbPort": "$MARIADB_PORT",
@@ -140,13 +141,15 @@ If you don't want your configuration file inside `/lagoon` and want to give it a
 
 ```
 $ lagoon-sync sync mariadb -p mysite-com -e dev --config=/app/.lagoon-sync --show-debug
+
 2021/01/22 11:43:50 (DEBUG) Using config file: /app/.lagoon-sync
 ```
 
 You can also use an environment variable to set the config sync path with either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH`.
 
 ```
-LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+$ LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+
 2021/01/22 11:46:42 (DEBUG) LAGOON_SYNC_PATH env var found: /app/.lagoon-sync
 2021/01/22 11:46:42 (DEBUG) Using config file: /app/.lagoon-sync
 ```
@@ -174,7 +177,7 @@ lagoon-sync:
 # Useful things
 ## Updating lagoon-sync
 
-It's possible to safely update your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command.
+It's possible to safely perform a cross-platform update of your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command. This will look for the latest release, then download the corresponding checksum and signature of the executable on GitHub, and verify its interity and authenticity before it performs the update. The binary used to perform the update will then replace itself (if succcssful) to the new version. If an error occurs then the update will roll-back to the previous stable version.
 
 ```
 $ lagoon-sync selfUpdate
@@ -190,7 +193,7 @@ You can check version with `$ lagoon-sync --version`
 
 ## Installing binary from script - Drupal example
 
-Runs a script that will install a linux lagoon-sync binary and config file for a Drupal project.
+This example will run a script that will install a Linux lagoon-sync binary and default configuration file for a Drupal project.
 
 ```
 wget -q -O - https://gist.githubusercontent.com/timclifford/cec9fe3ddf8d0805e4801d132dfce682/raw/a9979ff24290a500f53df09723774216603de6b5/lagoon-sync-drupal-install.sh | bash
@@ -211,4 +214,4 @@ Setting up locally:
 
 We are using [goreleaser](https://github.com/goreleaser/goreleaser) for the official build, release and publish steps that will be run from a GitHub Action on a pushed tag event.
 
-Prior to that, we locally test our release to ensure that it will successfully build with `make release-test`. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.
+Prior to that, we can locally test our release to ensure that it will successfully build with `make release-test`. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.
