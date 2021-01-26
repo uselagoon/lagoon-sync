@@ -1,18 +1,18 @@
 # Lagoon-sync
 
-Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the [Lagoon cli](https://github.com/amazeeio/lagoon-cli) toolset and, indeed, works closely with its parent project.
+Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronize data between Lagoon environments. Lagoon-sync is part of the [Lagoon cli](https://github.com/amazeeio/lagoon-cli) toolset and works closely with its parent project.
 
 Lagoon-sync offers:
 * Sync commands for databases such as `mariadb`, `postgres` and `mongodb`
-* Any php/node-based framework support such as Drupal, Laravel or Node.js
+* Php/node-based framework support such as Drupal, Laravel or Node.js
 * Standard file transfer support with `files` syncer
-* Has built in default configuration values for syncing out-the-box
+* Has built-in default configuration values for syncing out-the-box
 * Provides an easy way to override sync configuration via `.lagoon.yml` or `.lagoon-sync.yml` files
 * Offers `--dry-run` flag to see what commands would be executed before running a transfer
 * `--no-interaction` can be used to auto-run all processes without prompt - useful for CI/builds 
 * `config` command shows the configuration of the current environment
 * There is a `--show-debug` flag to output more verbose logging for debugging
-* Lagoon-sync uses `rsync` for the transfer of data and will automatically detect and install `rsync` if it is not available on target environments
+* Lagoon-sync uses `rsync` for the transfer of data, and will automatically detect and install `rsync` if it is not available on target environments
 * Secure cross-platform self-updating with `selfUpdate` command
 
 
@@ -60,7 +60,7 @@ Use "lagoon-sync [command] --help" for more information about a command.
 
 ## sync
 
-Sync transfers are executed with `$lagoon-sync sync <syncer>` and requires at least a syncer type `[mariadb|files|mongodb|postgres|drupalconfig]`, a valid project name `-p` and source environment `-e`. By default, if you do not provide an optional target environment `-t` then `local` is used.
+Sync transfers are executed with `$lagoon-sync sync <syncer>` and require at least a syncer type `[mariadb|files|mongodb|postgres|drupalconfig]`, a valid project name `-p` and source environment `-e`. By default, if you do not provide an optional target environment `-t` then `local` is used.
 
 ```
 lagoon-sync sync
@@ -74,19 +74,19 @@ Flags:
   -h, --help                             help for sync
       --no-interaction                   Disallow interaction
   -p, --project-name string              The Lagoon project name of the remote system
-  -s, --service-name string              The service name (default is 'cli'
+  -s, --service-name string              The service name (default is 'cli')
   -e, --source-environment-name string   The Lagoon environment name of the source system
   -t, --target-environment-name string   The target environment name (defaults to local)
       --verbose                          Run ssh commands in verbose (useful for debugging)
 
 Global Flags:
-      --config string   config file (default is .lagoon.yaml) (default "./.lagoon.yml")
+      --config string   config file (default is `.lagoon.yaml`) (default "./.lagoon.yml")
       --show-debug      Shows debug information
 ```
 
 ## config
 
-The `config` command will output all current configuation information it can find on the environment. This is used for example to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a static copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both environments in order to transfer.
+The `config` command will output all current configuation information it can find on the environment. This is used, for example, to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a static copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both environments in order to transfer.
 
 This can be run with:
 
@@ -177,7 +177,7 @@ lagoon-sync:
 # Useful things
 ## Updating lagoon-sync
 
-It's possible to safely perform a cross-platform update of your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command. This will look for the latest release, then download the corresponding checksum and signature of the executable on GitHub, and verify its interity and authenticity before it performs the update. The binary used to perform the update will then replace itself (if succcssful) to the new version. If an error occurs then the update will roll-back to the previous stable version.
+It's possible to safely perform a cross-platform update of your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command. This will look for the latest release, then download the corresponding checksum and signature of the executable on GitHub, and verify its interity and authenticity before it performs the update. The binary used to perform the update will then replace itself (if succcssful) to the new version. If an error occurs then the update will roll back to the previous stable version.
 
 ```
 $ lagoon-sync selfUpdate
