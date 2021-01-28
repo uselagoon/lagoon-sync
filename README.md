@@ -49,7 +49,7 @@ Available Commands:
   version     Print the version number of lagoon-sync
 
 Flags:
-      --config string   config file (default is .lagoon.yaml) (default "./.lagoon.yml")
+      --config string   config file (default is .lagoon.yaml)
   -h, --help            help for lagoon-sync
       --show-debug      Shows debug information
   -t, --toggle          Help message for toggle
