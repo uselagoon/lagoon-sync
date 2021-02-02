@@ -86,7 +86,7 @@ Global Flags:
 
 ## config
 
-The `config` command will output all current configuation information it can find on the environment. This is used, for example, to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a static copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both environments in order to transfer.
+The `config` command will output all current configuration information it can find on the environment. This is used, for example, to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a static copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both environments in order to transfer.
 
 This can be run with:
 
