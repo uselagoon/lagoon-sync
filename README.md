@@ -106,7 +106,7 @@ To transfer between remote environments you can pass in a target argument such a
 
 `lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
 
-This command would attempt to sync mariadb databases from `prod` to `dev` environments. 
+This command would attempt to sync mariadb databases from `prod` to `dev` environments.
 
 ## Configuring lagoon-sync
 
@@ -116,7 +116,7 @@ It is possible to configure the data consumed by lagoon-sync via adding `lagoon-
 Config files that can be used in order of priority:
 - .lagoon-sync-defaults _(no yaml ext neeeded)_
 - .lagoon-sync _(no yaml ext neeeded)_
-- .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_ 
+- .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_
 
 If either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` env vars are set then it will use those paths instead of the main config file - e.g.
 
@@ -137,7 +137,7 @@ lagoon-sync:
       database: "$POSTGRES_DATABASE"
   mariadb:
     config:
-      hostname: "$MARIADB_HOSTNAME"
+      hostname: "$MARIADB_HOST"
       username: "$MARIADB_USERNAME"
       password: "$MARIADB_PASSWORD"
       port: "$MARIADB_PORT"
