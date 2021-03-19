@@ -5,7 +5,7 @@ project: "lagoon-sync"
 lagoon-sync:
   mariadb:
     config:
-      hostname: "$MARIADB_HOST_LAGOON_SYNC"
+      hostname: "$MARIADB_HOST"
       username: "$MARIADB_USERNAME"
       password: "$MARIADB_PASSWORD"
       port: "$MARIADB_PORT"
