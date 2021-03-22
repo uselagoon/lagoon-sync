@@ -4,8 +4,6 @@ before:
   hooks:
     # download mods to local cache
     - go mod download
-    - go get github.com/pyros2097/go-embed
-    - make pre-build
 builds:
   -
     env:

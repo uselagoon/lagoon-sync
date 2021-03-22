@@ -25,7 +25,6 @@ vendor/
 
 # Release output (goreleaser)
 dist/
-assets/main.go
 builds/
 
 # Config files
