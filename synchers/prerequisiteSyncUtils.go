@@ -3,11 +3,11 @@ package synchers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/amazeeio/lagoon-sync/assets"
 	"io/ioutil"
 	"log"
 	"strings"
 
-	"github.com/amazeeio/lagoon-sync/assets"
 	"github.com/amazeeio/lagoon-sync/prerequisite"
 	"github.com/amazeeio/lagoon-sync/utils"
 )
@@ -189,7 +189,7 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 
 func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 	tempRsyncPath := "/tmp/rsync"
-	err := ioutil.WriteFile(tempRsyncPath, assets.GetRSYNC(), 0774)
+	err := ioutil.WriteFile(tempRsyncPath, assets.RsyncBin(), 0774)
 	if err != nil {
 		utils.LogFatalError("Unable to write to file", err)
 	}
