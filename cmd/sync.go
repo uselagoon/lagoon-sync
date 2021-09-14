@@ -134,7 +134,7 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
-	syncCmd.PersistentFlags().StringVarP(&rsyncFlags, "options", "o", "", "Rsync override options (default is 'a')")
+	syncCmd.PersistentFlags().StringVarP(&rsyncFlags, "options", "o", "", "Rsync override options (default is '-a archive mode; equals -rlptgoD')")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
