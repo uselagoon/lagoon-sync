@@ -20,6 +20,7 @@ var SyncerType string
 var ServiceName string
 var configurationFile string
 var noCliInteraction bool
+var rsyncFlags string
 var dryRun bool
 var verboseSSH bool
 
@@ -95,7 +96,7 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, verboseSSH)
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, rsyncFlags, lagoonSyncer, SyncerType, dryRun, verboseSSH)
 		if err != nil {
 			utils.LogFatalError("There was an error running the sync process", err)
 		}
@@ -133,6 +134,7 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
+	syncCmd.PersistentFlags().StringVarP(&rsyncFlags, "options", "o", "", "Rsync override options (default is 'a')")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")

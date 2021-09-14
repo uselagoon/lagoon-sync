@@ -27,7 +27,7 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, rsyncFlags string, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
 	var err error
 
 	if _, err := lagoonSyncer.IsInitialized(); err != nil {
@@ -54,7 +54,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, rsyncFlags, lagoonSyncer, dryRun, verboseSSH)
 	if err != nil {
 		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
@@ -115,7 +115,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	return nil
 }
 
-func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
+func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, rsyncFlags string, syncer Syncer, dryRun bool, verboseSSH bool) error {
 	utils.LogProcessStep("Beginning file transfer logic", nil)
 
 	// If we're transferring to the same resource, we can skip this whole process.
@@ -171,12 +171,17 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		syncExcludes += fmt.Sprintf("--exclude=%v ", e)
 	}
 
+	rsyncFlagsString := "-a"
+	if rsyncFlags != "" {
+		rsyncFlagsString = rsyncFlags
+	}
+
 	verboseSSHArgument := ""
 	if verboseSSH {
 		verboseSSHArgument = "-v"
 	}
 
-	execString := fmt.Sprintf("%v --rsync-path=%v %v -e \"ssh %v -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+	execString := fmt.Sprintf("%v --rsync-path=%v %v -e \"ssh %v -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v %s %s %s",
 		targetEnvironment.RsyncPath,
 		sourceEnvironment.RsyncPath,
 		verboseSSHArgument,
@@ -184,6 +189,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		rsyncRemoteSystemUsername,
 		lagoonRsyncService,
 		syncExcludes,
+		rsyncFlagsString,
 		sourceEnvironmentName,
 		targetEnvironmentName)
 

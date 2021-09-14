@@ -25,8 +25,14 @@ Windows: `lagoon-sync_*.*.*_windows_amd64.exe`
 
 To install via bash:
 
+Linux
 ```
-wget -O /usr/bin/lagoon-sync https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.4/lagoon-sync_0.4.4_linux_386 && chmod +x /usr/bin/lagoon-sync
+wget -O /usr/bin/lagoon-sync https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.6/lagoon-sync_0.4.6_linux_386 && chmod +x /usr/bin/lagoon-sync
+```
+
+MacOS
+```
+wget -O /usr/bin/lagoon-sync https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.6/lagoon-sync_0.4.6_darwin_amd64 && chmod +x /usr/bin/lagoon-sync
 ```
 
 # Usage
