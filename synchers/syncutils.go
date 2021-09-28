@@ -176,7 +176,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		verboseSSHArgument = "-v"
 	}
 
-	execString := fmt.Sprintf("%v --rsync-path=%v %v -e \"ssh %v -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
+	execString := fmt.Sprintf("%v --omit-dir-times --rsync-path=%v %v -e \"ssh %v -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %v ssh.lagoon.amazeeio.cloud service=%v\" %v -a %s %s",
 		targetEnvironment.RsyncPath,
 		sourceEnvironment.RsyncPath,
 		verboseSSHArgument,
