@@ -17,7 +17,7 @@ Lagoon-sync offers:
 
 # Installing
 
-You can run `lagoon-sync` as a single binary by downloading from `https://github.com/amazeeio/lagoon-sync/releases/`.
+You can run `lagoon-sync` as a single binary by downloading from `https://github.com/amazeeio/lagoon-sync/releases/latest`.
 
 MacOS: `lagoon-sync_*.*.*_darwin_amd64`
 Linux (3 variants available): `lagoon-sync_*.*.*_linux_386`
@@ -26,8 +26,14 @@ Windows: `lagoon-sync_*.*.*_windows_amd64.exe`
 To install via bash:
 
 ```
-wget -O /usr/bin/lagoon-sync https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.4/lagoon-sync_0.4.4_linux_386 && chmod +x /usr/bin/lagoon-sync
+# macOS
+curl https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_darwin_amd64 -Lo /usr/local/bin/lagoon-sync && chmod a+x $_
+
+# Linux
+curl https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_linux_386 -Lo /usr/bin/lagoon-sync && chmod +x $_
 ```
+
+
 
 # Usage
 
