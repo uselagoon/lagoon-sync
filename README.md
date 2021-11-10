@@ -34,6 +34,11 @@ To install via bash:
     curl https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_linux_386 -Lo /usr/bin/lagoon-sync && chmod +x $_
 
 
+Installing the latest version:
+
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/amazeeio/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_386) && wget -O /tmp/lagoon-sync $DOWNLOAD_PATH && chmod +x /tmp/lagoon-sync
+
+
 # Usage
 
 Lagoon-sync has the following core commands:
