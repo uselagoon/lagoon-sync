@@ -14,7 +14,7 @@ type Syncer interface {
 	// GetPrequisiteCommand will return the command to run on source or target environment to extract information.
 	GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
 	// GetRemoteCommand will return the command to be run on the source system
-	GetRemoteCommand(environment Environment) SyncCommand
+	GetRemoteCommand(environment Environment, commandOptions SyncCommandOptions) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
 	GetLocalCommand(environment Environment) SyncCommand
 	// GetTransferResource will return the command that executes the transfer
@@ -27,6 +27,7 @@ type Syncer interface {
 
 type SyncCommand struct {
 	command       string
+	commandOptions SyncCommandOptions
 	substitutions map[string]interface{}
 	NoOp          bool // NoOp can be set to true if this command performs no operation (in situations like file transfers)
 }
@@ -46,6 +47,10 @@ type Environment struct {
 	RsyncAvailable  bool
 	RsyncPath       string
 	RsyncLocalPath  string
+}
+
+type SyncCommandOptions struct {
+	ExcludeTables string
 }
 
 func (r Environment) GetOpenshiftProjectName() string {

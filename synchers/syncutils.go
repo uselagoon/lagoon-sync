@@ -27,7 +27,7 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, commandOptions SyncCommandOptions, dryRun bool, verboseSSH bool) error {
 	var err error
 
 	if _, err := lagoonSyncer.IsInitialized(); err != nil {
@@ -41,7 +41,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, commandOptions, dryRun, verboseSSH)
 	if err != nil {
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
@@ -61,7 +61,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, commandOptions, dryRun, verboseSSH)
 	if err != nil {
 		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
@@ -78,16 +78,15 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	return nil
 }
 
-func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
-
+func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, commandOptions SyncCommandOptions, dryRun bool, verboseSSH bool) error {
 	utils.LogProcessStep("Beginning export on source environment", remoteEnvironment.EnvironmentName)
 
-	if syncer.GetRemoteCommand(remoteEnvironment).NoOp {
+	if syncer.GetRemoteCommand(remoteEnvironment, commandOptions).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
 		return nil
 	}
 
-	command, commandErr := syncer.GetRemoteCommand(remoteEnvironment).GetCommand()
+	command, commandErr := syncer.GetRemoteCommand(remoteEnvironment, commandOptions).GetCommand()
 	if commandErr != nil {
 		return commandErr
 	}
@@ -202,11 +201,11 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	return nil
 }
 
-func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
+func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, commandOptions SyncCommandOptions, dryRun bool, verboseSSH bool) error {
 
 	utils.LogProcessStep("Beginning import on target environment", targetEnvironment.EnvironmentName)
 
-	if syncer.GetRemoteCommand(targetEnvironment).NoOp {
+	if syncer.GetRemoteCommand(targetEnvironment, commandOptions).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", targetEnvironment.EnvironmentName)
 		return nil
 	}

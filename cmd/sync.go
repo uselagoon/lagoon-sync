@@ -19,6 +19,7 @@ var targetEnvironmentName string
 var SyncerType string
 var ServiceName string
 var configurationFile string
+var ExcludeTables string
 var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
@@ -81,6 +82,11 @@ var syncCmd = &cobra.Command{
 			utils.LogFatalError(err.Error(), nil)
 		}
 
+		var commandOptions synchers.SyncCommandOptions
+		commandOptions = synchers.SyncCommandOptions{
+			ExcludeTables: ExcludeTables,
+		}
+
 		if ProjectName == "" {
 			utils.LogFatalError("No Project name given", nil)
 		}
@@ -95,7 +101,7 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, verboseSSH)
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, commandOptions, dryRun, verboseSSH)
 		if err != nil {
 			utils.LogFatalError("There was an error running the sync process", err)
 		}
@@ -133,6 +139,7 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
+	syncCmd.PersistentFlags().StringVarP(&ExcludeTables, "skip-tables-list", "x", "", "A comma-separated list of tables to exclude (e.g. 'cache_*'")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")

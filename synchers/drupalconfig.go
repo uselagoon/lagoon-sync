@@ -70,7 +70,7 @@ func (root DrupalconfigSyncRoot) GetPrerequisiteCommand(environment Environment,
 	return SyncCommand{}
 }
 
-func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
+func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment, options SyncCommandOptions) SyncCommand {
 	transferResource := root.GetTransferResource(environment)
 	return SyncCommand{
 		command: fmt.Sprintf("drush config-export --destination=%s || true", transferResource.Name),

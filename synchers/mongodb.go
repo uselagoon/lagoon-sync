@@ -116,7 +116,7 @@ func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
+func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment, options SyncCommandOptions) SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {

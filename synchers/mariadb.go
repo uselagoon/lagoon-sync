@@ -123,7 +123,7 @@ func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
+func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment, commandOptions SyncCommandOptions) SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -136,6 +136,12 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	for _, s := range m.IgnoreTable {
 		tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, s)
 	}
+	if commandOptions.ExcludeTables != "" {
+		var excludeTables = strings.Split(commandOptions.ExcludeTables, ",")
+		for i := range excludeTables {
+			tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, strings.TrimSpace(excludeTables[i]))
+		}
+	}
 
 	var tablesWhoseDataToIgnore string
 	for _, s := range m.IgnoreTableData {
@@ -143,13 +149,14 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	}
 
 	return SyncCommand{
-		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }}"),
+		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .tableDataToIgnore }} {{ .database }} > {{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"hostname":         m.DbHostname,
 			"username":         m.DbUsername,
 			"password":         m.DbPassword,
 			"port":             m.DbPort,
-			"tablesToIgnore":   tablesWhoseDataToIgnore,
+			"tablesToIgnore":   tablesToIgnore,
+			"tableDataToIgnore":   tablesWhoseDataToIgnore,
 			"database":         m.DbDatabase,
 			"transferResource": transferResource.Name,
 		},

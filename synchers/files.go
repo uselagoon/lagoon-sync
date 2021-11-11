@@ -90,7 +90,7 @@ func (root FilesSyncRoot) GetPrerequisiteCommand(environment Environment, comman
 	return SyncCommand{}
 }
 
-func (root FilesSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
+func (root FilesSyncRoot) GetRemoteCommand(environment Environment, options SyncCommandOptions) SyncCommand {
 	return generateNoOpSyncCommand()
 }
 
