@@ -90,6 +90,14 @@ func (root FilesSyncRoot) GetPrerequisiteCommand(environment Environment, comman
 	return SyncCommand{}
 }
 
+func (root FilesSyncRoot) GetPreflightCommand(environment Environment, debug bool) SyncCommand {
+	return SyncCommand{}
+}
+
+func (root FilesSyncRoot) ApplyPreflightResponseChecks(preflightResponse string, commandOptions SyncCommandOptions) (Syncer, error) {
+	return root, nil
+}
+
 func (root FilesSyncRoot) GetRemoteCommand(environment Environment, options SyncCommandOptions) SyncCommand {
 	return generateNoOpSyncCommand()
 }

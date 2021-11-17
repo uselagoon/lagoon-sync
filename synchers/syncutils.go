@@ -41,6 +41,13 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
+	// Preflight source checks to determine command input
+	// e.g we need to determine tables that are available in source env so that we can compare against wildcard args
+	lagoonSyncer, err = RunPreflightCommand(sourceEnvironment, lagoonSyncer, commandOptions, syncerType, dryRun, verboseSSH)
+	if err != nil {
+		return err
+	}
+
 	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, commandOptions, dryRun, verboseSSH)
 	if err != nil {
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
@@ -76,6 +83,42 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
 
 	return nil
+}
+
+// Takes config from .yml and parsed command-line arguments to determine what needs to be done on the source environment.
+func RunPreflightCommand(sourceEnvironment Environment, syncher Syncer, commandOptions SyncCommandOptions, syncerType string, dryRun bool, verboseSSH bool) (Syncer, error) {
+	if syncerType == "files" || syncerType == "drupalconfig" {
+		return syncher, nil
+	}
+
+	if verboseSSH {
+		utils.LogProcessStep("Running preflight checks on", sourceEnvironment.EnvironmentName)
+	}
+
+	var execString string
+	command, commandErr := syncher.GetPreflightCommand(sourceEnvironment, verboseSSH).GetCommand()
+	if commandErr != nil {
+		return syncher, commandErr
+	}
+
+	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+		execString = command
+	} else {
+		execString = GenerateRemoteCommand(sourceEnvironment, command, verboseSSH)
+	}
+
+	utils.LogExecutionStep("Running the following preflight command", execString)
+
+	err, preflightResponse, errstring := utils.Shellout(execString)
+	if err != nil {
+		fmt.Println(errstring)
+	}
+
+	// Apply preflight response changes to input arguments
+	lagoonSyncher, err := syncher.ApplyPreflightResponseChecks(preflightResponse, commandOptions)
+	fmt.Println("lagoonSyncher: ", lagoonSyncher)
+
+	return lagoonSyncher, nil
 }
 
 func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, commandOptions SyncCommandOptions, dryRun bool, verboseSSH bool) error {

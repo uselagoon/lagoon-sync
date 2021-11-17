@@ -12,7 +12,11 @@ const LOCAL_ENVIRONMENT_NAME = "local"
 
 type Syncer interface {
 	// GetPrequisiteCommand will return the command to run on source or target environment to extract information.
-	GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
+	GetPrerequisiteCommand(environment Environment, command string) SyncCommand
+	// GetPreflightCommand will return the command used to initially run on source environment prior to remove command execution.
+	GetPreflightCommand(environment Environment, verboseSSH bool) SyncCommand
+	// Apply preflight changes if there are any
+	ApplyPreflightResponseChecks(preflightResponse string, commandOptions SyncCommandOptions) (Syncer, error)
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment, commandOptions SyncCommandOptions) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system

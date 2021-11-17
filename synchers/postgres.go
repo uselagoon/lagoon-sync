@@ -118,6 +118,14 @@ func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, com
 	}
 }
 
+func (root PostgresSyncRoot) GetPreflightCommand(environment Environment, debug bool) SyncCommand {
+	return SyncCommand{}
+}
+
+func (root PostgresSyncRoot) ApplyPreflightResponseChecks(preflightResponse string, commandOptions SyncCommandOptions) (Syncer, error) {
+	return root, nil
+}
+
 func (root PostgresSyncRoot) GetRemoteCommand(environment Environment, commandOptions SyncCommandOptions) SyncCommand {
 	m := root.Config
 	transferResource := root.GetTransferResource(environment)

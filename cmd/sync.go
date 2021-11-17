@@ -82,8 +82,7 @@ var syncCmd = &cobra.Command{
 			utils.LogFatalError(err.Error(), nil)
 		}
 
-		var commandOptions synchers.SyncCommandOptions
-		commandOptions = synchers.SyncCommandOptions{
+		commandOptions := synchers.SyncCommandOptions{
 			ExcludeTables: ExcludeTables,
 		}
 
