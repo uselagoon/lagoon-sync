@@ -3,11 +3,13 @@ package synchers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/amazeeio/lagoon-sync/preflight"
 	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/spf13/viper"
 )
@@ -123,7 +125,78 @@ func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
+func (root MariadbSyncRoot) ApplyPreflightResponseChecks(preflightResponse string, commandOptions SyncCommandOptions) (Syncer, error) {
+
+	tablesToIgnore := root.Config.IgnoreTable
+	if len(tablesToIgnore) != 0 {
+		fmt.Println(" has tables to ignore", tablesToIgnore)
+	}
+
+	if preflightResponse != "" {
+		tablesList := strings.Fields(preflightResponse)
+
+		if commandOptions.ExcludeTables == "" {
+			return root, nil
+		}
+
+		var excludeTables = strings.Split(commandOptions.ExcludeTables, ",")
+
+		for _, option := range excludeTables {
+			// check if wildcard option
+			isWildcardString := preflight.StringIsWildcard(option)
+			// if option is a wildcard, find a match
+			if isWildcardString {
+				matchedTables := preflight.FindMatchingTablesFromWildcardPattern(option, tablesList)
+
+				tablesToIgnore = append(tablesToIgnore, matchedTables...)
+				root.Config.IgnoreTable = tablesToIgnore
+			}
+		}
+	}
+
+	return root, nil
+}
+
+
+
+func (root MariadbSyncRoot) GetPreflightCommand(environment Environment, verboseSSH bool) SyncCommand {
+	var config = root.Config
+
+	var debug = viper.Get("show-debug")
+	fmt.Print("debug", debug)
+
+	// check if mysql is available first
+	// command -v mysql
+	// mysqlBin, err := utils.FindMySQLBin()
+
+	// Get db connection credentials - save to temp file to hide password being printed
+	//tmpCredFilePath, err := preflight.CreateDBCredentialsTempFile(
+	//	config.DbUsername,
+	//	config.DbPassword,
+	//	"/tmp",
+	//	true)
+	//if err != nil {
+	//	log.Print("Unable to create temp db credentials")
+	//}
+	//
+	//if tmpCredFilePath != "" {
+	//	fmt.Print(tmpCredFilePath)
+	//}
+
+	// Establish mysql db connection
+	sqlConnectionCommand := preflight.MysqlConnectionCommand(config.DbDatabase, config.DbHostname, config.DbPort, config.DbUsername, config.DbPassword)
+	log.Println(sqlConnectionCommand)
+
+	return SyncCommand{
+		command: fmt.Sprintf("{{ .command }} | {{ .sql }}"),
+		substitutions: map[string]interface{}{
+			"sql":     sqlConnectionCommand,
+			"command": "echo \"SHOW TABLES;\"",
+		},
+	}
+}
+
+func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment, commandOptions SyncCommandOptions) SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -136,6 +209,12 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	for _, s := range m.IgnoreTable {
 		tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, s)
 	}
+	if commandOptions.ExcludeTables != "" {
+		var excludeTables = strings.Split(commandOptions.ExcludeTables, ",")
+		for i := range excludeTables {
+			tablesToIgnore += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, strings.TrimSpace(excludeTables[i]))
+		}
+	}
 
 	var tablesWhoseDataToIgnore string
 	for _, s := range m.IgnoreTableData {
@@ -143,13 +222,14 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	}
 
 	return SyncCommand{
-		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }}"),
+		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .tableDataToIgnore }} {{ .database }} > {{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"hostname":         m.DbHostname,
 			"username":         m.DbUsername,
 			"password":         m.DbPassword,
 			"port":             m.DbPort,
-			"tablesToIgnore":   tablesWhoseDataToIgnore,
+			"tablesToIgnore":   tablesToIgnore,
+			"tableDataToIgnore":   tablesWhoseDataToIgnore,
 			"database":         m.DbDatabase,
 			"transferResource": transferResource.Name,
 		},

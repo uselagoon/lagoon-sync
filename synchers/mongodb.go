@@ -116,7 +116,15 @@ func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
+func (root MongoDbSyncRoot) GetPreflightCommand(environment Environment, debug bool) SyncCommand {
+	return SyncCommand{}
+}
+
+func (root MongoDbSyncRoot) ApplyPreflightResponseChecks(preflightResponse string, commandOptions SyncCommandOptions) (Syncer, error) {
+	return root, nil
+}
+
+func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment, options SyncCommandOptions) SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {

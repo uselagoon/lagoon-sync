@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/amazeeio/lagoon-sync/utils"
@@ -117,13 +118,27 @@ func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, com
 	}
 }
 
-func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
+func (root PostgresSyncRoot) GetPreflightCommand(environment Environment, debug bool) SyncCommand {
+	return SyncCommand{}
+}
+
+func (root PostgresSyncRoot) ApplyPreflightResponseChecks(preflightResponse string, commandOptions SyncCommandOptions) (Syncer, error) {
+	return root, nil
+}
+
+func (root PostgresSyncRoot) GetRemoteCommand(environment Environment, commandOptions SyncCommandOptions) SyncCommand {
 	m := root.Config
 	transferResource := root.GetTransferResource(environment)
 
 	var tablesToExclude string
 	for _, s := range m.ExcludeTable {
 		tablesToExclude += fmt.Sprintf("--exclude-table=%s.%s ", m.DbDatabase, s)
+	}
+	if commandOptions.ExcludeTables != "" {
+		var excludeTables = strings.Split(commandOptions.ExcludeTables, ",")
+		for i := range excludeTables {
+			tablesToExclude += fmt.Sprintf("--ignore-table=%s.%s ", m.DbDatabase, strings.TrimSpace(excludeTables[i]))
+		}
 	}
 
 	var tablesWhoseDataToExclude string

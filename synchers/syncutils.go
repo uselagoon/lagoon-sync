@@ -27,7 +27,7 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 	return lagoonConfig, nil
 }
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, verboseSSH bool) error {
+func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, commandOptions SyncCommandOptions, dryRun bool, verboseSSH bool) error {
 	var err error
 
 	if _, err := lagoonSyncer.IsInitialized(); err != nil {
@@ -41,7 +41,14 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	// Preflight source checks to determine command input
+	// e.g we need to determine tables that are available in source env so that we can compare against wildcard args
+	lagoonSyncer, err = RunPreflightCommand(sourceEnvironment, lagoonSyncer, commandOptions, syncerType, dryRun, verboseSSH)
+	if err != nil {
+		return err
+	}
+
+	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, commandOptions, dryRun, verboseSSH)
 	if err != nil {
 		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, verboseSSH)
 		return err
@@ -61,7 +68,7 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 		return err
 	}
 
-	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun, verboseSSH)
+	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, commandOptions, dryRun, verboseSSH)
 	if err != nil {
 		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, verboseSSH)
 		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, verboseSSH)
@@ -78,16 +85,51 @@ func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment
 	return nil
 }
 
-func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
+// Takes config from .yml and parsed command-line arguments to determine what needs to be done on the source environment.
+func RunPreflightCommand(sourceEnvironment Environment, syncher Syncer, commandOptions SyncCommandOptions, syncerType string, dryRun bool, verboseSSH bool) (Syncer, error) {
+	if syncerType == "files" || syncerType == "drupalconfig" {
+		return syncher, nil
+	}
 
+	if verboseSSH {
+		utils.LogProcessStep("Running preflight checks on", sourceEnvironment.EnvironmentName)
+	}
+
+	var execString string
+	command, commandErr := syncher.GetPreflightCommand(sourceEnvironment, verboseSSH).GetCommand()
+	if commandErr != nil {
+		return syncher, commandErr
+	}
+
+	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+		execString = command
+	} else {
+		execString = GenerateRemoteCommand(sourceEnvironment, command, verboseSSH)
+	}
+
+	utils.LogExecutionStep("Running the following preflight command", execString)
+
+	err, preflightResponse, errstring := utils.Shellout(execString)
+	if err != nil {
+		fmt.Println(errstring)
+	}
+
+	// Apply preflight response changes to input arguments
+	lagoonSyncher, err := syncher.ApplyPreflightResponseChecks(preflightResponse, commandOptions)
+	fmt.Println("lagoonSyncher: ", lagoonSyncher)
+
+	return lagoonSyncher, nil
+}
+
+func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, commandOptions SyncCommandOptions, dryRun bool, verboseSSH bool) error {
 	utils.LogProcessStep("Beginning export on source environment", remoteEnvironment.EnvironmentName)
 
-	if syncer.GetRemoteCommand(remoteEnvironment).NoOp {
+	if syncer.GetRemoteCommand(remoteEnvironment, commandOptions).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
 		return nil
 	}
 
-	command, commandErr := syncer.GetRemoteCommand(remoteEnvironment).GetCommand()
+	command, commandErr := syncer.GetRemoteCommand(remoteEnvironment, commandOptions).GetCommand()
 	if commandErr != nil {
 		return commandErr
 	}
@@ -202,11 +244,11 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	return nil
 }
 
-func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool, verboseSSH bool) error {
+func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, commandOptions SyncCommandOptions, dryRun bool, verboseSSH bool) error {
 
 	utils.LogProcessStep("Beginning import on target environment", targetEnvironment.EnvironmentName)
 
-	if syncer.GetRemoteCommand(targetEnvironment).NoOp {
+	if syncer.GetRemoteCommand(targetEnvironment, commandOptions).NoOp {
 		log.Printf("Found No Op for environment %s - skipping step", targetEnvironment.EnvironmentName)
 		return nil
 	}
