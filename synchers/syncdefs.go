@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amazeeio/lagoon-sync/prerequisite"
+	"github.com/uselagoon/lagoon-sync/prerequisite"
 	"gopkg.in/yaml.v2"
 )
 

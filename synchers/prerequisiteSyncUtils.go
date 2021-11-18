@@ -3,13 +3,13 @@ package synchers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/amazeeio/lagoon-sync/assets"
+	"github.com/uselagoon/lagoon-sync/assets"
 	"io/ioutil"
 	"log"
 	"strings"
 
-	"github.com/amazeeio/lagoon-sync/prerequisite"
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/prerequisite"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, verboseSSH bool) (Environment, error) {

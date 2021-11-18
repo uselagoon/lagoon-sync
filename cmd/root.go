@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/amazeeio/lagoon-sync/assets"
+	"github.com/uselagoon/lagoon-sync/assets"
 	"os"
 
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/utils"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -16,7 +16,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/amazeeio/lagoon-sync/cmd"
+	"github.com/uselagoon/lagoon-sync/cmd"
 )
 
 func main() {

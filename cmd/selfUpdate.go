@@ -19,7 +19,7 @@ import (
 	"golang.org/x/crypto/openpgp"
 )
 
-const selfUpdateDownloadURL = "https://api.github.com/repos/amazeeio/lagoon-sync/releases/latest"
+const selfUpdateDownloadURL = "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest"
 
 var osArch, downloadPath, checkSumFileUrl, sigFileUrl, checksumStr string
 
