@@ -63,6 +63,11 @@ func (m PostgresSyncPlugin) GetPluginId() string {
 	return "postgres"
 }
 
+func (m PostgresSyncRoot) GetConfig() (BasePostgresSync) {
+	return m.Config
+}
+
+
 func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	postgres := PostgresSyncRoot{}
 	postgres.Config.setDefaults()

@@ -32,6 +32,11 @@ func (m DrupalConfigSyncPlugin) GetPluginId() string {
 	return "drupalconfig"
 }
 
+func (m DrupalconfigSyncRoot) GetConfig() (BaseDrupalconfigSync) {
+	return m.Config
+}
+
+
 func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	drupalconfig := DrupalconfigSyncRoot{}
 	drupalconfig.Config.OutputDirectory = drupalconfig.GetOutputDirectory()

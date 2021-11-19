@@ -50,7 +50,6 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 }
 
 
-
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
 
@@ -76,6 +75,11 @@ func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 	lagoonSyncer, _ := mariadb.PrepareSyncer()
 	return lagoonSyncer, nil
 }
+
+func (m MariadbSyncRoot) GetConfig() (BaseMariaDbSync) {
+	return m.Config
+}
+
 
 func init() {
 	RegisterSyncer(MariadbSyncPlugin{})
