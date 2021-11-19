@@ -17,7 +17,7 @@ Lagoon-sync offers:
 
 # Installing
 
-You can run `lagoon-sync` as a single binary by downloading from `https://github.com/amazeeio/lagoon-sync/releases/latest`.
+You can run `lagoon-sync` as a single binary by downloading from `https://github.com/uselagoon/lagoon-sync/releases/latest`.
 
 MacOS: `lagoon-sync_*.*.*_darwin_amd64`
 Linux (3 variants available): `lagoon-sync_*.*.*_linux_386`
@@ -27,16 +27,16 @@ To install via bash:
 
 ## macOS
 
-    curl https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_darwin_amd64 -Lo /usr/local/bin/lagoon-sync && chmod a+x $_
+    curl https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_darwin_amd64 -Lo /usr/local/bin/lagoon-sync && chmod a+x $_
 
 ## Linux
 
-    curl https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_linux_386 -Lo /usr/bin/lagoon-sync && chmod +x $_
+    curl https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_linux_386 -Lo /usr/bin/lagoon-sync && chmod +x $_
 
 
 Installing the latest version:
 
-    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/amazeeio/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_386) && wget -O /tmp/lagoon-sync $DOWNLOAD_PATH && chmod +x /tmp/lagoon-sync
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_386) && wget -O /tmp/lagoon-sync $DOWNLOAD_PATH && chmod +x /tmp/lagoon-sync
 
 
 # Usage
@@ -168,7 +168,7 @@ It's possible to safely update your lagoon-sync binrary by running the `selfUpda
 ```
 $ lagoon-sync selfUpdate
 
-Downloading binary from https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.4/lagoon-sync_0.4.4_linux_386
+Downloading binary from https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.4/lagoon-sync_0.4.4_linux_386
 Checksum for linux_386: 61a55bd793d5745b6196ffd5bb87263aba85629f55ee0eaf53c771a0720adefd
 Good signature from "amazeeio"
 Applying update...

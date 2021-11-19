@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/spf13/viper"
 )
 

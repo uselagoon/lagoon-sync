@@ -8,7 +8,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )

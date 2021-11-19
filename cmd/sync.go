@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/amazeeio/lagoon-sync/synchers"
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/synchers"
+	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
