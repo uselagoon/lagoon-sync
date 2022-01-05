@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/uselagoon/lagoon-sync/synchers"
-	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/uselagoon/lagoon-sync/synchers"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 var ProjectName string
@@ -19,6 +19,7 @@ var targetEnvironmentName string
 var SyncerType string
 var ServiceName string
 var configurationFile string
+var CmdSSHKey string
 var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
@@ -95,7 +96,13 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, verboseSSH)
+		// SSH config
+		var sshOptions = synchers.SSHOptions{
+			Verbose:    verboseSSH,
+			PrivateKey: CmdSSHKey,
+		}
+
+		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
 		if err != nil {
 			utils.LogFatalError("There was an error running the sync process", err)
 		}
@@ -134,6 +141,7 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
+	syncCmd.PersistentFlags().StringVarP(&CmdSSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().BoolVar(&verboseSSH, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
