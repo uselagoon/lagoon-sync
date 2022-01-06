@@ -1,6 +1,7 @@
 package synchers
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -48,6 +49,11 @@ type Environment struct {
 	RsyncLocalPath  string
 }
 
+type SSHOptions struct {
+	Verbose    bool
+	PrivateKey string
+}
+
 func (r Environment) GetOpenshiftProjectName() string {
 	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
 }
@@ -69,10 +75,14 @@ func UnmarshalIntoStruct(pluginIn interface{}, pluginOut interface{}) error {
 	return yaml.Unmarshal(b, pluginOut)
 }
 
-func GenerateRemoteCommand(remoteEnvironment Environment, command string, verboseSSH bool) string {
-	verbose := ""
-	if verboseSSH {
-		verbose = "-v"
+func GenerateRemoteCommand(remoteEnvironment Environment, command string, sshOptions SSHOptions) string {
+	var sshOptionsStr bytes.Buffer
+	if sshOptions.Verbose {
+		sshOptionsStr.WriteString(" -v")
+	}
+
+	if sshOptions.PrivateKey != "" {
+		sshOptionsStr.WriteString(fmt.Sprintf(" -i %s", sshOptions.PrivateKey))
 	}
 
 	serviceArgument := ""
@@ -80,6 +90,6 @@ func GenerateRemoteCommand(remoteEnvironment Environment, command string, verbos
 		serviceArgument = fmt.Sprintf("service=%v", remoteEnvironment.ServiceName)
 	}
 
-	return fmt.Sprintf("ssh %s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud %v '%v'",
-		verbose, remoteEnvironment.GetOpenshiftProjectName(), serviceArgument, command)
+	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %s@ssh.lagoon.amazeeio.cloud %s '%s'",
+		sshOptionsStr.String(), remoteEnvironment.GetOpenshiftProjectName(), serviceArgument, command)
 }
