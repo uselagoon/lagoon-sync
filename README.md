@@ -80,7 +80,7 @@ Flags:
       --verbose                          Run ssh commands in verbose (useful for debugging)
 
 Global Flags:
-      --config string   config file (default is `.lagoon.yaml`) (default "./.lagoon.yml")
+      --config string   config file (default is '.lagoon.yaml')
       --show-debug      Shows debug information
 ```
 
