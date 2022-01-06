@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"log"
 	"os"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/uselagoon/lagoon-sync/synchers"
+	synchers "github.com/uselagoon/lagoon-sync/synchers"
 	"github.com/uselagoon/lagoon-sync/utils"
 )
 
@@ -19,10 +20,12 @@ var targetEnvironmentName string
 var SyncerType string
 var ServiceName string
 var configurationFile string
-var CmdSSHKey string
+var SSHHost string
+var SSHPort string
+var SSHKey string
+var SSHVerbose bool
 var noCliInteraction bool
 var dryRun bool
-var verboseSSH bool
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -96,10 +99,51 @@ var syncCmd = &cobra.Command{
 			}
 		}
 
+		// SSH Config from file
+		sshConfig := synchers.SSHConfig{}
+		err = yaml.Unmarshal(lagoonConfigBytestream, &sshConfig)
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
+
 		// SSH config
-		var sshOptions = synchers.SSHOptions{
-			Verbose:    verboseSSH,
-			PrivateKey: CmdSSHKey,
+		var sshHost string
+		if SSHHost != "" {
+			sshHost = SSHHost
+		} else if sshConfig.SSH.Host != "" {
+			sshHost = sshConfig.SSH.Host
+		} else {
+			sshHost = "ssh.lagoon.amazeeio.cloud"
+		}
+
+		var sshPort string
+		if SSHPort != "" {
+			sshPort = SSHPort
+		} else if sshConfig.SSH.Port != "" {
+			sshPort = sshConfig.SSH.Port
+		} else {
+			sshPort = "3222"
+		}
+
+		var sshKey string
+		if SSHKey != "" {
+			sshKey = SSHKey
+		} else if sshConfig.SSH.PrivateKey != "" {
+			sshKey = sshConfig.SSH.PrivateKey
+		}
+
+		var sshVerbose bool
+		if SSHVerbose {
+			sshVerbose = SSHVerbose
+		} else if sshConfig.SSH.Verbose {
+			sshVerbose = sshConfig.SSH.Verbose
+		}
+
+		sshOptions := synchers.SSHOptions{
+			Host:       sshHost,
+			PrivateKey: sshKey,
+			Port:       sshPort,
+			Verbose:    sshVerbose,
 		}
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
@@ -141,9 +185,11 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
-	syncCmd.PersistentFlags().StringVarP(&CmdSSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
+	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "", "Specify your ssh port, defaults to '32222'")
+	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
-	syncCmd.PersistentFlags().BoolVar(&verboseSSH, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
+	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 
 }

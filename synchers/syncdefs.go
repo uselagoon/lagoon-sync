@@ -50,12 +50,18 @@ type Environment struct {
 }
 
 type SSHOptions struct {
-	Verbose    bool
-	PrivateKey string
+	Host       string `yaml:"host,omitempty"`
+	Port       string `yaml:"port,omitempty"`
+	Verbose    bool   `yaml:"verbose,omitempty"`
+	PrivateKey string `yaml:"privateKey,omitempty"`
 }
 
 func (r Environment) GetOpenshiftProjectName() string {
 	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
+}
+
+type SSHConfig struct {
+	SSH SSHOptions `yaml:"ssh,omitempty"`
 }
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
@@ -90,6 +96,6 @@ func GenerateRemoteCommand(remoteEnvironment Environment, command string, sshOpt
 		serviceArgument = fmt.Sprintf("service=%v", remoteEnvironment.ServiceName)
 	}
 
-	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %s@ssh.lagoon.amazeeio.cloud %s '%s'",
-		sshOptionsStr.String(), remoteEnvironment.GetOpenshiftProjectName(), serviceArgument, command)
+	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s '%s'",
+		sshOptionsStr.String(), sshOptions.Port, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
 }

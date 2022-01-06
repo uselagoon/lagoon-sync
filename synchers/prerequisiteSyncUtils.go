@@ -80,7 +80,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 
 	if !dryRun && !environment.RsyncAvailable {
 		// Add rsync to env
-		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion)
+		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion, sshOptions)
 		if err != nil {
 			fmt.Println(errstring)
 			return environment, err
@@ -124,7 +124,7 @@ func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool,
 var RsyncAssetPath = "/tmp/rsync"
 
 // will add bundled rsync onto environment and return the new rsync path as string
-func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string) (string, error) {
+func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string, sshOptions SSHOptions) (string, error) {
 	utils.LogDebugInfo("%v environment doesn't have rsync", environment.EnvironmentName)
 	utils.LogDebugInfo("Downloading rsync asset on", environment.EnvironmentName)
 
@@ -165,8 +165,8 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 
 		}
 
-		execString = fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud %v %v",
-			environment.GetOpenshiftProjectName(), serviceArgument, command)
+		execString = fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s %s",
+			sshOptions.Port, environment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
 	}
 
 	utils.LogExecutionStep(fmt.Sprintf("Running the following for %s", environment.EnvironmentName), execString)
