@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/amazeeio/lagoon-sync/prerequisite"
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/prerequisite"
+	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -3,16 +3,16 @@ package synchers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/uselagoon/lagoon-sync/assets"
 	"io/ioutil"
 	"log"
 	"strings"
 
-	"github.com/amazeeio/lagoon-sync/assets"
-	"github.com/amazeeio/lagoon-sync/prerequisite"
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/prerequisite"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
-func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, verboseSSH bool) (Environment, error) {
+func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, sshOptions SSHOptions) (Environment, error) {
 	// We don't run prerequisite checks on these syncers for now.
 	if syncerType == "files" || syncerType == "drupalconfig" {
 		environment.RsyncPath = "rsync"
@@ -32,7 +32,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = command
 	} else {
-		execString = GenerateRemoteCommand(environment, command, verboseSSH)
+		execString = GenerateRemoteCommand(environment, command, sshOptions)
 	}
 
 	utils.LogExecutionStep("Running the following prerequisite command", execString)
@@ -94,7 +94,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	return environment, nil
 }
 
-func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool, verboseSSH bool) error {
+func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool, sshOptions SSHOptions) error {
 	if rsyncPath == "" || rsyncPath == "rsync" || !strings.Contains(rsyncPath, "/tmp/") {
 		return nil
 	}
@@ -104,7 +104,7 @@ func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool,
 	execString := fmt.Sprintf("rm -r %s", rsyncPath)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		execString = GenerateRemoteCommand(environment, execString, verboseSSH)
+		execString = GenerateRemoteCommand(environment, execString, sshOptions)
 	}
 
 	utils.LogExecutionStep("Running the following", execString)
@@ -189,7 +189,7 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 
 func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 	tempRsyncPath := "/tmp/rsync"
-	err := ioutil.WriteFile(tempRsyncPath, assets.GetRSYNC(), 0774)
+	err := ioutil.WriteFile(tempRsyncPath, assets.RsyncBin(), 0774)
 	if err != nil {
 		utils.LogFatalError("Unable to write to file", err)
 	}

@@ -170,7 +170,7 @@ func (e *EnvVarRsyncPrerequisite) Status() int {
 func getMariaDbEnvVars() DbEnvVars {
 	var hostname, mariadbHostExists = os.LookupEnv("MARIADB_HOSTNAME")
 	if !mariadbHostExists {
-		hostname, mariadbHostExists = os.LookupEnv("AMAZEEIO_DB_HOST")
+		hostname, mariadbHostExists = os.LookupEnv("MARIADB_HOST")
 	}
 	var username = os.Getenv("MARIADB_USERNAME")
 	var password = os.Getenv("MARIADB_PASSWORD")

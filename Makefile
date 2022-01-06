@@ -15,7 +15,7 @@ VERSION=$(shell git describe --tags --abbrev=0)
 DATE=$(shell date +%FT%T%z)
 VERSION_FORMATTED=$(shell git describe --tags --abbrev=0 | sed 's/\./-/g')
 
-all: check-go install test pre-build build
+all: check-go install test build
 
 check-go:
 ifndef GOPATH
@@ -27,20 +27,14 @@ clean:
 	$(GOCLEAN)
 	rm -rf dist/
 	rm -rf builds/
-	cp assets/main.default assets/main.go
 
 deps:
 	${GOCMD} get -v
 
-embed-assets:
-	go-embed -compress=false -input binaries/ -output assets/main.go
-
-install: clean deps embed-assets
+install: clean deps
 
 test: 
 	$(GOTEST) -v ./...
-
-pre-build: embed-assets
 
 reset-version:
 	printf $(VERSION) > ./binaries/.version
@@ -48,23 +42,23 @@ reset-version:
 
 # Build
 build: local-build
-local-build: pre-build
+local-build:
 	GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOCMD) build -o builds/${PROJECTNAME}-${VERSION_FORMATTED}-${GOOS} -v
 	@echo "> Build complied to: "
 	@echo "builds/${PROJECTNAME}-${VERSION_FORMATTED}-${GOOS}"
 
-local-build-linux: pre-build
+local-build-linux:
 	GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOCMD) build -o builds/${PROJECTNAME}-${VERSION_FORMATTED}-linux -v
 	@echo "> Build complied to: "
 	@echo "builds/${PROJECTNAME}-${VERSION_FORMATTED}-linux"
 
-local-build-darwin: pre-build
+local-build-darwin:
 	GO111MODULE=on CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOCMD) build -o builds/${PROJECTNAME}-${VERSION_FORMATTED}-darwin -v
 	@echo "> Build complied to: "
 	@echo "builds/${PROJECTNAME}-${VERSION_FORMATTED}-darwin"
 
 # Release
-release-test: pre-build
+release-test:
 	goreleaser release --skip-publish --skip-sign --rm-dist
 
 check-current-tag-version:

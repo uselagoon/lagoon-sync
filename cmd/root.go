@@ -2,16 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/uselagoon/lagoon-sync/assets"
 	"os"
 
-	"github.com/amazeeio/lagoon-sync/assets"
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/utils"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var version string
 var cfgFile string
 var lagoonSyncDefaultsFile string
 var lagoonSyncCfgFile string
@@ -27,8 +26,8 @@ var rootCmd = &cobra.Command{
 
 // Read version from .version, this will get updated automatically on release.
 func Version() string {
-	version := assets.GetVERSION()
-	return string(version)
+	version := assets.GetVersion()
+	return version
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/amazeeio/lagoon-sync/utils"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 type BaseDrupalconfigSync struct {

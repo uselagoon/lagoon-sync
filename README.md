@@ -1,6 +1,6 @@
 # Lagoon-sync
 
-Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronize data between Lagoon environments. Lagoon-sync is part of the [Lagoon cli](https://github.com/amazeeio/lagoon-cli) toolset and works closely with its parent project.
+Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the [Lagoon cli](https://github.com/amazeeio/lagoon-cli) toolset and works closely with its parent project.
 
 Lagoon-sync offers:
 * Sync commands for databases such as `mariadb`, `postgres` and `mongodb`
@@ -9,7 +9,7 @@ Lagoon-sync offers:
 * Has built-in default configuration values for syncing out-the-box
 * Provides an easy way to override sync configuration via `.lagoon.yml` or `.lagoon-sync.yml` files
 * Offers `--dry-run` flag to see what commands would be executed before running a transfer
-* `--no-interaction` can be used to auto-run all processes without prompt - useful for CI/builds 
+* `--no-interaction` can be used to auto-run all processes without prompt - useful for CI/builds
 * `config` command shows the configuration of the current environment
 * There is a `--show-debug` flag to output more verbose logging for debugging
 * Lagoon-sync uses `rsync` for the transfer of data, and will automatically detect and install `rsync` if it is not available on target environments
@@ -18,16 +18,27 @@ Lagoon-sync offers:
 
 # Installing
 
-You can run `lagoon-sync` as a single binary by downloading from `https://github.com/amazeeio/lagoon-sync/releases/`.
-* MacOS: `lagoon-sync_*.*.*_darwin_amd64`
-* Linux: `lagoon-sync_*.*.*_linux_386`
-* Windows: `lagoon-sync_*.*.*_windows_amd64.exe`
+You can run `lagoon-sync` as a single binary by downloading from `https://github.com/uselagoon/lagoon-sync/releases/latest`.
+
+MacOS: `lagoon-sync_*.*.*_darwin_amd64`
+Linux (3 variants available): `lagoon-sync_*.*.*_linux_386`
+Windows: `lagoon-sync_*.*.*_windows_amd64.exe`
 
 To install via bash:
 
-```
-wget -O /usr/bin/lagoon-sync https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.4/lagoon-sync_0.4.4_linux_386 && chmod +x /usr/bin/lagoon-sync
-```
+## macOS
+
+    curl https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_darwin_amd64 -Lo /usr/local/bin/lagoon-sync && chmod a+x $_
+
+## Linux
+
+    curl https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_linux_386 -Lo /usr/bin/lagoon-sync && chmod +x $_
+
+
+Installing the latest version:
+
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_386) && wget -O /tmp/lagoon-sync $DOWNLOAD_PATH && chmod +x /tmp/lagoon-sync
+
 
 # Usage
 
@@ -35,7 +46,7 @@ Lagoon-sync has the following core commands:
 
 ```
 $ lagoon-sync
-lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications. 
+lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications.
 This includes files, databases, and configurations.
 
 Usage:
@@ -137,8 +148,11 @@ To recap, the configuration files that can be used by default, in order of prior
 * .lagoon.yml
 
 ### Custom configuration files
-If you don't want your configuration file inside `/lagoon` and want to give it another name then you can define a custom file and tell sync to use that by providing the file path. This can be done with `--config` flag such as:
-
+If you don't want your configuration file inside `/lagoon` and want to give it another name then you can define a custom file and tell sync to use that by providing the file path. This can be done with `--config` flag such as:Config files that can be used in order of priority:
+- .lagoon-sync-defaults _(no yaml ext neeeded)_
+- .lagoon-sync _(no yaml ext neeeded)_
+- .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_
+å
 ```
 $ lagoon-sync sync mariadb -p mysite-com -e dev --config=/app/.lagoon-sync --show-debug
 
@@ -177,12 +191,12 @@ lagoon-sync:
 # Useful things
 ## Updating lagoon-sync
 
-It's possible to safely perform a cross-platform update of your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command. This will look for the latest release, then download the corresponding checksum and signature of the executable on GitHub, and verify its interity and authenticity before it performs the update. The binary used to perform the update will then replace itself (if succcssful) to the new version. If an error occurs then the update will roll back to the previous stable version.
+It's possible to safely perform a cross-platform update of your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command. This will look for the latest release, then download the corresponding checksum and signature of the executable on GitHub, and verify its integrity and authenticity before it performs the update. The binary used to perform the update will then replace itself (if successful) to the new version. If an error occurs then the update will roll back to the previous stable version.
 
 ```
 $ lagoon-sync selfUpdate
 
-Downloading binary from https://github.com/amazeeio/lagoon-sync/releases/download/v0.4.4/lagoon-sync_0.4.4_linux_386
+Downloading binary from https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.4/lagoon-sync_0.4.4_linux_386
 Checksum for linux_386: 61a55bd793d5745b6196ffd5bb87263aba85629f55ee0eaf53c771a0720adefd
 Good signature from "amazeeio"
 Applying update...
@@ -213,5 +227,7 @@ Setting up locally:
 ## Releases
 
 We are using [goreleaser](https://github.com/goreleaser/goreleaser) for the official build, release and publish steps that will be run from a GitHub Action on a pushed tag event.
+
+Locally, we can run `make release-test` to check if our changes will build. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.
 
 Prior to that, we can locally test our release to ensure that it will successfully build with `make release-test`. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.
