@@ -23,6 +23,10 @@ var CmdSSHKey string
 var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
+var RsyncArguments string
+var rsyncCopyOnly bool
+
+const copyOnlyRsyncArguments = "rlOD"
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -97,9 +101,14 @@ var syncCmd = &cobra.Command{
 		}
 
 		// SSH config
+		effectiveRsyncArguments := RsyncArguments
+		if rsyncCopyOnly {
+			effectiveRsyncArguments = copyOnlyRsyncArguments
+		}
 		var sshOptions = synchers.SSHOptions{
 			Verbose:    verboseSSH,
 			PrivateKey: CmdSSHKey,
+			RsyncArgs: effectiveRsyncArguments,
 		}
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
@@ -145,5 +154,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().BoolVar(&verboseSSH, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
+	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "a", "Pass through arguments to change the behaviour of rsync")
+	syncCmd.PersistentFlags().BoolVar(&rsyncCopyOnly, "rsync-copy-only", false, "Only copy files, don't set any attributes, permissions, etc. overrides any rsync-args to be 'rlOD'")
 
 }

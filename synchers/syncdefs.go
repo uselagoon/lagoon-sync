@@ -52,6 +52,7 @@ type Environment struct {
 type SSHOptions struct {
 	Verbose    bool
 	PrivateKey string
+	RsyncArgs string
 }
 
 func (r Environment) GetOpenshiftProjectName() string {
