@@ -23,6 +23,7 @@ var CmdSSHKey string
 var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
+var RsyncArguments string
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -100,6 +101,7 @@ var syncCmd = &cobra.Command{
 		var sshOptions = synchers.SSHOptions{
 			Verbose:    verboseSSH,
 			PrivateKey: CmdSSHKey,
+			RsyncArgs: RsyncArguments,
 		}
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
@@ -145,5 +147,6 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().BoolVar(&verboseSSH, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
+	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "rlOD", "Pass")
 
 }
