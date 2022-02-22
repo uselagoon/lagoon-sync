@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/spf13/viper"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 type BaseMariaDbSync struct {
@@ -47,8 +47,6 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 	return "mariadb"
 }
 
-
-
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
 
@@ -81,27 +79,27 @@ func init() {
 
 func (m MariadbSyncRoot) IsInitialized() (bool, error) {
 
-	  var missingEnvvars []string
+	var missingEnvvars []string
 
-		if m.Config.DbHostname == "" {
-			missingEnvvars = append(missingEnvvars, "hostname")
-		}
-		if m.Config.DbUsername == "" {
-			missingEnvvars = append(missingEnvvars, "username")
-		}
-		if m.Config.DbPassword == "" {
-			missingEnvvars = append(missingEnvvars, "password")
-		}
-		if m.Config.DbPort == "" {
-			missingEnvvars = append(missingEnvvars, "port")
-		}
-		if m.Config.DbDatabase == "" {
-			missingEnvvars = append(missingEnvvars, "database")
-		}
+	if m.Config.DbHostname == "" {
+		missingEnvvars = append(missingEnvvars, "hostname")
+	}
+	if m.Config.DbUsername == "" {
+		missingEnvvars = append(missingEnvvars, "username")
+	}
+	if m.Config.DbPassword == "" {
+		missingEnvvars = append(missingEnvvars, "password")
+	}
+	if m.Config.DbPort == "" {
+		missingEnvvars = append(missingEnvvars, "port")
+	}
+	if m.Config.DbDatabase == "" {
+		missingEnvvars = append(missingEnvvars, "database")
+	}
 
-		if len(missingEnvvars) > 0 {
-			return false, errors.New(fmt.Sprintf("Missing configuration values: %v", strings.Join(missingEnvvars, ",")))
-		}
+	if len(missingEnvvars) > 0 {
+		return false, errors.New(fmt.Sprintf("Missing configuration values: %v", strings.Join(missingEnvvars, ",")))
+	}
 
 	return true, nil
 }
