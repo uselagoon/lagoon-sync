@@ -183,7 +183,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	}
 
 	rsyncArgs := sshOptions.RsyncArgs
-	execString := fmt.Sprintf("%s -%s --rsync-path=%s %s -e \"ssh%s -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %s ssh.lagoon.amazeeio.cloud service=%s\" %s %s %s",
+	execString := fmt.Sprintf("%s %s --rsync-path=%s %s -e \"ssh%s -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 32222 -l %s ssh.lagoon.amazeeio.cloud service=%s\" %s %s %s",
 		targetEnvironment.RsyncPath,
 		rsyncArgs,
 		sourceEnvironment.RsyncPath,
