@@ -12,8 +12,8 @@ import (
 const LOCAL_ENVIRONMENT_NAME = "local"
 
 type Syncer interface {
-	// GetPrequisiteCommand will return the command to run on source or target environment to extract information.
-	GetPrerequisiteCommand(environmnt Environment, command string) SyncCommand
+	// GetPrerequisiteCommand will return the command to run on source or target environment to extract information.
+	GetPrerequisiteCommand(environment Environment, command string) SyncCommand
 	// GetRemoteCommand will return the command to be run on the source system
 	GetRemoteCommand(environment Environment) SyncCommand
 	// GetLocalCommand will return the command to be run on the target system
@@ -34,10 +34,10 @@ type SyncCommand struct {
 
 // SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()
 type SyncerTransferResource struct {
-	Name             string
-	IsDirectory      bool
-	ExcludeResources []string // ExcludeResources is a string list of any resources that aren't to be included in the transfer
-	SkipCleanup      bool
+	Name             string   `json:"name,omitempty"`
+	IsDirectory      bool     `json:"isDirectory,omitempty"`
+	ExcludeResources []string `json:"excludeResources,omitempty"`
+	SkipCleanup      bool     `json:"skipCleanup,omitempty"`
 }
 
 type Environment struct {
@@ -52,7 +52,7 @@ type Environment struct {
 type SSHOptions struct {
 	Verbose    bool
 	PrivateKey string
-	RsyncArgs string
+	RsyncArgs  string
 }
 
 func (r Environment) GetOpenshiftProjectName() string {

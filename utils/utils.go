@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -19,13 +19,13 @@ func FileExists(name string) bool {
 
 func FindLagoonSyncOnEnv() (string, bool) {
 	cmd := exec.Command("sh", "-c", "which lagoon-sync || false")
-	stdoutStderr, err := cmd.Output()
-	if err != nil {
-		log.Fatal(err)
-		log.Fatal(string(stdoutStderr))
+	stdout, _ := cmd.Output()
+	
+	if string(stdout) == "" {
+		fmt.Errorf("lagoon-sync does not exist on environment")
 	}
 
-	lagoonPath := strings.TrimSuffix(string(stdoutStderr), "\n")
+	lagoonPath := strings.TrimSuffix(string(stdout), "\n")
 	if lagoonPath != "" {
 		return lagoonPath, true
 	}
