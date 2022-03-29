@@ -61,10 +61,10 @@ local-build-darwin:
 release-test:
 	goreleaser release --skip-publish --skip-sign --rm-dist
 
-test-current-tag-version:
-	CURRENT=$(shell git describe --abbrev=0 --tags)
+check-current-tag-version:
+	CURRENT_VERSION=$(shell git describe --abbrev=0 --tags)
 
-test-increment-version:
+check-increment-version:
 	RELEASE_TAG=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags))
 
 # Ref: https://github.com/fmahnke/shell-semver
