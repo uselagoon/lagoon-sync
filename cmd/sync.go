@@ -103,7 +103,7 @@ var syncCmd = &cobra.Command{
 		var sshOptions = synchers.SSHOptions{
 			Verbose:    verboseSSH,
 			PrivateKey: CmdSSHKey,
-			RsyncArgs: RsyncArguments,
+			RsyncArgs:  RsyncArguments,
 		}
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
@@ -149,6 +149,6 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().BoolVar(&verboseSSH, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
-	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX", "Pass through arguments to change the behaviour of rsync")
+	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX -r", "Pass through arguments to change the behaviour of rsync")
 
 }
