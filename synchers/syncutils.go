@@ -251,7 +251,7 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptions
 	}
 
 	transferResourceName := transferResouce.Name
-	execString := fmt.Sprintf("rm -r %s", transferResourceName)
+	execString := fmt.Sprintf("rm -r %s || true", transferResourceName)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		execString = GenerateRemoteCommand(environment, execString, sshOptions)

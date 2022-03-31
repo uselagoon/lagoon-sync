@@ -141,8 +141,9 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	}
 
 	return SyncCommand{
-		command: fmt.Sprintf("mysqldump -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }}"),
+		command: fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} | gzip -c | cat > {{ .transferResource }}"),
 		substitutions: map[string]interface{}{
+			"dumpOptions":      "--max-allowed-packet=500M --quick --add-locks --no-autocommit --single-transaction",
 			"hostname":         m.DbHostname,
 			"username":         m.DbUsername,
 			"password":         m.DbPassword,
@@ -160,7 +161,7 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < {{ .transferResource }}",
+	return generateSyncCommand("gunzip < {{ .transferResource }} | mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }}",
 		map[string]interface{}{
 			"hostname":         l.DbHostname,
 			"username":         l.DbUsername,
@@ -173,7 +174,7 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 
 func (m MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
-		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql", m.GetOutputDirectory(), m.TransferId),
+		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql.gz", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: false}
 }
 
