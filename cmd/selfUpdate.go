@@ -14,9 +14,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/amazeeio/lagoon-sync/utils"
 	"github.com/inconshreveable/go-update"
 	"github.com/spf13/cobra"
+	"github.com/uselagoon/lagoon-sync/utils"
 	"golang.org/x/crypto/openpgp"
 )
 
