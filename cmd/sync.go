@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
+	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
 	"strings"
@@ -91,7 +91,7 @@ var syncCmd = &cobra.Command{
 			utils.LogFatalError("No Project name given", nil)
 		}
 
-		if noCliInteraction == false {
+		if !noCliInteraction {
 			confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
 				ProjectName,
 				SyncerType,
@@ -102,47 +102,40 @@ var syncCmd = &cobra.Command{
 		}
 
 		// SSH Config from file
-		sshConfig := synchers.SSHConfig{}
-		err = yaml.Unmarshal(lagoonConfigBytestream, &sshConfig)
-		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
+		sshConfig := synchers.SSHOptions{}
+		if configRoot.LagoonSync["ssh"] != nil {
+			mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 		}
-
-		// SSH config
-		var sshHost string
-		if SSHHost != "" {
+		sshHost := SSHHost
+		if sshConfig.Host != "" || SSHHost != "ssh.lagoon.amazeeio.cloud" {
+			sshHost = sshConfig.Host
+		}
+		if SSHHost != "ssh.lagoon.amazeeio.cloud" {
 			sshHost = SSHHost
-		} else if sshConfig.SSH.Host != "" {
-			sshHost = sshConfig.SSH.Host
 		}
-
-		var sshPort string
-		if SSHPort != "" {
+		sshPort := SSHPort
+		if sshConfig.Port != "" || SSHPort == "3222" {
+			sshPort = sshConfig.Port
+		}
+		if SSHPort != "3222" {
 			sshPort = SSHPort
-		} else if sshConfig.SSH.Port != "" {
-			sshPort = sshConfig.SSH.Port
 		}
-
-		var sshKey string
-		if SSHKey != "" {
-			sshKey = SSHKey
-		} else if sshConfig.SSH.PrivateKey != "" {
-			sshKey = sshConfig.SSH.PrivateKey
+		sshKey := SSHKey
+		if sshConfig.PrivateKey != "" && SSHKey == "" {
+			sshKey = sshConfig.PrivateKey
 		}
-
-		var sshVerbose bool
-		if SSHVerbose {
-			sshVerbose = SSHVerbose
-		} else if sshConfig.SSH.Verbose {
-			sshVerbose = sshConfig.SSH.Verbose
+		sshVerbose := SSHVerbose
+		if sshConfig.Verbose && !sshVerbose {
+			sshVerbose = sshConfig.Verbose
 		}
-
 		sshOptions := synchers.SSHOptions{
 			Host:       sshHost,
 			PrivateKey: sshKey,
 			Port:       sshPort,
 			Verbose:    sshVerbose,
 		}
+
+		utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
 		if err != nil {
@@ -186,9 +179,9 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
 	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "3222", "Specify your ssh port, defaults to '32222'")
 	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
-	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX -r", "Pass through arguments to change the behaviour of rsync")
 
 }
