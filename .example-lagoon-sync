@@ -1,14 +1,3 @@
-# Example .lagoon.yml file with lagoon-sync config added which is used by the sync tool.
-docker-compose-yaml: docker-compose.yml
-
-project: "lagoon-sync"
-
-ssh:
-  host: "example.ssh.lagoon.amazeeio.cloud"
-  port: 3222
-  privateKey: "~/.ssh/example_id_rsa"
-  verbose: true
-
 lagoon-sync:
   mariadb:
     config:

@@ -26,6 +26,8 @@ var SSHKey string
 var SSHVerbose bool
 var noCliInteraction bool
 var dryRun bool
+var verboseSSH bool
+var RsyncArguments string
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -94,7 +96,7 @@ var syncCmd = &cobra.Command{
 				ProjectName,
 				SyncerType,
 				sourceEnvironmentName, targetEnvironmentName))
-			if err != nil || confirmationResult == false {
+			if err != nil || !confirmationResult {
 				utils.LogFatalError("User cancelled sync - exiting", nil)
 			}
 		}
@@ -112,8 +114,6 @@ var syncCmd = &cobra.Command{
 			sshHost = SSHHost
 		} else if sshConfig.SSH.Host != "" {
 			sshHost = sshConfig.SSH.Host
-		} else {
-			sshHost = "ssh.lagoon.amazeeio.cloud"
 		}
 
 		var sshPort string
@@ -121,8 +121,6 @@ var syncCmd = &cobra.Command{
 			sshPort = SSHPort
 		} else if sshConfig.SSH.Port != "" {
 			sshPort = sshConfig.SSH.Port
-		} else {
-			sshPort = "3222"
 		}
 
 		var sshKey string
@@ -185,11 +183,12 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
-	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
-	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "", "Specify your ssh port, defaults to '32222'")
+	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
+	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "3222", "Specify your ssh port, defaults to '32222'")
 	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
+	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX -r", "Pass through arguments to change the behaviour of rsync")
 
 }

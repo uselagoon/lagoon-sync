@@ -1,18 +1,19 @@
 # Lagoon-sync
 
-Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the Lagoon cli toolset and, indeed, works closely with its parent project.
+Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the [Lagoon cli](https://github.com/amazeeio/lagoon-cli) toolset and works closely with its parent project.
 
 Lagoon-sync offers:
-- Sync commands for databases such as `mariadb`, `postgres` and `mongodb`
-- Any php/node-based framework support such as Drupal, Laravel or Node.js
-- Standard file transfer support with `files` syncer
-- Has built in default configuration values for syncing out-the-box
-- Provides an easy way to override sync configuration via `.lagoon.yml` or `.lagoon-sync.yml` files
-- Offers `--dry-run` flag to see what commands would be executed before running a transfer
-- `config` command shows configuration on current environment
-- There is a `--show-debug` flag to output more verbose logging for debugging
-- Lagoon-sync uses `rsync` for the transfer of data and will automatically detect and install `rsync` if it is not available on target environments
-- Self-updatingg with `selfUpdate` command
+* Sync commands for databases such as `mariadb`, `postgres` and `mongodb`
+* Php/node-based framework support such as Drupal, Laravel or Node.js
+* Standard file transfer support with `files` syncer
+* Has built-in default configuration values for syncing out-the-box
+* Provides an easy way to override sync configuration via `.lagoon.yml` or `.lagoon-sync.yml` files
+* Offers `--dry-run` flag to see what commands would be executed before running a transfer
+* `--no-interaction` can be used to auto-run all processes without prompt - useful for CI/builds
+* `config` command shows the configuration of the current environment
+* There is a `--show-debug` flag to output more verbose logging for debugging
+* Lagoon-sync uses `rsync` for the transfer of data, and will automatically detect and install `rsync` if it is not available on target environments
+* Secure cross-platform self-updating with `selfUpdate` command
 
 
 # Installing
@@ -45,7 +46,8 @@ Lagoon-sync has the following core commands:
 
 ```
 $ lagoon-sync
-lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications. This includes files, databases, and configurations.
+lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications.
+This includes files, databases, and configurations.
 
 Usage:
   lagoon-sync [command]
@@ -58,7 +60,7 @@ Available Commands:
   version     Print the version number of lagoon-sync
 
 Flags:
-      --config string   config file (default is .lagoon.yaml) (default "./.lagoon.yml")
+      --config string   config file (default is .lagoon.yaml)
   -h, --help            help for lagoon-sync
       --show-debug      Shows debug information
   -t, --toggle          Help message for toggle
@@ -69,8 +71,7 @@ Use "lagoon-sync [command] --help" for more information about a command.
 
 ## sync
 
-Sync transfers are ran with `sync` and requires at least a syncer type `[mariadb|files|mongodb|postgres|etc.]`, a valid project name `-p` and source environment `-e`. By default, if you do not provide an optional target environment `-t` then `local` is used.
-
+Sync transfers are executed with `$lagoon-sync sync <syncer>` and require at least a syncer type `[mariadb|files|mongodb|postgres|drupalconfig]`, a valid project name `-p` and source environment `-e`. By default, if you do not provide an optional target environment `-t` then `local` is used.
 
 ```
 lagoon-sync sync
@@ -84,23 +85,23 @@ Flags:
   -h, --help                             help for sync
       --no-interaction                   Disallow interaction
   -p, --project-name string              The Lagoon project name of the remote system
-  -s, --service-name string              The service name (default is 'cli'
+  -s, --service-name string              The service name (default is 'cli')
   -e, --source-environment-name string   The Lagoon environment name of the source system
   -t, --target-environment-name string   The target environment name (defaults to local)
       --verbose                          Run ssh commands in verbose (useful for debugging)
 
 Global Flags:
-      --config string   config file (default is .lagoon.yaml) (default "./.lagoon.yml")
+      --config string   config file (default is '.lagoon.yaml')
       --show-debug      Shows debug information
 ```
 
 ## config
 
-The `config` command will output all current cconfiguation information it can find on the environment. This is used for example to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both locations in order to transfer.
+The `config` command will output all current configuration information it can find on the environment. This is used, for example, to gather prerequisite data which can be used to determine how `lagoon-sync` should proceed with a transfer. For example, when running the tool on a environment that doesn't have rsync, then the syncer will know to install a static copy of rsync on that machine for us. This is because rsync requires that you need to have it available on both environments in order to transfer.
 
-This can be ran with:
+This can be run with:
 
-`lagoon-sync config`
+`$ lagoon-sync config`
 
 ## Example syncs
 
@@ -109,42 +110,69 @@ As with all sync commands, if you run into issues you can run `--show-debug` to 
 ### Mariadb sync from remote source -> local environment
 An example sync between a `mariadb` database from a remote source environment to your local instance may go as follows:
 
-Running `lagoon-sync sync mariadb -p amazeelabsv4-com -e dev --dry-run` would dry-run a process that takes a database dump, runs a data transfer and then finally syncs the local database with the latest dump.
+Running `$ lagoon-sync sync mariadb -p amazeelabsv4-com -e dev --dry-run` would dry-run a process that takes a database dump, runs a data transfer and then finally syncs the local database with the latest dump.
 
 ### Mariadb sync from remote source -> remote target environment
 To transfer between remote environments you can pass in a target argument such as:
 
-`lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
+`$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
 
 This command would attempt to sync mariadb databases from `prod` to `dev` environments.
 
 ## Configuring lagoon-sync
 
-It is possible to configure the data consumed by lagoon-sync via adding `lagoon-sync` to an existing `.lagoon.yml` file or via a configuration file such as (`.lagoon-sync`)
+It is possible to configure the data consumed by lagoon-sync via adding a `lagoon-sync:` key to an existing `.lagoon.yml` file or via a configuration file such as (`.lagoon-sync`). See the `.lagoon.yml` and `.example-lagoon-sync` in the root of this repo for examples.
 
+If a `.lagoon.yml` is available within the project, then this file will be used as the active configuration file to attempt to gather configuration data from by default.
 
-Config files that can be used in order of priority:
+Next, if a `.lagoon-sync` or `.lagoon-sync-defaults` file is added to the `/lagoon` directory then these will be used as the active configuration file. Running the sync with `--show-debug` you are able to see the configuration that will be run prior to running the process:
+
+```
+$ lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+
+2021/01/22 11:34:10 (DEBUG) Using config file: /lagoon/.lagoon-sync
+2021/01/22 11:34:10 (DEBUG) Config that will be used for sync:
+ {
+  "Config": {
+    "DbHostname": "$MARIADB_HOST",
+    "DbUsername": "$MARIADB_USERNAME",
+    "DbPassword": "$MARIADB_PASSWORD",
+    "DbPort": "$MARIADB_PORT",
+    "DbDatabase": "$MARIADB_DATABASE",
+    ...
+```
+
+To recap, the configuration files that can be used by default, in order of priority when available are:
+* /lagoon/.lagoon-sync-defaults
+* /lagoon/.lagoon-sync
+* .lagoon.yml
+
+### Custom configuration files
+If you don't want your configuration file inside `/lagoon` and want to give it another name then you can define a custom file and tell sync to use that by providing the file path. This can be done with `--config` flag such as:Config files that can be used in order of priority:
 - .lagoon-sync-defaults _(no yaml ext neeeded)_
 - .lagoon-sync _(no yaml ext neeeded)_
 - .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_
+å
+```
+$ lagoon-sync sync mariadb -p mysite-com -e dev --config=/app/.lagoon-sync --show-debug
 
-If either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` env vars are set then it will use those paths instead of the main config file - e.g.
+2021/01/22 11:43:50 (DEBUG) Using config file: /app/.lagoon-sync
+```
 
-```export LAGOON_SYNC_DEFAULTS_PATH="/lagoon/.lagoon-sync-defaults"```
-```export LAGOON_SYNC_PATH="/lagoon/.lagoon-sync"```
+You can also use an environment variable to set the config sync path with either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH`.
 
-To see which config file is active and other configuration settings you can run the `config` command.
+```
+$ LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+
+2021/01/22 11:46:42 (DEBUG) LAGOON_SYNC_PATH env var found: /app/.lagoon-sync
+2021/01/22 11:46:42 (DEBUG) Using config file: /app/.lagoon-sync
+```
+
+To double check which config file is active you can also run the `$ lagoon-sync config` command.
 
 ### Example sync config overrides
 ```
 lagoon-sync:
-  postgres:
-    config:
-      hostname: "$POSTGRES_HOST"
-      username: "$POSTGRES_USERNAME"
-      password: "$POSTGRES_PASSWORD"
-      port: "5432"
-      database: "$POSTGRES_DATABASE"
   mariadb:
     config:
       hostname: "$MARIADB_HOST"
@@ -163,7 +191,7 @@ lagoon-sync:
 # Useful things
 ## Updating lagoon-sync
 
-It's possible to safely update your lagoon-sync binrary by running the `selfUpdate` command.
+It's possible to safely perform a cross-platform update of your lagoon-sync binary by running the `$ lagoon-sync selfUpdate` command. This will look for the latest release, then download the corresponding checksum and signature of the executable on GitHub, and verify its integrity and authenticity before it performs the update. The binary used to perform the update will then replace itself (if successful) to the new version. If an error occurs then the update will roll back to the previous stable version.
 
 ```
 $ lagoon-sync selfUpdate
@@ -175,11 +203,11 @@ Applying update...
 Successfully updated binary at: /usr/bin/lagoon-sync
 ```
 
-You can check version with `lagoon-sync --version`
+You can check version with `$ lagoon-sync --version`
 
 ## Installing binary from script - Drupal example
 
-Runs a script that will install a linux lagoon-sync binary and config file for a Drupal project.
+This example will run a script that will install a Linux lagoon-sync binary and default configuration file for a Drupal project.
 
 ```
 wget -q -O - https://gist.githubusercontent.com/timclifford/cec9fe3ddf8d0805e4801d132dfce682/raw/a9979ff24290a500f53df09723774216603de6b5/lagoon-sync-drupal-install.sh | bash
@@ -189,11 +217,17 @@ wget -q -O - https://gist.githubusercontent.com/timclifford/cec9fe3ddf8d0805e480
 
 Setting up locally:
 
-`make all`       Installs missing dependencies, runs tests and build locally.
-`make build`     Compiles binary based on current go env.
-`make clean`     Remove all build files and assets.
+* `make all`                          Installs missing dependencies, runs tests and build locally.
+* `make build`                        Compiles binary based on current go env.
+* `make local-build-linux`            Compile linix binary.
+* `make local-build-darwin`           Compile macOS (darwin) binary.
+* `make check-current-tag-version`    Check the current version.
+* `make clean`                        Remove all build files and assets.
+
 ## Releases
 
-We are using goreleaser for the official build, release and publish steps that will be ran from a github action on a pushed tag.
+We are using [goreleaser](https://github.com/goreleaser/goreleaser) for the official build, release and publish steps that will be run from a GitHub Action on a pushed tag event.
 
 Locally, we can run `make release-test` to check if our changes will build. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.
+
+Prior to that, we can locally test our release to ensure that it will successfully build with `make release-test`. If compiling was successful we can commit our changes and then run `make release-[patch|minor|major]` to tag with next release number and it will push up to GitHub. A GitHub action will then be triggered which will publish the official release using goreleaser.

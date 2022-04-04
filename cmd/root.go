@@ -5,10 +5,10 @@ import (
 	"github.com/uselagoon/lagoon-sync/assets"
 	"os"
 
-	"github.com/uselagoon/lagoon-sync/utils"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 var cfgFile string
@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 	Version: Version(),
 }
 
-// Read version from .version, this will get updated automatically on release.
+// Version Read version from /assets/.version, this will get updated automatically on release.
 func Version() string {
 	version := assets.GetVersion()
 	return version
