@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/uselagoon/lagoon-sync/utils"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var shellToUse = "sh"

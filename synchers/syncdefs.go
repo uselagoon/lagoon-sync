@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/uselagoon/lagoon-sync/prerequisite"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const LOCAL_ENVIRONMENT_NAME = "local"
