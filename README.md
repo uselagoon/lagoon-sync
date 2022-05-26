@@ -185,11 +185,11 @@ To double check which config file is active you can also run the `$ lagoon-sync 
 lagoon-sync:
   mariadb:
     config:
-      hostname: "$MARIADB_HOST"
-      username: "$MARIADB_USERNAME"
-      password: "$MARIADB_PASSWORD"
-      port: "$MARIADB_PORT"
-      database: "$MARIADB_DATABASE"
+      hostname: "${MARIADB_HOST:-mariadb}"
+      username: "${MARIADB_USERNAME:-drupal}"
+      password: "${MARIADB_PASSWORD:-drupal}"
+      port: "${MARIADB_PORT:-3306}"
+      database: "${MARIADB_DATABASE:-drupal}"
   files:
     config:
       sync-directory: "/app/web/sites/default/files"
