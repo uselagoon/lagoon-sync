@@ -18,7 +18,6 @@ var sourceEnvironmentName string
 var targetEnvironmentName string
 var SyncerType string
 var ServiceName string
-var configurationFile string
 var CmdSSHKey string
 var noCliInteraction bool
 var dryRun bool
@@ -143,7 +142,6 @@ func init() {
 	syncCmd.MarkPersistentFlagRequired("source-environment-name")
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
-	syncCmd.PersistentFlags().StringVarP(&configurationFile, "configuration-file", "c", "", "File containing sync configuration.")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().StringVarP(&CmdSSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
