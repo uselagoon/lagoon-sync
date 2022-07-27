@@ -69,6 +69,7 @@ check-increment-version:
 
 # Ref: https://github.com/fmahnke/shell-semver
 release-patch:
+	git fetch origin --tags --force
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -p $(shell git describe --abbrev=0 --tags)))
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
@@ -78,6 +79,7 @@ release-patch:
 	git push $(GIT_ORIGIN) main --tags
 
 release-minor:
+	git fetch origin --tags --force
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -m $(shell git describe --abbrev=0 --tags)))
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
@@ -87,6 +89,7 @@ release-minor:
 	git push $(GIT_ORIGIN) main --tags
 
 release-major:
+	git fetch origin --tags --force
 	$(eval VERSION=$(shell ${PWD}/increment_version.sh -M $(shell git describe --abbrev=0 --tags)))
 	git tag $(VERSION)
 	goreleaser release --skip-publish --skip-sign --rm-dist
