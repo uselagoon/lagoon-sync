@@ -141,6 +141,9 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 		tablesWhoseDataToIgnore += fmt.Sprintf("--ignore-table-data=%s.%s ", m.DbDatabase, s)
 	}
 
+	//We remove the `.gz` from the transfer resource name for because we _first_ generate a plain `.sql` file
+	//and _then_ gzip it
+	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
 	return SyncCommand{
 		command: fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }} && gzip {{ .transferResource }}"),
 		substitutions: map[string]interface{}{
@@ -151,7 +154,7 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 			"port":             m.DbPort,
 			"tablesToIgnore":   tablesWhoseDataToIgnore,
 			"database":         m.DbDatabase,
-			"transferResource": strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name)),
+			"transferResource": resourceNameWithoutGz,
 		},
 	}
 }
