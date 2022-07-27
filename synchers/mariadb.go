@@ -165,7 +165,7 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return generateSyncCommand("gunzip < {{ .transferResource }} | mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }}",
+	return generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < <(gunzip < {{ .transferResource }})",
 		map[string]interface{}{
 			"hostname":         l.DbHostname,
 			"username":         l.DbUsername,
