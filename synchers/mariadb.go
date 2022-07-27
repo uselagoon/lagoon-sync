@@ -3,6 +3,7 @@ package synchers
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -141,7 +142,7 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	}
 
 	return SyncCommand{
-		command: fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} | gzip -c | cat > {{ .transferResource }}"),
+		command: fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }} && gzip {{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"dumpOptions":      "--max-allowed-packet=500M --quick --add-locks --no-autocommit --single-transaction",
 			"hostname":         m.DbHostname,
@@ -150,7 +151,7 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 			"port":             m.DbPort,
 			"tablesToIgnore":   tablesWhoseDataToIgnore,
 			"database":         m.DbDatabase,
-			"transferResource": transferResource.Name,
+			"transferResource": strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name)),
 		},
 	}
 }
