@@ -3,6 +3,7 @@ package synchers
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -140,8 +141,11 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 		tablesWhoseDataToIgnore += fmt.Sprintf("--ignore-table-data=%s.%s ", m.DbDatabase, s)
 	}
 
+	//We remove the `.gz` from the transfer resource name for because we _first_ generate a plain `.sql` file
+	//and _then_ gzip it
+	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
 	return SyncCommand{
-		command: fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} | gzip -c | cat > {{ .transferResource }}"),
+		command: fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }} && gzip {{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"dumpOptions":      "--max-allowed-packet=500M --quick --add-locks --no-autocommit --single-transaction",
 			"hostname":         m.DbHostname,
@@ -150,7 +154,7 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 			"port":             m.DbPort,
 			"tablesToIgnore":   tablesWhoseDataToIgnore,
 			"database":         m.DbDatabase,
-			"transferResource": transferResource.Name,
+			"transferResource": resourceNameWithoutGz,
 		},
 	}
 }
@@ -161,7 +165,7 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncComm
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return generateSyncCommand("gunzip < {{ .transferResource }} | mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }}",
+	return generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < <(gunzip < {{ .transferResource }})",
 		map[string]interface{}{
 			"hostname":         l.DbHostname,
 			"username":         l.DbUsername,
