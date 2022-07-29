@@ -25,8 +25,8 @@ endif
 .PHONY: clean
 clean:
 	$(GOCLEAN)
-	rm -rf dist/
-	rm -rf builds/
+	rm -r dist/
+	rm -r builds/
 
 deps:
 	${GOCMD} get -v
