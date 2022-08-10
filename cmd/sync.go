@@ -134,6 +134,7 @@ var syncCmd = &cobra.Command{
 			PrivateKey: sshKey,
 			Port:       sshPort,
 			Verbose:    sshVerbose,
+			RsyncArgs:  RsyncArguments,
 		}
 
 		utils.LogDebugInfo("Config that is used for SSH", sshOptions)
