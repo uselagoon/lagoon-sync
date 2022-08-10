@@ -3,10 +3,12 @@ package synchers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/uselagoon/lagoon-sync/assets"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
+
+	"github.com/uselagoon/lagoon-sync/assets"
 
 	"github.com/uselagoon/lagoon-sync/prerequisite"
 	"github.com/uselagoon/lagoon-sync/utils"
@@ -80,7 +82,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 
 	if !dryRun && !environment.RsyncAvailable {
 		// Add rsync to env
-		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion)
+		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion, sshOptions)
 		if err != nil {
 			fmt.Println(errstring)
 			return environment, err
@@ -124,7 +126,7 @@ func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool,
 var RsyncAssetPath = "/tmp/rsync"
 
 // will add bundled rsync onto environment and return the new rsync path as string
-func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string) (string, error) {
+func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string, sshOptions SSHOptions) (string, error) {
 	utils.LogDebugInfo("%v environment doesn't have rsync", environment.EnvironmentName)
 	utils.LogDebugInfo("Downloading rsync asset on", environment.EnvironmentName)
 
@@ -165,8 +167,8 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 
 		}
 
-		execString = fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %v@ssh.lagoon.amazeeio.cloud %v %v",
-			environment.GetOpenshiftProjectName(), serviceArgument, command)
+		execString = fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s %s",
+			sshOptions.Port, environment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
 	}
 
 	utils.LogExecutionStep(fmt.Sprintf("Running the following for %s", environment.EnvironmentName), execString)
@@ -177,11 +179,9 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 	}
 
 	// Remove local versioned rsync (post ssh transfer) - otherwise rsync will be avialable on target at /tmp/
-	removeLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", rsyncDestinationPath)
-	log.Printf("Removing rsync binary locally stored: %v", removeLocalRsyncCopyExecString)
-	if err, _, errstring := utils.Shellout(removeLocalRsyncCopyExecString); err != nil {
-		log.Println(errstring)
-		return "", err
+	log.Printf("Removing rsync binary locally stored: %s", rsyncDestinationPath)
+	if err := os.Remove(rsyncDestinationPath); err != nil {
+		log.Println(err.Error())
 	}
 
 	return rsyncDestinationPath, nil
@@ -210,12 +210,9 @@ func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 		return "", err
 	}
 
-	removeTempLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", tempRsyncPath)
-	utils.LogExecutionStep("Removing temp rsync binary", removeTempLocalRsyncCopyExecString)
-
-	if err, _, errstring := utils.Shellout(removeTempLocalRsyncCopyExecString); err != nil {
-		log.Println(errstring)
-		return "", err
+	log.Printf("Removing temp rsync binary: %s", tempRsyncPath)
+	if err := os.Remove(tempRsyncPath); err != nil {
+		log.Println(err.Error())
 	}
 
 	return versionedRsyncPath, nil

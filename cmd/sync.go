@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/uselagoon/lagoon-sync/synchers"
+	synchers "github.com/uselagoon/lagoon-sync/synchers"
 	"github.com/uselagoon/lagoon-sync/utils"
 )
 
@@ -18,12 +19,16 @@ var sourceEnvironmentName string
 var targetEnvironmentName string
 var SyncerType string
 var ServiceName string
+var configurationFile string
+var SSHHost string
+var SSHPort string
+var SSHKey string
+var SSHVerbose bool
 var CmdSSHKey string
 var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
 var RsyncArguments string
-var rsyncCopyOnly bool
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -87,23 +92,51 @@ var syncCmd = &cobra.Command{
 			utils.LogFatalError("No Project name given", nil)
 		}
 
-		if noCliInteraction == false {
+		if !noCliInteraction {
 			confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
 				ProjectName,
 				SyncerType,
 				sourceEnvironmentName, targetEnvironmentName))
-			if err != nil || confirmationResult == false {
+			if err != nil || !confirmationResult {
 				utils.LogFatalError("User cancelled sync - exiting", nil)
 			}
 		}
 
-		// SSH config
-
-		var sshOptions = synchers.SSHOptions{
-			Verbose:    verboseSSH,
-			PrivateKey: CmdSSHKey,
-			RsyncArgs:  RsyncArguments,
+		// SSH Config from file
+		sshConfig := synchers.SSHOptions{}
+		if configRoot.LagoonSync["ssh"] != nil {
+			mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 		}
+		sshHost := SSHHost
+		if sshConfig.Host != "" || SSHHost != "ssh.lagoon.amazeeio.cloud" {
+			sshHost = sshConfig.Host
+		}
+		if SSHHost != "ssh.lagoon.amazeeio.cloud" {
+			sshHost = SSHHost
+		}
+		sshPort := SSHPort
+		if sshConfig.Port != "" || SSHPort == "3222" {
+			sshPort = sshConfig.Port
+		}
+		if SSHPort != "3222" {
+			sshPort = SSHPort
+		}
+		sshKey := SSHKey
+		if sshConfig.PrivateKey != "" && SSHKey == "" {
+			sshKey = sshConfig.PrivateKey
+		}
+		sshVerbose := SSHVerbose
+		if sshConfig.Verbose && !sshVerbose {
+			sshVerbose = sshConfig.Verbose
+		}
+		sshOptions := synchers.SSHOptions{
+			Host:       sshHost,
+			PrivateKey: sshKey,
+			Port:       sshPort,
+			Verbose:    sshVerbose,
+		}
+
+		utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
 		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
 		if err != nil {
@@ -143,10 +176,12 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
-	syncCmd.PersistentFlags().StringVarP(&CmdSSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
+	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "3222", "Specify your ssh port, defaults to '32222'")
+	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
-	syncCmd.PersistentFlags().BoolVar(&verboseSSH, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress", "Pass through arguments to change the behaviour of rsync")
 
 }

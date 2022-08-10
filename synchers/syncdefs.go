@@ -34,36 +34,42 @@ type SyncCommand struct {
 
 // SyncerTransferResource describes what it is the is produced by the actions of GetRemoteCommand()
 type SyncerTransferResource struct {
-	Name             string   `json:"name,omitempty"`
-	IsDirectory      bool     `json:"isDirectory,omitempty"`
-	ExcludeResources []string `json:"excludeResources,omitempty"`
-	SkipCleanup      bool     `json:"skipCleanup,omitempty"`
+	Name             string   `yaml:"name,omitempty" json:"name,omitempty"`
+	IsDirectory      bool     `yaml:"isDirectory,omitempty" json:"isDirectory,omitempty"`
+	ExcludeResources []string `yaml:"excludeResources,omitempty" json:"excludeResources,omitempty"`
+	SkipCleanup      bool     `yaml:"skipCleanup,omitempty" json:"skipCleanup,omitempty"`
 }
 
 type Environment struct {
-	ProjectName     string
-	EnvironmentName string
-	ServiceName     string // This is used to determine which Lagoon service we need to rsync
-	RsyncAvailable  bool
-	RsyncPath       string
-	RsyncLocalPath  string
-}
-
-type SSHOptions struct {
-	Verbose    bool
-	PrivateKey string
-	RsyncArgs  string
-}
-
-func (r Environment) GetOpenshiftProjectName() string {
-	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
+	ProjectName     string `yaml:"projectName"`
+	EnvironmentName string `yaml:"environmentName"`
+	ServiceName     string `yaml:"serviceName"` // This is used to determine which Lagoon service we need to rsync
+	RsyncAvailable  bool   `yaml:"rsyncAvailable"`
+	RsyncPath       string `yaml:"rsyncPath"`
+	RsyncLocalPath  string `yaml:"rsyncLocalPath"`
 }
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
-	Project       string                 `yaml:"project"`
-	LagoonSync    map[string]interface{} `yaml:"lagoon-sync"`
-	Prerequisites []prerequisite.GatheredPrerequisite
+	Project       string                              `yaml:"project" json:"project,omitempty"`
+	LagoonSync    map[string]interface{}              `yaml:"lagoon-sync" json:"lagoonSync,omitempty"`
+	Prerequisites []prerequisite.GatheredPrerequisite `yaml:"prerequisites" json:"prerequisites,omitempty"`
+}
+
+type SSHConfig struct {
+	SSH SSHOptions `yaml:"ssh,omitempty" json:"SSH"`
+}
+
+type SSHOptions struct {
+	Host       string `yaml:"host,omitempty" json:"host,omitempty"`
+	Port       string `yaml:"port,omitempty" json:"port,omitempty"`
+	Verbose    bool   `yaml:"verbose,omitempty" json:"verbose,omitempty"`
+	PrivateKey string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	RsyncArgs  string `yaml:"rsyncArgs,omitempty" json:"rsyncArgs,omitempty"`
+}
+
+func (r Environment) GetOpenshiftProjectName() string {
+	return fmt.Sprintf("%s-%s", strings.ToLower(r.ProjectName), strings.ToLower(r.EnvironmentName))
 }
 
 // takes interface, marshals back to []byte, then unmarshals to desired struct
@@ -91,6 +97,6 @@ func GenerateRemoteCommand(remoteEnvironment Environment, command string, sshOpt
 		serviceArgument = fmt.Sprintf("service=%v", remoteEnvironment.ServiceName)
 	}
 
-	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p 32222 %s@ssh.lagoon.amazeeio.cloud %s '%s'",
-		sshOptionsStr.String(), remoteEnvironment.GetOpenshiftProjectName(), serviceArgument, command)
+	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s '%s'",
+		sshOptionsStr.String(), sshOptions.Port, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
 }

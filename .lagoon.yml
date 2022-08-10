@@ -4,6 +4,11 @@ docker-compose-yaml: docker-compose.yml
 project: "lagoon-sync"
 
 lagoon-sync:
+  ssh:
+    host: "example.ssh.lagoon.amazeeio.cloud"
+    port: "22"
+    privateKey: "~/.ssh/example_id_rsa"
+    verbose: true
   mariadb:
     config:
       hostname: "$MARIADB_HOST"
