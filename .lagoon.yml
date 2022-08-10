@@ -23,7 +23,7 @@ lagoon-sync:
         - "cache_menu"
     local:
       config:
-        hostname: "drupal"
+        hostname: "mariadb"
         username: "drupal"
         password: "drupal"
         port: "3306"
@@ -42,7 +42,7 @@ lagoon-sync:
         - "cache_menu"
     local:
       config:
-        hostname: "drupal"
+        hostname: "postgres"
         username: "drupal"
         password: "drupal"
         port: "3306"

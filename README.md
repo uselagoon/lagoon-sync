@@ -26,18 +26,26 @@ Windows: `lagoon-sync_*.*.*_windows_amd64.exe`
 
 To install via bash:
 
-## macOS
 
-    curl https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_darwin_amd64 -Lo /usr/local/bin/lagoon-sync && chmod a+x $_
+## macOS (with M1 processors)
 
-## Linux
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep darwin_arm64) && wget -O /usr/local/bin/lagoon-sync $DOWNLOAD_PATH && chmod a+x /usr/local/bin/lagoon-sync
 
-    curl https://github.com/uselagoon/lagoon-sync/releases/download/v0.4.7/lagoon-sync_0.4.7_linux_386 -Lo /usr/bin/lagoon-sync && chmod +x $_
+## macOS (with Intel processors)
 
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep darwin_amd64) && wget -O /usr/local/bin/lagoon-sync $DOWNLOAD_PATH && chmod a+x /usr/local/bin/lagoon-sync
 
-Installing the latest version:
+## Linux (386)
 
-    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_386) && wget -O /tmp/lagoon-sync $DOWNLOAD_PATH && chmod +x /tmp/lagoon-sync
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_386) && wget -O /usr/local/bin/lagoon-sync $DOWNLOAD_PATH && chmod a+x /usr/local/bin/lagoon-sync
+
+## Linux (amd64)
+
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_amd64) && wget -O /usr/local/bin/lagoon-sync $DOWNLOAD_PATH && chmod a+x /usr/local/bin/lagoon-sync
+
+## Linux (arm64)
+
+    DOWNLOAD_PATH=$(curl -sL "https://api.github.com/repos/uselagoon/lagoon-sync/releases/latest" | grep "browser_download_url" | cut -d \" -f 4 | grep linux_arm64) && wget -O /usr/local/bin/lagoon-sync $DOWNLOAD_PATH && chmod a+x /usr/local/bin/lagoon-sync
 
 
 # Usage
@@ -46,13 +54,13 @@ Lagoon-sync has the following core commands:
 
 ```
 $ lagoon-sync
-lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications.
-This includes files, databases, and configurations.
+lagoon-sync is a tool for syncing resources between environments in Lagoon hosted applications. This includes files, databases, and configurations.
 
 Usage:
   lagoon-sync [command]
 
 Available Commands:
+  completion  generate the autocompletion script for the specified shell
   config      Print the config that is being used by lagoon-sync
   help        Help about any command
   selfUpdate  Update this tool to the latest version
@@ -60,7 +68,7 @@ Available Commands:
   version     Print the version number of lagoon-sync
 
 Flags:
-      --config string   config file (default is .lagoon.yaml)
+      --config string   config file (default is .lagoon.yaml) (default "./.lagoon.yml")
   -h, --help            help for lagoon-sync
       --show-debug      Shows debug information
   -t, --toggle          Help message for toggle
@@ -85,13 +93,15 @@ Flags:
   -h, --help                             help for sync
       --no-interaction                   Disallow interaction
   -p, --project-name string              The Lagoon project name of the remote system
-  -s, --service-name string              The service name (default is 'cli')
+  -r, --rsync-args string                Pass through arguments to change the behaviour of rsync (default "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX -r")
+  -s, --service-name string              The service name (default is 'cli'
   -e, --source-environment-name string   The Lagoon environment name of the source system
+  -i, --ssh-key string                   Specify path to a specific SSH key to use for authentication
   -t, --target-environment-name string   The target environment name (defaults to local)
       --verbose                          Run ssh commands in verbose (useful for debugging)
 
 Global Flags:
-      --config string   config file (default is '.lagoon.yaml')
+      --config string   config file (default is .lagoon.yaml) (default "./.lagoon.yml")
       --show-debug      Shows debug information
 ```
 
@@ -175,11 +185,11 @@ To double check which config file is active you can also run the `$ lagoon-sync 
 lagoon-sync:
   mariadb:
     config:
-      hostname: "$MARIADB_HOST"
-      username: "$MARIADB_USERNAME"
-      password: "$MARIADB_PASSWORD"
-      port: "$MARIADB_PORT"
-      database: "$MARIADB_DATABASE"
+      hostname: "${MARIADB_HOST:-mariadb}"
+      username: "${MARIADB_USERNAME:-drupal}"
+      password: "${MARIADB_PASSWORD:-drupal}"
+      port: "${MARIADB_PORT:-3306}"
+      database: "${MARIADB_DATABASE:-drupal}"
   files:
     config:
       sync-directory: "/app/web/sites/default/files"
