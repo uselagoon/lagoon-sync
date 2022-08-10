@@ -108,18 +108,12 @@ var syncCmd = &cobra.Command{
 			mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 		}
 		sshHost := SSHHost
-		if sshConfig.Host != "" || SSHHost != "ssh.lagoon.amazeeio.cloud" {
+		if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
 			sshHost = sshConfig.Host
 		}
-		if SSHHost != "ssh.lagoon.amazeeio.cloud" {
-			sshHost = SSHHost
-		}
 		sshPort := SSHPort
-		if sshConfig.Port != "" || SSHPort != "32222" {
+		if sshConfig.Port != "" && SSHPort == "32222" {
 			sshPort = sshConfig.Port
-		}
-		if SSHPort != "32222" {
-			sshPort = SSHPort
 		}
 
 		sshKey := SSHKey
