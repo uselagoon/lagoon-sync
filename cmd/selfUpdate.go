@@ -286,13 +286,14 @@ func getChecksum(url string) ([]byte, error) {
 }
 
 func cleanUpSelfUpdate(signatureFile string, checksumFile string) error {
-	execString := fmt.Sprintf("rm -rf %s %s", signatureFile, checksumFile)
-	fmt.Printf("\x1b[37mCleanup checksum files with: %s\x1b[0m\n", execString)
+	fmt.Printf("\x1b[37mCleanup signature and checksum files\x1b[0m\n")
+	files := []string{signatureFile, checksumFile}
 
 	if !dryRun {
-		err, _, errstring := utils.Shellout(execString)
-		if err != nil {
-			utils.LogFatalError(errstring, nil)
+		for _, f := range files {
+			if err := os.Remove(f); err != nil {
+				utils.LogFatalError(err.Error(), nil)
+			}
 		}
 	}
 

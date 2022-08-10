@@ -3,10 +3,12 @@ package synchers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/uselagoon/lagoon-sync/assets"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
+
+	"github.com/uselagoon/lagoon-sync/assets"
 
 	"github.com/uselagoon/lagoon-sync/prerequisite"
 	"github.com/uselagoon/lagoon-sync/utils"
@@ -177,11 +179,9 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 	}
 
 	// Remove local versioned rsync (post ssh transfer) - otherwise rsync will be avialable on target at /tmp/
-	removeLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", rsyncDestinationPath)
-	log.Printf("Removing rsync binary locally stored: %v", removeLocalRsyncCopyExecString)
-	if err, _, errstring := utils.Shellout(removeLocalRsyncCopyExecString); err != nil {
-		log.Println(errstring)
-		return "", err
+	log.Printf("Removing rsync binary locally stored: %s", rsyncDestinationPath)
+	if err := os.Remove(rsyncDestinationPath); err != nil {
+		log.Println(err.Error())
 	}
 
 	return rsyncDestinationPath, nil
@@ -210,12 +210,9 @@ func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
 		return "", err
 	}
 
-	removeTempLocalRsyncCopyExecString := fmt.Sprintf("rm -rf %v", tempRsyncPath)
-	utils.LogExecutionStep("Removing temp rsync binary", removeTempLocalRsyncCopyExecString)
-
-	if err, _, errstring := utils.Shellout(removeTempLocalRsyncCopyExecString); err != nil {
-		log.Println(errstring)
-		return "", err
+	log.Printf("Removing temp rsync binary: %s", tempRsyncPath)
+	if err := os.Remove(tempRsyncPath); err != nil {
+		log.Println(err.Error())
 	}
 
 	return versionedRsyncPath, nil
