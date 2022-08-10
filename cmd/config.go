@@ -6,10 +6,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/uselagoon/lagoon-sync/prerequisite"
-	"github.com/uselagoon/lagoon-sync/utils"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/uselagoon/lagoon-sync/prerequisite"
+	synchers "github.com/uselagoon/lagoon-sync/synchers"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 type Configuration struct {
@@ -19,6 +21,7 @@ type Configuration struct {
 	RysncPrerequisite []prerequisite.GatheredPrerequisite `json:"rsync-config"`
 	OtherPrerequisite []prerequisite.GatheredPrerequisite `json:"other-config"`
 	SyncConfigFiles   SyncConfigFiles                     `json:"sync-config-files"`
+	SSHConfig         synchers.SSHOptions                 `json:"ssh"`
 }
 
 type SyncConfigFiles struct {
@@ -39,14 +42,31 @@ var configCmd = &cobra.Command{
 func PrintConfigOut() []byte {
 	lagoonSyncDefaultsFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if !exists {
-		lagoonSyncDefaultsFile = "false"
+		lagoonSyncDefaultsFile = ""
 	}
 	lagoonSyncCfgFile, exists := os.LookupEnv("LAGOON_SYNC_PATH")
 	if !exists {
-		lagoonSyncCfgFile = "false"
+		lagoonSyncCfgFile = ""
 	}
 
 	lagoonSyncPath, exists := utils.FindLagoonSyncOnEnv()
+	activeLagoonYmlFile := viper.ConfigFileUsed()
+
+	// Gather lagoon.yml configuration
+	lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
+	if err != nil {
+		utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
+	}
+	lagoonConfig, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+	if err != nil {
+		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", activeLagoonYmlFile, err)
+	}
+
+	// Store Lagoon yaml config
+	sshConfig := synchers.SSHOptions{}
+	if lagoonConfig.LagoonSync["ssh"] != nil {
+		mapstructure.Decode(lagoonConfig.LagoonSync["ssh"], &sshConfig)
+	}
 
 	// Run the prerequsite gatherers
 	prerequisiteConfig := prerequisite.GetPrerequisiteGatherer()
@@ -80,10 +100,11 @@ func PrintConfigOut() []byte {
 		EnvPrerequisite:   envVarPrerequisites,
 		OtherPrerequisite: otherPrerequisites,
 		SyncConfigFiles: SyncConfigFiles{
-			ConfigFileActive:             viper.ConfigFileUsed(),
+			ConfigFileActive:             activeLagoonYmlFile,
 			LagoonSyncConfigFile:         lagoonSyncCfgFile,
 			LagoonSyncDefaultsConfigFile: lagoonSyncDefaultsFile,
 		},
+		SSHConfig: sshConfig,
 	}
 	configUnmarshalled, err := json.MarshalIndent(config, "", " ")
 	if err != nil {
