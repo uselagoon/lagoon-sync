@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/manifoldco/promptui"
 	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	synchers "github.com/uselagoon/lagoon-sync/synchers"
@@ -29,120 +29,124 @@ var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
 var RsyncArguments string
+var runSyncProcess synchers.RunSyncProcessFunctionType
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
 	Short: "Sync a resource type",
 	Long:  `Use Lagoon-Sync to sync an external environments resources with the local environment`,
 	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run:   syncCommandRun,
+}
 
-		SyncerType := args[0]
-		viper.Set("syncer-type", args[0])
+func syncCommandRun(cmd *cobra.Command, args []string) {
 
-		lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
-		if err != nil {
-			utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
-		}
+	SyncerType := args[0]
+	viper.Set("syncer-type", args[0])
 
-		configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-		if err != nil {
-			log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
-		}
+	lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
+	if err != nil {
+		utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
+	}
 
-		// If no project flag is given, find project from env var.
-		if ProjectName == "" {
-			project, exists := os.LookupEnv("LAGOON_PROJECT")
-			if exists {
-				ProjectName = strings.Replace(project, "_", "-", -1)
-			}
-			if configRoot.Project != "" {
-				ProjectName = configRoot.Project
-			}
-		}
+	configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+	if err != nil {
+		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+	}
 
-		// Set service default to 'cli'
-		if ServiceName == "" {
-			ServiceName = getServiceName(SyncerType)
+	// If no project flag is given, find project from env var.
+	if ProjectName == "" {
+		project, exists := os.LookupEnv("LAGOON_PROJECT")
+		if exists {
+			ProjectName = strings.Replace(project, "_", "-", -1)
 		}
+		if configRoot.Project != "" {
+			ProjectName = configRoot.Project
+		}
+	}
 
-		sourceEnvironment := synchers.Environment{
-			ProjectName:     ProjectName,
-			EnvironmentName: sourceEnvironmentName,
-			ServiceName:     ServiceName,
-		}
+	// Set service default to 'cli'
+	if ServiceName == "" {
+		ServiceName = getServiceName(SyncerType)
+	}
 
-		// We assume that the target environment is local if it's not passed as an argument
-		if targetEnvironmentName == "" {
-			targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
-		}
-		targetEnvironment := synchers.Environment{
-			ProjectName:     ProjectName,
-			EnvironmentName: targetEnvironmentName,
-			ServiceName:     ServiceName,
-		}
+	sourceEnvironment := synchers.Environment{
+		ProjectName:     ProjectName,
+		EnvironmentName: sourceEnvironmentName,
+		ServiceName:     ServiceName,
+	}
 
-		var lagoonSyncer synchers.Syncer
-		lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
-		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
-		}
+	// We assume that the target environment is local if it's not passed as an argument
+	if targetEnvironmentName == "" {
+		targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
+	}
+	targetEnvironment := synchers.Environment{
+		ProjectName:     ProjectName,
+		EnvironmentName: targetEnvironmentName,
+		ServiceName:     ServiceName,
+	}
 
-		if ProjectName == "" {
-			utils.LogFatalError("No Project name given", nil)
-		}
+	var lagoonSyncer synchers.Syncer
+	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
+	if err != nil {
+		utils.LogFatalError(err.Error(), nil)
+	}
 
-		if !noCliInteraction {
-			confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
-				ProjectName,
-				SyncerType,
-				sourceEnvironmentName, targetEnvironmentName))
-			if err != nil || !confirmationResult {
-				utils.LogFatalError("User cancelled sync - exiting", nil)
-			}
-		}
+	if ProjectName == "" {
+		utils.LogFatalError("No Project name given", nil)
+	}
 
-		// SSH Config from file
-		sshConfig := synchers.SSHOptions{}
-		if configRoot.LagoonSync["ssh"] != nil {
-			mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
+	if !noCliInteraction {
+		confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
+			ProjectName,
+			SyncerType,
+			sourceEnvironmentName, targetEnvironmentName))
+		if err != nil || !confirmationResult {
+			utils.LogFatalError("User cancelled sync - exiting", nil)
 		}
-		sshHost := SSHHost
-		if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
-			sshHost = sshConfig.Host
-		}
-		sshPort := SSHPort
-		if sshConfig.Port != "" && SSHPort == "32222" {
-			sshPort = sshConfig.Port
-		}
+	}
 
-		sshKey := SSHKey
-		if sshConfig.PrivateKey != "" && SSHKey == "" {
-			sshKey = sshConfig.PrivateKey
-		}
-		sshVerbose := SSHVerbose
-		if sshConfig.Verbose && !sshVerbose {
-			sshVerbose = sshConfig.Verbose
-		}
-		sshOptions := synchers.SSHOptions{
-			Host:       sshHost,
-			PrivateKey: sshKey,
-			Port:       sshPort,
-			Verbose:    sshVerbose,
-			RsyncArgs:  RsyncArguments,
-		}
+	// SSH Config from file
+	sshConfig := synchers.SSHOptions{}
+	if configRoot.LagoonSync["ssh"] != nil {
+		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
+	}
+	sshHost := SSHHost
+	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
+		sshHost = sshConfig.Host
+	}
+	sshPort := SSHPort
+	if sshConfig.Port != "" && SSHPort == "32222" {
+		sshPort = sshConfig.Port
+	}
 
-		utils.LogDebugInfo("Config that is used for SSH", sshOptions)
+	sshKey := SSHKey
+	if sshConfig.PrivateKey != "" && SSHKey == "" {
+		sshKey = sshConfig.PrivateKey
+	}
 
-		err = synchers.RunSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
-		if err != nil {
-			utils.LogFatalError("There was an error running the sync process", err)
-		}
+	sshVerbose := SSHVerbose
+	if sshConfig.Verbose && !sshVerbose {
+		sshVerbose = sshConfig.Verbose
+	}
+	sshOptions := synchers.SSHOptions{
+		Host:       sshHost,
+		PrivateKey: sshKey,
+		Port:       sshPort,
+		Verbose:    sshVerbose,
+		RsyncArgs:  RsyncArguments,
+	}
 
-		if !dryRun {
-			log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
-		}
-	},
+	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
+
+	err = runSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
+	if err != nil {
+		utils.LogFatalError("There was an error running the sync process", err)
+	}
+
+	if !dryRun {
+		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
+	}
 }
 
 func getServiceName(SyncerType string) string {
@@ -180,4 +184,8 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress", "Pass through arguments to change the behaviour of rsync")
 
+	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
+	// by doing this, it lets us easily override it for testing the command - but for most of the time
+	// this should be okay.
+	runSyncProcess = synchers.RunSyncProcess
 }
