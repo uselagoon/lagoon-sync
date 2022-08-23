@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/manifoldco/promptui"
 	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	synchers "github.com/uselagoon/lagoon-sync/synchers"
@@ -108,19 +108,14 @@ var syncCmd = &cobra.Command{
 			mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 		}
 		sshHost := SSHHost
-		if sshConfig.Host != "" || SSHHost != "ssh.lagoon.amazeeio.cloud" {
+		if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
 			sshHost = sshConfig.Host
 		}
-		if SSHHost != "ssh.lagoon.amazeeio.cloud" {
-			sshHost = SSHHost
-		}
 		sshPort := SSHPort
-		if sshConfig.Port != "" || SSHPort == "3222" {
+		if sshConfig.Port != "" && SSHPort == "32222" {
 			sshPort = sshConfig.Port
 		}
-		if SSHPort != "3222" {
-			sshPort = SSHPort
-		}
+
 		sshKey := SSHKey
 		if sshConfig.PrivateKey != "" && SSHKey == "" {
 			sshKey = sshConfig.PrivateKey
@@ -178,7 +173,7 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
 	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
-	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "3222", "Specify your ssh port, defaults to '32222'")
+	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port, defaults to '32222'")
 	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
 	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
