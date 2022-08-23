@@ -30,12 +30,34 @@ func Test_syncCommandRun(t *testing.T) {
 				},
 			},
 			runSyncProcess: func(sourceEnvironment synchers.Environment, targetEnvironment synchers.Environment, lagoonSyncer synchers.Syncer, syncerType string, dryRun bool, sshOptions synchers.SSHOptions) error {
-				if sshOptions.Port != "3222" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 3222 - found: %v", sshOptions.Port))
+				if sshOptions.Port != "32222" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", sshOptions.Port))
 				}
 
 				if sshOptions.Host != "ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", sshOptions.Port))
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", sshOptions.Host))
+				}
+
+				return nil
+			},
+			wantsError: false,
+		},
+		{
+			name:          "Tests Lagoon yaml",
+			lagoonYmlFile: "../test-resources/sync-test/tests-lagoon-yml/.lagoon.yml",
+			args: args{
+				cmd: nil,
+				args: []string{
+					"mariadb",
+				},
+			},
+			runSyncProcess: func(sourceEnvironment synchers.Environment, targetEnvironment synchers.Environment, lagoonSyncer synchers.Syncer, syncerType string, dryRun bool, sshOptions synchers.SSHOptions) error {
+				if sshOptions.Port != "777" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", sshOptions.Port))
+				}
+
+				if sshOptions.Host != "example.ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", sshOptions.Host))
 				}
 
 				return nil
