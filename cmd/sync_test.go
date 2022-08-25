@@ -29,13 +29,13 @@ func Test_syncCommandRun(t *testing.T) {
 					"mariadb",
 				},
 			},
-			runSyncProcess: func(sourceEnvironment synchers.Environment, targetEnvironment synchers.Environment, lagoonSyncer synchers.Syncer, syncerType string, dryRun bool, sshOptions synchers.SSHOptions) error {
-				if sshOptions.Port != "32222" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", sshOptions.Port))
+			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
+				if args.SshOptions.Port != "32222" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", args.SshOptions.Port))
 				}
 
-				if sshOptions.Host != "ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", sshOptions.Host))
+				if args.SshOptions.Host != "ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SshOptions.Host))
 				}
 
 				return nil
@@ -51,13 +51,13 @@ func Test_syncCommandRun(t *testing.T) {
 					"mariadb",
 				},
 			},
-			runSyncProcess: func(sourceEnvironment synchers.Environment, targetEnvironment synchers.Environment, lagoonSyncer synchers.Syncer, syncerType string, dryRun bool, sshOptions synchers.SSHOptions) error {
-				if sshOptions.Port != "777" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", sshOptions.Port))
+			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
+				if args.SshOptions.Port != "777" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", args.SshOptions.Port))
 				}
 
-				if sshOptions.Host != "example.ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", sshOptions.Host))
+				if args.SshOptions.Host != "example.ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SshOptions.Host))
 				}
 
 				return nil
