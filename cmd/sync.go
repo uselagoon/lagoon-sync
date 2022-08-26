@@ -30,9 +30,9 @@ var dryRun bool
 var verboseSSH bool
 var RsyncArguments string
 var runSyncProcess synchers.RunSyncProcessFunctionType
-var noRemoteCleanup bool
-var noLocalCleanup bool
-var noImport bool
+var skipSourceCleanup bool
+var skipTargetCleanup bool
+var skipTargetImport bool
 var localTransferResourceName string
 
 var syncCmd = &cobra.Command{
@@ -154,6 +154,9 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		SyncerType:        SyncerType,
 		DryRun:            dryRun,
 		SshOptions:        sshOptions,
+		SkipTargetCleanup: skipTargetCleanup,
+		SkipSourceCleanup: skipSourceCleanup,
+		SkipTargetImport:  skipTargetImport,
 	})
 
 	if err != nil {
@@ -199,10 +202,9 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress", "Pass through arguments to change the behaviour of rsync")
-	syncCmd.PersistentFlags().BoolVar(&noRemoteCleanup, "no-remote-cleanup", false, "Don't clean up any of the files generated on the source")
-	syncCmd.PersistentFlags().BoolVar(&noLocalCleanup, "no-local-cleanup", false, "Don't clean up any of the files generated locally")
-	syncCmd.PersistentFlags().BoolVar(&noImport, "no-local-import", false, "This will skip the import step on the target, in combination with 'no-local-cleanup' this essentially produces a resource dump")
-	//syncCmd.PersistentFlags().StringVar(&localTransferResourceName, "local-transfer-resource-name", "", "If set, the default generated local transfer resource (typically a random file in /tmp) will be ignored and the parameter used")
+	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
+	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
+	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time

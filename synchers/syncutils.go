@@ -34,6 +34,9 @@ type RunSyncProcessFunctionTypeArguments struct {
 	SyncerType        string
 	DryRun            bool
 	SshOptions        SSHOptions
+	SkipSourceCleanup bool
+	SkipTargetCleanup bool
+	SkipTargetImport  bool
 }
 
 type RunSyncProcessFunctionType = func(args RunSyncProcessFunctionTypeArguments) error
@@ -73,19 +76,29 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return err
 	}
 
-	err = SyncRunTargetCommand(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
-	if err != nil {
-		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
-		_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
-		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
-		_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
-		return err
+	if !args.SkipTargetImport {
+		err = SyncRunTargetCommand(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		if err != nil {
+			_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
+			_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
+			_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+			_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+			return err
+		}
+	} else {
+		utils.LogProcessStep("Skipping target import step", nil)
 	}
 
 	_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
 	_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
-	_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
-	_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	if !args.SkipSourceCleanup {
+		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	}
+	if !args.SkipTargetCleanup {
+		_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	} else {
+		utils.LogProcessStep("File on the target saved as: "+args.LagoonSyncer.GetTransferResource(args.TargetEnvironment).Name, nil)
+	}
 
 	return nil
 }
