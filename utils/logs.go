@@ -51,8 +51,8 @@ func LogFatalError(message string, output interface{}) {
 
 func LogWarning(message string, output interface{}) {
 	if output == nil {
-		log.Printf("\n-----\nWarning: %s\n-----", message)
+		log.Printf("\n-----\nWarning: %s\n-----\n", message)
 	} else if output != nil {
-		log.Printf("\n-----\nWarning: %s: %v\n-----", message, output)
+		log.Printf("\n-----\nWarning: %s: %v\n-----\n", message, output)
 	}
 }
