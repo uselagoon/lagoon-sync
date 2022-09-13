@@ -102,6 +102,13 @@ func (m FilesSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
 	}
 }
 
+func (m FilesSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	return []string{
+		transferResource.Name,
+	}
+}
+
 func (m FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	config := m.Config
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {

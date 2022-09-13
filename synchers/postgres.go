@@ -147,6 +147,13 @@ func (m PostgresSyncRoot) GetLocalCommand(environment Environment) []SyncCommand
 	}
 }
 
+func (m PostgresSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	return []string{
+		transferResource.Name,
+	}
+}
+
 func (m PostgresSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vlagoon_sync_postgres_%v.sql", m.GetOutputDirectory(), m.TransferId),

@@ -91,6 +91,13 @@ func (m DrupalconfigSyncRoot) GetLocalCommand(environment Environment) []SyncCom
 
 }
 
+func (m DrupalconfigSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	return []string{
+		transferResource.Name,
+	}
+}
+
 func (m DrupalconfigSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vdrupalconfig-sync-%v", m.GetOutputDirectory(), m.TransferId),

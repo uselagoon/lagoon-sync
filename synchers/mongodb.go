@@ -153,6 +153,13 @@ func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCo
 	}
 }
 
+func (m MongoDbSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	return []string{
+		transferResource.Name,
+	}
+}
+
 func (m MongoDbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vlagoon_sync_mongodb_%v.bson", m.GetOutputDirectory(), m.TransferId),

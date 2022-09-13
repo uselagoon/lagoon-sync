@@ -195,6 +195,15 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCo
 	}
 }
 
+func (m MariadbSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
+	return []string{
+		transferResource.Name,
+		resourceNameWithoutGz,
+	}
+}
+
 func (m MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql.gz", m.GetOutputDirectory(), m.TransferId),

@@ -20,6 +20,8 @@ type Syncer interface {
 	GetLocalCommand(environment Environment) []SyncCommand
 	// GetTransferResource will return the command that executes the transfer
 	GetTransferResource(environment Environment) SyncerTransferResource
+	// GetFilesToCleanup will return a list of files to be deleted after completing the transfer
+	GetFilesToCleanup(environment Environment) []string
 	// PrepareSyncer does any preparations required on a Syncer before it is used
 	PrepareSyncer() (Syncer, error)
 	// IsInitialized will tell client code if the syncer is ready to rumble

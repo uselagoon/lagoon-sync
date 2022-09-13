@@ -260,21 +260,25 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptions
 		log.Printf("Skipping cleanup for %v on %v environment", transferResouce.Name, environment.EnvironmentName)
 		return nil
 	}
-
-	transferResourceName := transferResouce.Name
-	execString := fmt.Sprintf("rm -r %s || true", transferResourceName)
-
-	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		execString = GenerateRemoteCommand(environment, execString, sshOptions)
-	}
-
 	utils.LogProcessStep("Beginning resource cleanup on", environment.EnvironmentName)
-	utils.LogExecutionStep("Running the following", execString)
 
-	if !dryRun {
-		err, _, errstring := utils.Shellout(execString)
-		if err != nil {
-			utils.LogFatalError(errstring, nil)
+	filesToCleanUp := syncer.GetFilesToCleanup(environment)
+
+	for _, fileToCleanup := range filesToCleanUp {
+		transferResourceName := fileToCleanup
+		execString := fmt.Sprintf("rm -r %s || true", transferResourceName)
+
+		if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
+			execString = GenerateRemoteCommand(environment, execString, sshOptions)
+		}
+
+		utils.LogExecutionStep("Running the following", execString)
+
+		if !dryRun {
+			err, _, errstring := utils.Shellout(execString)
+			if err != nil {
+				utils.LogFatalError(errstring, nil)
+			}
 		}
 	}
 
