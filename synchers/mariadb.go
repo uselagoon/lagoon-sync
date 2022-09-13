@@ -122,7 +122,7 @@ func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
+func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -144,36 +144,55 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	//We remove the `.gz` from the transfer resource name for because we _first_ generate a plain `.sql` file
 	//and _then_ gzip it
 	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
-	return SyncCommand{
-		command: fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }} && gzip {{ .transferResource }}"),
-		substitutions: map[string]interface{}{
-			"dumpOptions":      "--max-allowed-packet=500M --quick --add-locks --no-autocommit --single-transaction",
-			"hostname":         m.DbHostname,
-			"username":         m.DbUsername,
-			"password":         m.DbPassword,
-			"port":             m.DbPort,
-			"tablesToIgnore":   tablesWhoseDataToIgnore,
-			"database":         m.DbDatabase,
-			"transferResource": resourceNameWithoutGz,
+	substitutions := map[string]interface{}{
+		"dumpOptions":      "--max-allowed-packet=500M --quick --add-locks --no-autocommit --single-transaction",
+		"hostname":         m.DbHostname,
+		"username":         m.DbUsername,
+		"password":         m.DbPassword,
+		"port":             m.DbPort,
+		"tablesToIgnore":   tablesWhoseDataToIgnore,
+		"database":         m.DbDatabase,
+		"transferResource": resourceNameWithoutGz,
+	}
+	return []SyncCommand{
+		{
+			command:       fmt.Sprintf("mysqldump {{ .dumpOptions }} -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .tablesToIgnore }} {{ .database }} > {{ .transferResource }}"),
+			substitutions: substitutions,
+		},
+		{
+			command:       fmt.Sprintf("gzip {{ .transferResource }}"),
+			substitutions: substitutions,
 		},
 	}
 }
 
-func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncCommand {
+func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCommand {
 	l := m.Config
 	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < <(gunzip < {{ .transferResource }})",
-		map[string]interface{}{
-			"hostname":         l.DbHostname,
-			"username":         l.DbUsername,
-			"password":         l.DbPassword,
-			"port":             l.DbPort,
-			"database":         l.DbDatabase,
-			"transferResource": transferResource.Name,
-		})
+	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
+	return []SyncCommand{
+		generateSyncCommand("gunzip {{ .transferResource }}",
+			map[string]interface{}{
+				"hostname":         l.DbHostname,
+				"username":         l.DbUsername,
+				"password":         l.DbPassword,
+				"port":             l.DbPort,
+				"database":         l.DbDatabase,
+				"transferResource": transferResource.Name,
+			}),
+		generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < {{ .resourceNameWithoutGz }}",
+			map[string]interface{}{
+				"hostname":              l.DbHostname,
+				"username":              l.DbUsername,
+				"password":              l.DbPassword,
+				"port":                  l.DbPort,
+				"database":              l.DbDatabase,
+				"resourceNameWithoutGz": resourceNameWithoutGz,
+			}),
+	}
 }
 
 func (m MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {

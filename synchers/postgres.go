@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/spf13/viper"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 type BasePostgresSync struct {
@@ -117,7 +117,7 @@ func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, com
 	}
 }
 
-func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
+func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) []SyncCommand {
 	m := root.Config
 	transferResource := root.GetTransferResource(environment)
 
@@ -131,16 +131,19 @@ func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) SyncComma
 		tablesWhoseDataToExclude += fmt.Sprintf("--exclude-table-data=%s.%s ", m.DbDatabase, s)
 	}
 
-	return SyncCommand{
-		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump -h%s -U%s -p%s -d%s %s %s -Fc -w -f%s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, m.DbDatabase, tablesToExclude, tablesWhoseDataToExclude, transferResource.Name),
+	return []SyncCommand{
+		{
+			command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_dump -h%s -U%s -p%s -d%s %s %s -Fc -w -f%s", m.DbPassword, m.DbHostname, m.DbUsername, m.DbPort, m.DbDatabase, tablesToExclude, tablesWhoseDataToExclude, transferResource.Name),
+		},
 	}
 }
 
-func (m PostgresSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
+func (m PostgresSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
 	l := m.getEffectiveLocalDetails()
 	transferResource := m.GetTransferResource(environment)
-	return SyncCommand{
+	return []SyncCommand{{
 		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_restore -c -x -w -h%s -d%s -p%s -U%s %s", l.DbPassword, l.DbHostname, l.DbDatabase, l.DbPort, l.DbUsername, transferResource.Name),
+	},
 	}
 }
 
