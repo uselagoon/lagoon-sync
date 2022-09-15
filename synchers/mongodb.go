@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/spf13/viper"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 type BaseMongoDbSync struct {
@@ -116,7 +116,7 @@ func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) SyncCommand {
+func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -124,7 +124,7 @@ func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 	}
 
 	transferResource := root.GetTransferResource(sourceEnvironment)
-	return SyncCommand{
+	return []SyncCommand{{
 		command: fmt.Sprintf("mongodump --host {{ .hostname }} --port {{ .port }} --db {{ .database }} --archive={{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"hostname":         m.DbHostname,
@@ -132,22 +132,32 @@ func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) Sync
 			"database":         m.DbDatabase,
 			"transferResource": transferResource.Name,
 		},
+	},
 	}
 }
 
-func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) SyncCommand {
+func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCommand {
 	l := m.Config
 	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		l = m.getEffectiveLocalDetails()
 	}
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return generateSyncCommand("mongorestore --drop --host {{ .hostname }} --port {{ .port }} --archive={{ .transferResource }}",
-		map[string]interface{}{
-			"hostname":         l.DbHostname,
-			"port":             l.DbPort,
-			"database":         l.DbDatabase,
-			"transferResource": transferResource.Name,
-		})
+	return []SyncCommand{
+		generateSyncCommand("mongorestore --drop --host {{ .hostname }} --port {{ .port }} --archive={{ .transferResource }}",
+			map[string]interface{}{
+				"hostname":         l.DbHostname,
+				"port":             l.DbPort,
+				"database":         l.DbDatabase,
+				"transferResource": transferResource.Name,
+			}),
+	}
+}
+
+func (m MongoDbSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	return []string{
+		transferResource.Name,
+	}
 }
 
 func (m MongoDbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {

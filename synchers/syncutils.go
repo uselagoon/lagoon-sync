@@ -84,36 +84,40 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 
 	utils.LogProcessStep("Beginning export on source environment", remoteEnvironment.EnvironmentName)
 
-	if syncer.GetRemoteCommand(remoteEnvironment).NoOp {
-		log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
-		return nil
-	}
-
-	command, commandErr := syncer.GetRemoteCommand(remoteEnvironment).GetCommand()
-	if commandErr != nil {
-		return commandErr
-	}
-
-	var execString string
-
-	if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		execString = command
-	} else {
-		execString = GenerateRemoteCommand(remoteEnvironment, command, sshOptions)
-	}
-
-	utils.LogExecutionStep("Running the following for source", execString)
-
-	if !dryRun {
-		err, response, errstring := utils.Shellout(execString)
-		if err != nil && debug == false {
-			fmt.Println(errstring)
-			return err
+	remoteCommands := syncer.GetRemoteCommand(remoteEnvironment)
+	for _, remoteCommand := range remoteCommands {
+		if remoteCommand.NoOp {
+			log.Printf("Found No Op for environment %s - skipping step", remoteEnvironment.EnvironmentName)
+			return nil
 		}
-		if response != "" && debug == false {
-			fmt.Println(response)
+
+		command, commandErr := remoteCommand.GetCommand()
+		if commandErr != nil {
+			return commandErr
+		}
+
+		var execString string
+
+		if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+			execString = command
+		} else {
+			execString = GenerateRemoteCommand(remoteEnvironment, command, sshOptions)
+		}
+
+		utils.LogExecutionStep("Running the following for source", execString)
+
+		if !dryRun {
+			err, response, errstring := utils.Shellout(execString)
+			if err != nil && debug == false {
+				fmt.Println(errstring)
+				return err
+			}
+			if response != "" && debug == false {
+				fmt.Println(response)
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -218,31 +222,34 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 
 	utils.LogProcessStep("Beginning import on target environment", targetEnvironment.EnvironmentName)
 
-	if syncer.GetRemoteCommand(targetEnvironment).NoOp {
-		log.Printf("Found No Op for environment %s - skipping step", targetEnvironment.EnvironmentName)
-		return nil
-	}
+	targetCommands := syncer.GetLocalCommand(targetEnvironment)
 
-	var execString string
-	command, commandErr := syncer.GetLocalCommand(targetEnvironment).GetCommand()
-	if commandErr != nil {
-		return commandErr
-	}
+	for _, targetCommand := range targetCommands {
+		if targetCommand.NoOp {
+			log.Printf("Found No Op for environment %s - skipping step", targetEnvironment.EnvironmentName)
+			return nil
+		}
 
-	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		execString = command
-	} else {
-		execString = GenerateRemoteCommand(targetEnvironment, command, sshOptions)
-	}
+		var execString string
+		targetCommands, commandErr := targetCommand.GetCommand()
+		if commandErr != nil {
+			return commandErr
+		}
 
-	utils.LogExecutionStep(fmt.Sprintf("Running the following for target (%s)", targetEnvironment.EnvironmentName), execString)
-	if !dryRun {
-		err, _, errstring := utils.Shellout(execString)
-		if err != nil {
-			utils.LogFatalError(errstring, nil)
+		if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+			execString = targetCommands
+		} else {
+			execString = GenerateRemoteCommand(targetEnvironment, targetCommands, sshOptions)
+		}
+
+		utils.LogExecutionStep(fmt.Sprintf("Running the following for target (%s)", targetEnvironment.EnvironmentName), execString)
+		if !dryRun {
+			err, _, errstring := utils.Shellout(execString)
+			if err != nil {
+				utils.LogFatalError(errstring, nil)
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -253,21 +260,25 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptions
 		log.Printf("Skipping cleanup for %v on %v environment", transferResouce.Name, environment.EnvironmentName)
 		return nil
 	}
-
-	transferResourceName := transferResouce.Name
-	execString := fmt.Sprintf("rm -r %s || true", transferResourceName)
-
-	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		execString = GenerateRemoteCommand(environment, execString, sshOptions)
-	}
-
 	utils.LogProcessStep("Beginning resource cleanup on", environment.EnvironmentName)
-	utils.LogExecutionStep("Running the following", execString)
 
-	if !dryRun {
-		err, _, errstring := utils.Shellout(execString)
-		if err != nil {
-			utils.LogFatalError(errstring, nil)
+	filesToCleanUp := syncer.GetFilesToCleanup(environment)
+
+	for _, fileToCleanup := range filesToCleanUp {
+		transferResourceName := fileToCleanup
+		execString := fmt.Sprintf("rm -r %s || true", transferResourceName)
+
+		if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
+			execString = GenerateRemoteCommand(environment, execString, sshOptions)
+		}
+
+		utils.LogExecutionStep("Running the following", execString)
+
+		if !dryRun {
+			err, _, errstring := utils.Shellout(execString)
+			if err != nil {
+				utils.LogFatalError(errstring, nil)
+			}
 		}
 	}
 

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/uselagoon/lagoon-sync/utils"
 	"github.com/spf13/viper"
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 type BaseFilesSync struct {
@@ -90,12 +90,23 @@ func (root FilesSyncRoot) GetPrerequisiteCommand(environment Environment, comman
 	return SyncCommand{}
 }
 
-func (root FilesSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
-	return generateNoOpSyncCommand()
+func (root FilesSyncRoot) GetRemoteCommand(environment Environment) []SyncCommand {
+	return []SyncCommand{
+		generateNoOpSyncCommand(),
+	}
 }
 
-func (m FilesSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
-	return generateNoOpSyncCommand()
+func (m FilesSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
+	return []SyncCommand{
+		generateNoOpSyncCommand(),
+	}
+}
+
+func (m FilesSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	return []string{
+		transferResource.Name,
+	}
 }
 
 func (m FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {

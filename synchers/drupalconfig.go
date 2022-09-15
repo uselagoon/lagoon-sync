@@ -70,21 +70,32 @@ func (root DrupalconfigSyncRoot) GetPrerequisiteCommand(environment Environment,
 	return SyncCommand{}
 }
 
-func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) SyncCommand {
+func (root DrupalconfigSyncRoot) GetRemoteCommand(environment Environment) []SyncCommand {
 	transferResource := root.GetTransferResource(environment)
-	return SyncCommand{
-		command: fmt.Sprintf("drush config-export --destination=%s || true", transferResource.Name),
+	return []SyncCommand{
+		{
+			command: fmt.Sprintf("drush config-export --destination=%s || true", transferResource.Name),
+		},
 	}
 }
 
-func (m DrupalconfigSyncRoot) GetLocalCommand(environment Environment) SyncCommand {
+func (m DrupalconfigSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
 	// l := m.getEffectiveLocalDetails()
 	transferResource := m.GetTransferResource(environment)
 
-	return SyncCommand{
-		command: fmt.Sprintf("drush -y config-import --source=%s || true", transferResource.Name),
+	return []SyncCommand{
+		{
+			command: fmt.Sprintf("drush -y config-import --source=%s || true", transferResource.Name),
+		},
 	}
 
+}
+
+func (m DrupalconfigSyncRoot) GetFilesToCleanup(environment Environment) []string {
+	transferResource := m.GetTransferResource(environment)
+	return []string{
+		transferResource.Name,
+	}
 }
 
 func (m DrupalconfigSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
