@@ -10,6 +10,7 @@ GOTEST=$(GOCMD) test
 GOPATH:=$(shell $(GOCMD) env GOPATH 2> /dev/null)
 GOOS:=$(shell $(GOCMD) env GOOS 2> /dev/null)
 GOARCH:=$(shell $(GOCMD) env GOARCH 2> /dev/null)
+DOCKER_GO_VER=1.16
 
 VERSION=$(shell git describe --tags --abbrev=0)
 DATE=$(shell date +%FT%T%z)
