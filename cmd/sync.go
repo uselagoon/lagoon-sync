@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -29,6 +30,7 @@ var noCliInteraction bool
 var dryRun bool
 var verboseSSH bool
 var RsyncArguments string
+var noColour bool
 var runSyncProcess synchers.RunSyncProcessFunctionType
 
 var syncCmd = &cobra.Command{
@@ -101,9 +103,14 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 			ProjectName,
 			SyncerType,
 			sourceEnvironmentName, targetEnvironmentName))
+		utils.SetColour(true)
 		if err != nil || !confirmationResult {
 			utils.LogFatalError("User cancelled sync - exiting", nil)
 		}
+	}
+
+	if noColour {
+		utils.SetColour(false)
 	}
 
 	// SSH Config from file
@@ -182,6 +189,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
+	syncCmd.PersistentFlags().BoolVar(&noColour, "no-colour", false, "Output is not colourised")
 	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress", "Pass through arguments to change the behaviour of rsync")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
