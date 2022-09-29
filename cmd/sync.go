@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -101,6 +102,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 			ProjectName,
 			SyncerType,
 			sourceEnvironmentName, targetEnvironmentName))
+		utils.SetColour(true)
 		if err != nil || !confirmationResult {
 			utils.LogFatalError("User cancelled sync - exiting", nil)
 		}
