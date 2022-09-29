@@ -91,7 +91,6 @@ Flags:
   -c, --configuration-file string        File containing sync configuration.
       --dry-run                          Don't run the commands, just preview what will be run
   -h, --help                             help for sync
-      --no-colour                        Output is not colourised
       --no-interaction                   Disallow interaction
   -p, --project-name string              The Lagoon project name of the remote system
   -r, --rsync-args string                Pass through arguments to change the behaviour of rsync (default "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX -r")
