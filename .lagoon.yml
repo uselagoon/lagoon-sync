@@ -11,30 +11,23 @@ lagoon-sync:
     verbose: true
   mariadb:
     config:
-      hostname: "$MARIADB_HOST"
-      username: "$MARIADB_USERNAME"
-      password: "$MARIADB_PASSWORD"
-      port: "$MARIADB_PORT"
-      database: "$MARIADB_DATABASE"
+      hostname: "${MARIADB_HOST:-mariadb}"
+      username: "${MARIADB_USERNAME:-drupal}"
+      password: "${MARIADB_PASSWORD:-drupal}"
+      port: "${MARIADB_PORT:-3306}"
+      database: "${MARIADB_DATABASE:-drupal}"
       ignore-table:
         - "table_to_ignore"
       ignore-table-data:
         - "cache_data"
         - "cache_menu"
-    local:
-      config:
-        hostname: "mariadb"
-        username: "drupal"
-        password: "drupal"
-        port: "3306"
-        database: "drupal"
   postgres:
     config:
-      hostname: "$POSTGRES_HOST"
-      username: "$POSTGRES_USERNAME"
-      password: "$POSTGRES_PASSWORD"
+      hostname: "${POSTGRES_HOST:-postgres}"
+      username: "${POSTGRES_USERNAME:-drupal}"
+      password: "${POSTGRES_PASSWORD:-drupal}"
       port: "5432"
-      database: "$POSTGRES_DATABASE"
+      database: "${POSTGRES_DATABASE:-drupal}"
       exclude-table:
         - "table_to_ignore"
       exclude-table-data:
@@ -42,11 +35,7 @@ lagoon-sync:
         - "cache_menu"
     local:
       config:
-        hostname: "postgres"
-        username: "drupal"
-        password: "drupal"
         port: "3306"
-        database: "drupal"
   mongodb:
     config:
       hostname: "$MONGODB_HOST"
