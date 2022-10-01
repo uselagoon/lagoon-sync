@@ -31,6 +31,10 @@ var dryRun bool
 var verboseSSH bool
 var RsyncArguments string
 var runSyncProcess synchers.RunSyncProcessFunctionType
+var skipSourceCleanup bool
+var skipTargetCleanup bool
+var skipTargetImport bool
+var localTransferResourceName string
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -88,6 +92,10 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 
 	var lagoonSyncer synchers.Syncer
+	// Syncers are registered in their init() functions - so here we attempt to match
+	// the syncer type with the argument passed through to this command
+	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
+	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
 	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
@@ -141,7 +149,18 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
-	err = runSyncProcess(sourceEnvironment, targetEnvironment, lagoonSyncer, SyncerType, dryRun, sshOptions)
+	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
+		SourceEnvironment: sourceEnvironment,
+		TargetEnvironment: targetEnvironment,
+		LagoonSyncer:      lagoonSyncer,
+		SyncerType:        SyncerType,
+		DryRun:            dryRun,
+		SshOptions:        sshOptions,
+		SkipTargetCleanup: skipTargetCleanup,
+		SkipSourceCleanup: skipSourceCleanup,
+		SkipTargetImport:  skipTargetImport,
+	})
+
 	if err != nil {
 		utils.LogFatalError("There was an error running the sync process", err)
 	}
@@ -185,6 +204,9 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress", "Pass through arguments to change the behaviour of rsync")
+	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
+	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
+	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
