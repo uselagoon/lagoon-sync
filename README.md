@@ -127,6 +127,16 @@ To transfer between remote environments you can pass in a target argument such a
 
 `$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
 
+### Mariadb sync from remote source to local file (*Dump only*)
+
+It's also possible to simply generate a backup from one of the remote servers by using the options
+`--skip-target-cleanup=true`, which doesn't delete temporary transfer files, and `--skip-target-import=true` which
+skips actually importing the database locally.
+
+`$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --skip-target-cleanup=true --skip-target-import=true`
+
+You will then see the transfer-resource name listed in the output.
+
 This command would attempt to sync mariadb databases from `prod` to `dev` environments.
 
 ## Configuring lagoon-sync

@@ -27,55 +27,78 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 	return lagoonConfig, nil
 }
 
-type RunSyncProcessFunctionType = func(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, sshOptions SSHOptions) error
+type RunSyncProcessFunctionTypeArguments struct {
+	SourceEnvironment Environment
+	TargetEnvironment Environment
+	LagoonSyncer      Syncer
+	SyncerType        string
+	DryRun            bool
+	SshOptions        SSHOptions
+	SkipSourceCleanup bool
+	SkipTargetCleanup bool
+	SkipTargetImport  bool
+}
 
-func RunSyncProcess(sourceEnvironment Environment, targetEnvironment Environment, lagoonSyncer Syncer, syncerType string, dryRun bool, sshOptions SSHOptions) error {
+type RunSyncProcessFunctionType = func(args RunSyncProcessFunctionTypeArguments) error
+
+func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 	var err error
 
-	if _, err := lagoonSyncer.IsInitialized(); err != nil {
+	if _, err := args.LagoonSyncer.IsInitialized(); err != nil {
 		return err
 	}
 
-	sourceEnvironment, err = RunPrerequisiteCommand(sourceEnvironment, lagoonSyncer, syncerType, dryRun, sshOptions)
-	sourceRsyncPath := sourceEnvironment.RsyncPath
+	//TODO: this can come out.
+	args.SourceEnvironment, err = RunPrerequisiteCommand(args.SourceEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptions)
+	sourceRsyncPath := args.SourceEnvironment.RsyncPath
 	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, sshOptions)
+		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
 		return err
 	}
 
-	err = SyncRunSourceCommand(sourceEnvironment, lagoonSyncer, dryRun, sshOptions)
+	err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
 	if err != nil {
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, sshOptions)
+		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
 		return err
 	}
 
-	targetEnvironment, err = RunPrerequisiteCommand(targetEnvironment, lagoonSyncer, syncerType, dryRun, sshOptions)
-	targetRsyncPath := targetEnvironment.RsyncPath
+	args.TargetEnvironment, err = RunPrerequisiteCommand(args.TargetEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptions)
+	targetRsyncPath := args.TargetEnvironment.RsyncPath
 	if err != nil {
-		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, sshOptions)
+		_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
 		return err
 	}
 
-	err = SyncRunTransfer(sourceEnvironment, targetEnvironment, lagoonSyncer, dryRun, sshOptions)
+	err = SyncRunTransfer(args.SourceEnvironment, args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
 	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, sshOptions)
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, sshOptions)
+		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
+		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
 		return err
 	}
 
-	err = SyncRunTargetCommand(targetEnvironment, lagoonSyncer, dryRun, sshOptions)
-	if err != nil {
-		_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, sshOptions)
-		_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, sshOptions)
-		_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, sshOptions)
-		_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, sshOptions)
-		return err
+	if !args.SkipTargetImport {
+		err = SyncRunTargetCommand(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		if err != nil {
+			_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
+			_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
+			_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+			_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+			return err
+		}
+	} else {
+		utils.LogProcessStep("Skipping target import step", nil)
 	}
 
-	_ = PrerequisiteCleanUp(sourceEnvironment, sourceRsyncPath, dryRun, sshOptions)
-	_ = PrerequisiteCleanUp(targetEnvironment, targetRsyncPath, dryRun, sshOptions)
-	_ = SyncCleanUp(sourceEnvironment, lagoonSyncer, dryRun, sshOptions)
-	_ = SyncCleanUp(targetEnvironment, lagoonSyncer, dryRun, sshOptions)
+	_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
+	_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
+	if !args.SkipSourceCleanup {
+		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	}
+	if !args.SkipTargetCleanup {
+		_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	} else {
+		utils.LogProcessStep("File on the target saved as: "+args.LagoonSyncer.GetTransferResource(args.TargetEnvironment).Name, nil)
+	}
 
 	return nil
 }
