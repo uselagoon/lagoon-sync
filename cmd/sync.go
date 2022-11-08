@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -34,7 +35,9 @@ var runSyncProcess synchers.RunSyncProcessFunctionType
 var skipSourceCleanup bool
 var skipTargetCleanup bool
 var skipTargetImport bool
+var skipApi bool
 var localTransferResourceName string
+var rsyncArgDefaults = "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress"
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -116,38 +119,9 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// SSH Config from file
-	sshConfig := synchers.SSHOptions{}
-	if configRoot.LagoonSync["ssh"] != nil {
-		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
-	}
-	sshHost := SSHHost
-	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
-		sshHost = sshConfig.Host
-	}
-	sshPort := SSHPort
-	if sshConfig.Port != "" && SSHPort == "32222" {
-		sshPort = sshConfig.Port
-	}
-
-	sshKey := SSHKey
-	if sshConfig.PrivateKey != "" && SSHKey == "" {
-		sshKey = sshConfig.PrivateKey
-	}
-
-	sshVerbose := SSHVerbose
-	if sshConfig.Verbose && !sshVerbose {
-		sshVerbose = sshConfig.Verbose
-	}
-	sshOptions := synchers.SSHOptions{
-		Host:       sshHost,
-		PrivateKey: sshKey,
-		Port:       sshPort,
-		Verbose:    sshVerbose,
-		RsyncArgs:  RsyncArguments,
-	}
-
-	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
+	// SSH options will be set from lagoon.yaml config, or overridden by given cli arguments.
+	sshOptions := SetSSHOptions(configRoot)
+	utils.LogDebugInfo("Config that is used for SSH", *sshOptions)
 
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
 		SourceEnvironment: sourceEnvironment,
@@ -155,7 +129,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		LagoonSyncer:      lagoonSyncer,
 		SyncerType:        SyncerType,
 		DryRun:            dryRun,
-		SshOptions:        sshOptions,
+		SSHOptions:        *sshOptions,
 		SkipTargetCleanup: skipTargetCleanup,
 		SkipSourceCleanup: skipSourceCleanup,
 		SkipTargetImport:  skipTargetImport,
@@ -168,6 +142,107 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	if !dryRun {
 		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
 	}
+}
+
+func SetSSHOptions(configRoot synchers.SyncherConfigRoot) *synchers.SSHOptions {
+	sshConfig := synchers.SSHOptions{}
+
+	// SSH Config from file
+	if configRoot.LagoonSync["ssh"] != nil {
+		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
+	}
+	sshHost := SSHHost
+	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
+		sshHost = sshConfig.Host
+	}
+	sshPort := SSHPort
+	if sshConfig.Port != "" && SSHPort == "32222" {
+		sshPort = sshConfig.Port
+	}
+	sshKey := SSHKey
+	if sshConfig.PrivateKey != "" && SSHKey == "" {
+		sshKey = sshConfig.PrivateKey
+	}
+	sshVerbose := SSHVerbose
+	if sshConfig.Verbose && !sshVerbose {
+		sshVerbose = sshConfig.Verbose
+	}
+	rsyncArgs := RsyncArguments
+	if sshConfig.RsyncArgs != "" && RsyncArguments == rsyncArgDefaults {
+		rsyncArgs = sshConfig.RsyncArgs
+	}
+
+	// Check lagoon api for ssh config
+	sshOptions, err := fetchSSHPortalConfigFromAPI(&synchers.SSHOptions{
+		Host:       sshHost,
+		PrivateKey: sshKey,
+		Port:       sshPort,
+		Verbose:    sshVerbose,
+		RsyncArgs:  rsyncArgs,
+	})
+	if err != nil {
+		utils.LogFatalError(err.Error(), nil)
+	}
+
+	return sshOptions
+}
+
+func fetchSSHPortalConfigFromAPI(sshConfig *synchers.SSHOptions) (*synchers.SSHOptions, error) {
+	if skipApi == true {
+		return sshConfig, nil
+	}
+
+	// Lagoon client
+
+	// Call projectByName query to retrieve openshift object
+	response, err := projectByName(ProjectName)
+	if err != nil {
+		utils.LogFatalError(err.Error(), nil)
+	}
+
+	var unmarshalJSONResponse ProjectByNameResponse
+	err = json.Unmarshal(response, &unmarshalJSONResponse)
+	if err != nil {
+		fmt.Println("Can't unmarshal api response: ", err.Error())
+	}
+
+	if unmarshalJSONResponse.Data.ProjectByName.Openshift.SSHHost != "" {
+		return &synchers.SSHOptions{
+			Host: unmarshalJSONResponse.Data.ProjectByName.Openshift.SSHHost,
+			Port: unmarshalJSONResponse.Data.ProjectByName.Openshift.SSHPort,
+		}, nil
+	}
+
+	return sshConfig, nil
+}
+
+type ProjectByNameResponse struct {
+	Data struct {
+		ProjectByName struct {
+			Openshift struct {
+				ID      int    `json:"id"`
+				Name    string `json:"name"`
+				SSHHost string `json:"sshHost"`
+				SSHPort string `json:"sshPort"`
+			} `json:"openshift"`
+		} `json:"projectByName"`
+	} `json:"data"`
+}
+
+func projectByName(name string) ([]byte, error) {
+	// run api query to get ssh portal config
+	return []byte(`{
+	  "data": {
+		"projectByName": {
+		  "openshift": {
+			"id": 1,
+			"name": "test6.amazee.io",
+			"sshHost": "ssh.test6.amazee.io",
+			"sshPort": "22"
+		  }
+		}
+	  }
+	}`), nil
 }
 
 func getServiceName(SyncerType string) string {
@@ -203,10 +278,11 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
-	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress", "Pass through arguments to change the behaviour of rsync")
+	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", rsyncArgDefaults, "Pass through arguments to change the behaviour of rsync")
 	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
+	syncCmd.PersistentFlags().BoolVar(&skipApi, "skip-api", false, "This will skip checking the api for configuration and instead use the defaults")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
