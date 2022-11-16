@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/uselagoon/lagoon-sync/synchers"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -31,12 +32,12 @@ func Test_syncCommandRun(t *testing.T) {
 				},
 			},
 			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
-				if args.SSHOptions.Port != "32222" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", args.SSHOptions.Port))
+				if args.SourceEnvironment.SSH.Port != "32222" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", args.SourceEnvironment.SSH.Port))
 				}
 
-				if args.SSHOptions.Host != "ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SSHOptions.Host))
+				if args.SourceEnvironment.SSH.Host != "ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SourceEnvironment.SSH.Host))
 				}
 
 				return nil
@@ -53,12 +54,12 @@ func Test_syncCommandRun(t *testing.T) {
 				},
 			},
 			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
-				if args.SSHOptions.Port != "777" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", args.SSHOptions.Port))
+				if args.SourceEnvironment.SSH.Port != "777" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", args.SourceEnvironment.SSH.Port))
 				}
 
-				if args.SSHOptions.Host != "example.ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SSHOptions.Host))
+				if args.SourceEnvironment.SSH.Host != "example.ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SourceEnvironment.SSH.Host))
 				}
 
 				return nil
@@ -78,49 +79,72 @@ func Test_syncCommandRun(t *testing.T) {
 
 func TestSetSSHOptions(t *testing.T) {
 	type args struct {
-		configRoot synchers.SyncherConfigRoot
-		args       []string
+		Project     string
+		Source      synchers.Environment
+		Target      synchers.Environment
+		Type        string
+		Config      synchers.SyncherConfigRoot
+		EnableDebug bool
 	}
 	var tests = []struct {
-		name       string
-		configRoot synchers.SyncherConfigRoot
-		args       args
-		want       synchers.SSHOptions
+		name string
+		args args
+		want synchers.SSHOptions
 	}{
 		{
 			name: "Tests default SSHOptions",
 			args: args{
-				configRoot: synchers.SyncherConfigRoot{
+				Project: "high-cotton",
+				Source:  synchers.Environment{EnvironmentName: "main"},
+				Target:  synchers.Environment{EnvironmentName: "dev"},
+				Type:    "mariadb",
+				Config: synchers.SyncherConfigRoot{
 					LagoonSync: map[string]interface{}{
 						"ssh": map[string]interface{}{},
 					},
+					LagoonAPI: synchers.LagoonAPI{
+						Endpoint: "https://api.lagoon.amazeeio.cloud/graphql",
+						SSHKey:   "~/$HOME/.ssh/id_rsa",
+						SSHHost:  "ssh.lagoon.amazeeio.cloud",
+						SSHPort:  "32222",
+					},
 				},
+				EnableDebug: false,
 			},
 			want: synchers.SSHOptions{
-				"ssh.lagoon.amazeeio.cloud",
-				"32222",
-				false,
-				"",
-				"--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress",
+				Host:      "ssh.lagoon.amazeeio.cloud",
+				Port:      "32222",
+				RsyncArgs: "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress",
 			},
 		},
 		{
 			name: "Tests overrides",
 			args: args{
-				configRoot: synchers.SyncherConfigRoot{
+				Project: "high-cotton",
+				Source:  synchers.Environment{EnvironmentName: "main"},
+				Target:  synchers.Environment{EnvironmentName: "dev"},
+				Type:    "mariadb",
+				Config: synchers.SyncherConfigRoot{
 					LagoonSync: map[string]interface{}{
 						"ssh": map[string]interface{}{
-							"host":       "override.lagoon.example.com",
+							"host":       "main.lagoon.example.com",
 							"port":       "111",
 							"privateKey": "~/.ssh/path/to/key",
 							"verbose":    true,
 							"rsyncArgs":  "-a",
 						},
 					},
+					LagoonAPI: synchers.LagoonAPI{
+						Endpoint: "https://api.lagoon.amazeeio.cloud/graphql",
+						SSHKey:   "~/$HOME/.ssh/id_rsa",
+						SSHHost:  "ssh.lagoon.amazeeio.cloud",
+						SSHPort:  "32222",
+					},
 				},
+				EnableDebug: false,
 			},
 			want: synchers.SSHOptions{
-				"override.lagoon.example.com",
+				"main.lagoon.example.com",
 				"111",
 				true,
 				"~/.ssh/path/to/key",
@@ -130,8 +154,17 @@ func TestSetSSHOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := SetSSHOptions(tt.args.configRoot); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("SetSSHOptions() = %v, want %v", got, tt.want)
+			s := &Sync{
+				Source:      tt.args.Source,
+				Target:      tt.args.Target,
+				Type:        tt.args.Type,
+				EnableDebug: tt.args.EnableDebug,
+			}
+
+			log.Println(tt.args)
+
+			if got := s.GetSSHOptions(tt.args.Project, tt.args.Source.EnvironmentName, tt.args.Config); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetSSHOptions() = %v, want %v", got, tt.want)
 			}
 		})
 	}

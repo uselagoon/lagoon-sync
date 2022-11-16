@@ -43,23 +43,28 @@ type SyncerTransferResource struct {
 }
 
 type Environment struct {
-	ProjectName     string `yaml:"projectName"`
-	EnvironmentName string `yaml:"environmentName"`
-	ServiceName     string `yaml:"serviceName"` // This is used to determine which Lagoon service we need to rsync
-	RsyncAvailable  bool   `yaml:"rsyncAvailable"`
-	RsyncPath       string `yaml:"rsyncPath"`
-	RsyncLocalPath  string `yaml:"rsyncLocalPath"`
+	ProjectName     string     `yaml:"projectName"`
+	EnvironmentName string     `yaml:"environmentName"`
+	ServiceName     string     `yaml:"serviceName"` // This is used to determine which Lagoon service we need to rsync
+	RsyncAvailable  bool       `yaml:"rsyncAvailable"`
+	RsyncPath       string     `yaml:"rsyncPath"`
+	RsyncLocalPath  string     `yaml:"rsyncLocalPath"`
+	SSH             SSHOptions `yaml:"ssh,omitempty"`
 }
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
 	Project       string                              `yaml:"project" json:"project,omitempty"`
-	LagoonSync    map[string]interface{}              `yaml:"lagoon-sync" json:"lagoonSync,omitempty"`
-	Prerequisites []prerequisite.GatheredPrerequisite `yaml:"prerequisites" json:"prerequisites,omitempty"`
+	LagoonSync    map[string]interface{}              `yaml:"lagoon-sync,omitempty" json:"lagoon-sync,omitempty"`
+	LagoonAPI     LagoonAPI                           `yaml:"lagoon-api,omitempty" json:"lagoon-api,omitempty"`
+	Prerequisites []prerequisite.GatheredPrerequisite `yaml:"prerequisites,omitempty" json:"prerequisites,omitempty"`
 }
 
-type SSHConfig struct {
-	SSH SSHOptions `yaml:"ssh,omitempty" json:"SSH"`
+type LagoonAPI struct {
+	Endpoint string `yaml:"endpoint,omitempty" json:"endpoint,omitempty"`
+	SSHKey   string `yaml:"sshKey,omitempty" json:"sshKey,omitempty"`
+	SSHHost  string `yaml:"sshHost,omitempty" json:"sshHost,omitempty"`
+	SSHPort  string `yaml:"sshPort,omitempty" json:"sshPort,omitempty"`
 }
 
 type SSHOptions struct {
@@ -84,14 +89,14 @@ func UnmarshalIntoStruct(pluginIn interface{}, pluginOut interface{}) error {
 	return yaml.Unmarshal(b, pluginOut)
 }
 
-func GenerateRemoteCommand(remoteEnvironment Environment, command string, sshOptions SSHOptions) string {
+func GenerateRemoteCommand(remoteEnvironment Environment, command string) string {
 	var sshOptionsStr bytes.Buffer
-	if sshOptions.Verbose {
+	if remoteEnvironment.SSH.Verbose {
 		sshOptionsStr.WriteString(" -v")
 	}
 
-	if sshOptions.PrivateKey != "" {
-		sshOptionsStr.WriteString(fmt.Sprintf(" -i %s", sshOptions.PrivateKey))
+	if remoteEnvironment.SSH.PrivateKey != "" {
+		sshOptionsStr.WriteString(fmt.Sprintf(" -i %s", remoteEnvironment.SSH.PrivateKey))
 	}
 
 	serviceArgument := ""
@@ -100,5 +105,5 @@ func GenerateRemoteCommand(remoteEnvironment Environment, command string, sshOpt
 	}
 
 	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s '%s'",
-		sshOptionsStr.String(), sshOptions.Port, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
+		sshOptionsStr.String(), remoteEnvironment.SSH.Port, remoteEnvironment.GetOpenshiftProjectName(), remoteEnvironment.SSH.Host, serviceArgument, command)
 }

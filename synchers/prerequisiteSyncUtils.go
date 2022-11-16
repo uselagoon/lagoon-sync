@@ -14,7 +14,7 @@ import (
 	"github.com/uselagoon/lagoon-sync/utils"
 )
 
-func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, sshOptions SSHOptions) (Environment, error) {
+func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool) (Environment, error) {
 	// We don't run prerequisite checks on these syncers for now.
 	if syncerType == "files" || syncerType == "drupalconfig" {
 		environment.RsyncPath = "rsync"
@@ -34,7 +34,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		execString = command
 	} else {
-		execString = GenerateRemoteCommand(environment, command, sshOptions)
+		execString = GenerateRemoteCommand(environment, command)
 	}
 
 	utils.LogExecutionStep("Running the following prerequisite command", execString)
@@ -82,7 +82,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 
 	if !dryRun && !environment.RsyncAvailable {
 		// Add rsync to env
-		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion, sshOptions)
+		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion)
 		if err != nil {
 			fmt.Println(errstring)
 			return environment, err
@@ -96,7 +96,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	return environment, nil
 }
 
-func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool, sshOptions SSHOptions) error {
+func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool) error {
 	if rsyncPath == "" || rsyncPath == "rsync" || !strings.Contains(rsyncPath, "/tmp/") {
 		return nil
 	}
@@ -106,7 +106,7 @@ func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool,
 	execString := fmt.Sprintf("rm -r %s", rsyncPath)
 
 	if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		execString = GenerateRemoteCommand(environment, execString, sshOptions)
+		execString = GenerateRemoteCommand(environment, execString)
 	}
 
 	utils.LogExecutionStep("Running the following", execString)
@@ -126,7 +126,7 @@ func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool,
 var RsyncAssetPath = "/tmp/rsync"
 
 // will add bundled rsync onto environment and return the new rsync path as string
-func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string, sshOptions SSHOptions) (string, error) {
+func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string) (string, error) {
 	utils.LogDebugInfo("%v environment doesn't have rsync", environment.EnvironmentName)
 	utils.LogDebugInfo("Downloading rsync asset on", environment.EnvironmentName)
 
@@ -168,7 +168,7 @@ func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion strin
 		}
 
 		execString = fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s %s",
-			sshOptions.Port, environment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
+			environment.SSH.Port, environment.GetOpenshiftProjectName(), environment.SSH.Host, serviceArgument, command)
 	}
 
 	utils.LogExecutionStep(fmt.Sprintf("Running the following for %s", environment.EnvironmentName), execString)

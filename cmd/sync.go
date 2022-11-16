@@ -1,19 +1,20 @@
 package cmd
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"log"
-	"os"
-	"strings"
-
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/manifoldco/promptui"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	synchers "github.com/uselagoon/lagoon-sync/synchers"
 	"github.com/uselagoon/lagoon-sync/utils"
+	"github.com/uselagoon/machinery/api/lagoon"
+	lclient "github.com/uselagoon/machinery/api/lagoon/client"
+	"github.com/uselagoon/machinery/utils/sshtoken"
+	"log"
+	"os"
+	"strings"
 )
 
 var ProjectName string
@@ -35,7 +36,7 @@ var runSyncProcess synchers.RunSyncProcessFunctionType
 var skipSourceCleanup bool
 var skipTargetCleanup bool
 var skipTargetImport bool
-var skipApi bool
+var skipAPI bool
 var localTransferResourceName string
 var rsyncArgDefaults = "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress"
 
@@ -47,10 +48,19 @@ var syncCmd = &cobra.Command{
 	Run:   syncCommandRun,
 }
 
-func syncCommandRun(cmd *cobra.Command, args []string) {
+type Sync struct {
+	Source      synchers.Environment
+	Target      synchers.Environment
+	Type        string
+	Config      synchers.SyncherConfigRoot
+	EnableDebug bool
+}
 
+func syncCommandRun(cmd *cobra.Command, args []string) {
+	Sync := Sync{}
 	SyncerType := args[0]
 	viper.Set("syncer-type", args[0])
+	Sync.Type = SyncerType
 
 	lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
 	if err != nil {
@@ -60,6 +70,29 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
 	if err != nil {
 		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+	}
+	Sync.Config = configRoot
+
+	// Set LagoonAPI defaults
+	Sync.Config.LagoonAPI = synchers.LagoonAPI{
+		Endpoint: "https://api.lagoon.amazeeio.cloud/graphql",
+		SSHKey:   "~/$HOME/.ssh/id_rsa",
+		SSHHost:  "ssh.lagoon.amazeeio.cloud",
+		SSHPort:  "32222",
+	}
+
+	// Override defaults with config from yaml
+	if configRoot.LagoonAPI.Endpoint != "" {
+		Sync.Config.LagoonAPI.Endpoint = configRoot.LagoonAPI.Endpoint
+	}
+	if configRoot.LagoonAPI.SSHKey != "" {
+		Sync.Config.LagoonAPI.SSHKey = configRoot.LagoonAPI.SSHKey
+	}
+	if configRoot.LagoonAPI.SSHHost != "" {
+		Sync.Config.LagoonAPI.SSHHost = configRoot.LagoonAPI.SSHHost
+	}
+	if configRoot.LagoonAPI.SSHPort != "" {
+		Sync.Config.LagoonAPI.SSHPort = configRoot.LagoonAPI.SSHPort
 	}
 
 	// If no project flag is given, find project from env var.
@@ -82,8 +115,8 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		ProjectName:     ProjectName,
 		EnvironmentName: sourceEnvironmentName,
 		ServiceName:     ServiceName,
+		SSH:             synchers.SSHOptions{},
 	}
-
 	// We assume that the target environment is local if it's not passed as an argument
 	if targetEnvironmentName == "" {
 		targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
@@ -92,14 +125,16 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		ProjectName:     ProjectName,
 		EnvironmentName: targetEnvironmentName,
 		ServiceName:     ServiceName,
+		SSH:             synchers.SSHOptions{},
 	}
 
 	var lagoonSyncer synchers.Syncer
+
 	// Syncers are registered in their init() functions - so here we attempt to match
 	// the syncer type with the argument passed through to this command
 	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
 	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
-	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
+	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, Sync.Config)
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
 	}
@@ -107,6 +142,12 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	if ProjectName == "" {
 		utils.LogFatalError("No Project name given", nil)
 	}
+
+	// SSH options will be set from lagoon.yaml config, or overridden by given cli arguments.
+	sourceEnvironment.SSH = Sync.GetSSHOptions(ProjectName, sourceEnvironment.EnvironmentName, Sync.Config)
+	utils.LogDebugInfo("Config that is used for source SSH", sourceEnvironment.SSH)
+	targetEnvironment.SSH = Sync.GetSSHOptions(ProjectName, targetEnvironment.EnvironmentName, Sync.Config)
+	utils.LogDebugInfo("Config that is used for target SSH", targetEnvironment.SSH)
 
 	if !noCliInteraction {
 		confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
@@ -119,17 +160,12 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// SSH options will be set from lagoon.yaml config, or overridden by given cli arguments.
-	sshOptions := SetSSHOptions(configRoot)
-	utils.LogDebugInfo("Config that is used for SSH", *sshOptions)
-
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
 		SourceEnvironment: sourceEnvironment,
 		TargetEnvironment: targetEnvironment,
 		LagoonSyncer:      lagoonSyncer,
 		SyncerType:        SyncerType,
 		DryRun:            dryRun,
-		SSHOptions:        *sshOptions,
 		SkipTargetCleanup: skipTargetCleanup,
 		SkipSourceCleanup: skipSourceCleanup,
 		SkipTargetImport:  skipTargetImport,
@@ -144,7 +180,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 }
 
-func SetSSHOptions(configRoot synchers.SyncherConfigRoot) *synchers.SSHOptions {
+func (s *Sync) GetSSHOptions(project string, environment string, configRoot synchers.SyncherConfigRoot) synchers.SSHOptions {
 	sshConfig := synchers.SSHOptions{}
 
 	// SSH Config from file
@@ -173,7 +209,7 @@ func SetSSHOptions(configRoot synchers.SyncherConfigRoot) *synchers.SSHOptions {
 	}
 
 	// Check lagoon api for ssh config
-	sshOptions, err := fetchSSHPortalConfigFromAPI(&synchers.SSHOptions{
+	sshOptions, err := s.fetchSSHPortalConfigFromAPI(project, environment, &synchers.SSHOptions{
 		Host:       sshHost,
 		PrivateKey: sshKey,
 		Port:       sshPort,
@@ -184,70 +220,44 @@ func SetSSHOptions(configRoot synchers.SyncherConfigRoot) *synchers.SSHOptions {
 		utils.LogFatalError(err.Error(), nil)
 	}
 
-	return sshOptions
+	return *sshOptions
 }
 
-func fetchSSHPortalConfigFromAPI(sshConfig *synchers.SSHOptions) (*synchers.SSHOptions, error) {
-	if skipApi == true {
+func (s *Sync) fetchSSHPortalConfigFromAPI(project string, environment string, sshConfig *synchers.SSHOptions) (*synchers.SSHOptions, error) {
+	if skipAPI {
 		return sshConfig, nil
 	}
 
-	// Lagoon client
+	// Grab a lagoon token
+	token, err := sshtoken.RetrieveToken(s.Config.LagoonAPI.SSHKey, s.Config.LagoonAPI.SSHHost, s.Config.LagoonAPI.SSHPort)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERROR: unable to generate token: %v", err))
+	}
 
-	// Call projectByName query to retrieve openshift object
-	response, err := projectByName(ProjectName)
+	lc := lclient.New(s.Config.LagoonAPI.Endpoint, "lagoon-sync", &token, false)
+	ctx := context.TODO()
+	p, err := lagoon.GetSSHEndpointsByProject(ctx, project, lc)
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
 	}
 
-	var unmarshalJSONResponse ProjectByNameResponse
-	err = json.Unmarshal(response, &unmarshalJSONResponse)
-	if err != nil {
-		fmt.Println("Can't unmarshal api response: ", err.Error())
-	}
-
-	if unmarshalJSONResponse.Data.ProjectByName.Openshift.SSHHost != "" {
-		return &synchers.SSHOptions{
-			Host: unmarshalJSONResponse.Data.ProjectByName.Openshift.SSHHost,
-			Port: unmarshalJSONResponse.Data.ProjectByName.Openshift.SSHPort,
-		}, nil
+	if p.Environments != nil {
+		for _, e := range p.Environments {
+			if e.Name == environment {
+				return &synchers.SSHOptions{
+					Host: e.DeployTarget.SSHHost,
+					Port: e.DeployTarget.SSHPort,
+				}, nil
+			}
+		}
 	}
 
 	return sshConfig, nil
 }
 
-type ProjectByNameResponse struct {
-	Data struct {
-		ProjectByName struct {
-			Openshift struct {
-				ID      int    `json:"id"`
-				Name    string `json:"name"`
-				SSHHost string `json:"sshHost"`
-				SSHPort string `json:"sshPort"`
-			} `json:"openshift"`
-		} `json:"projectByName"`
-	} `json:"data"`
-}
-
-func projectByName(name string) ([]byte, error) {
-	// run api query to get ssh portal config
-	return []byte(`{
-	  "data": {
-		"projectByName": {
-		  "openshift": {
-			"id": 1,
-			"name": "test6.amazee.io",
-			"sshHost": "ssh.test6.amazee.io",
-			"sshPort": "22"
-		  }
-		}
-	  }
-	}`), nil
-}
-
-func getServiceName(SyncerType string) string {
-	if SyncerType == "mongodb" {
-		return SyncerType
+func getServiceName(syncerType string) string {
+	if syncerType == "mongodb" {
+		return syncerType
 	}
 	return "cli"
 }
@@ -282,7 +292,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
-	syncCmd.PersistentFlags().BoolVar(&skipApi, "skip-api", false, "This will skip checking the api for configuration and instead use the defaults")
+	syncCmd.PersistentFlags().BoolVar(&skipAPI, "skip-api", false, "This will skip checking the api for configuration and instead use the defaults")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
