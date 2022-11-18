@@ -3,6 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/manifoldco/promptui"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
@@ -12,9 +16,6 @@ import (
 	"github.com/uselagoon/machinery/api/lagoon"
 	lclient "github.com/uselagoon/machinery/api/lagoon/client"
 	"github.com/uselagoon/machinery/utils/sshtoken"
-	"log"
-	"os"
-	"strings"
 )
 
 var ProjectName string
@@ -255,9 +256,9 @@ func (s *Sync) fetchSSHPortalConfigFromAPI(project string, environment string, s
 	return sshConfig, nil
 }
 
-func getServiceName(syncerType string) string {
-	if syncerType == "mongodb" {
-		return syncerType
+func getServiceName(SyncerType string) string {
+	if SyncerType == "mongodb" {
+		return SyncerType
 	}
 	return "cli"
 }
