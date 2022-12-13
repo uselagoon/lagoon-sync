@@ -39,14 +39,9 @@ lagoon-sync:
         database: "drupal"
   mongodb:
     config:
-      hostname: "$MONGODB_HOST"
-      port: "$MONGODB_SERVICE_PORT"
-      database: "MONGODB_DATABASE"
-    local:
-      config:
-        hostname: "$MONGODB_HOST"
-        port: "27017"
-        database: "local"
+      hostname: "${MONGODB_HOST:-mongodb}"
+      port: "${MONGODB_SERVICE_PORT:-27017}"
+      database: "${MONGODB_DATABASE:-local}"
   files:
     config:
       sync-directory: "/app/web/sites/default/files"

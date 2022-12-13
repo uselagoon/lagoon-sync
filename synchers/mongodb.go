@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -14,13 +15,14 @@ type BaseMongoDbSync struct {
 	DbHostname      string `yaml:"hostname"`
 	DbPort          string `yaml:"port"`
 	DbDatabase      string `yaml:"database"`
+	Authtls         string `yaml:"authtls"`
 	OutputDirectory string
 }
 
 func (mongoConfig *BaseMongoDbSync) setDefaults() {
 	// If no values from config files, set some expected defaults
 	if mongoConfig.DbHostname == "" {
-		mongoConfig.DbHostname = "$HOSTNAME"
+		mongoConfig.DbHostname = "mongodb"
 	}
 	if mongoConfig.DbPort == "" {
 		mongoConfig.DbPort = "27017"
@@ -124,13 +126,19 @@ func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []Sy
 	}
 
 	transferResource := root.GetTransferResource(sourceEnvironment)
+	ssl := ""
+	if strings.ToLower(m.Authtls) == "true" {
+		ssl = "--ssl"
+	}
 	return []SyncCommand{{
-		command: fmt.Sprintf("mongodump --host {{ .hostname }} --port {{ .port }} --db {{ .database }} --archive={{ .transferResource }}"),
+
+		command: fmt.Sprintf("mongodump --host {{ .hostname }} --port {{ .port }} --db {{ .database }} {{ .ssl }} --archive={{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"hostname":         m.DbHostname,
 			"port":             m.DbPort,
 			"database":         m.DbDatabase,
 			"transferResource": transferResource.Name,
+			"ssl":              ssl,
 		},
 	},
 	}

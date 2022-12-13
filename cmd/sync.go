@@ -171,9 +171,6 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 }
 
 func getServiceName(SyncerType string) string {
-	if SyncerType == "mongodb" {
-		return SyncerType
-	}
 	return "cli"
 }
 
