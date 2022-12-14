@@ -131,13 +131,13 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 
 		if !dryRun {
 			err, response, errstring := utils.Shellout(execString)
-			if err != nil && debug == false {
-				fmt.Println(errstring)
+			if err != nil {
+				log.Printf(errstring)
+				return err
 			}
 			if response != "" && debug == false {
-				fmt.Println(response)
+				log.Println(response)
 			}
-			return err
 		}
 	}
 
