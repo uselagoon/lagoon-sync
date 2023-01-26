@@ -131,12 +131,12 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 
 		if !dryRun {
 			err, response, errstring := utils.Shellout(execString)
-			if err != nil && debug == false {
-				fmt.Println(errstring)
+			if err != nil {
+				log.Printf(errstring)
 				return err
 			}
 			if response != "" && debug == false {
-				fmt.Println(response)
+				log.Println(response)
 			}
 		}
 	}
@@ -235,6 +235,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	if !dryRun {
 		if err, _, errstring := utils.Shellout(execString); err != nil {
 			utils.LogFatalError(errstring, nil)
+			return err
 		}
 	}
 
@@ -270,6 +271,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 			err, _, errstring := utils.Shellout(execString)
 			if err != nil {
 				utils.LogFatalError(errstring, nil)
+				return err
 			}
 		}
 	}
@@ -301,6 +303,7 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptions
 			err, _, errstring := utils.Shellout(execString)
 			if err != nil {
 				utils.LogFatalError(errstring, nil)
+				return err
 			}
 		}
 	}
