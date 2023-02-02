@@ -27,9 +27,6 @@ func (mongoConfig *BaseMongoDbSync) setDefaults() {
 	if mongoConfig.DbPort == "" {
 		mongoConfig.DbPort = "27017"
 	}
-	if mongoConfig.DbDatabase == "" {
-		mongoConfig.DbDatabase = "local"
-	}
 }
 
 type MongoDbSyncLocal struct {
@@ -126,17 +123,25 @@ func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []Sy
 	}
 
 	transferResource := root.GetTransferResource(sourceEnvironment)
+
+	// We can either dump the entire database or a portion
+	// if there's database specified, we assume we're running dbaas
+	database := ""
+	if m.DbDatabase != "" {
+		database = "--db=" + m.DbDatabase
+	}
+
 	ssl := ""
 	if strings.ToLower(m.Authtls) == "true" {
 		ssl = "--ssl"
 	}
 	return []SyncCommand{{
 
-		command: fmt.Sprintf("mongodump --host {{ .hostname }} --port {{ .port }} --db {{ .database }} {{ .ssl }} --archive={{ .transferResource }}"),
+		command: fmt.Sprintf("mongodump --host {{ .hostname }} --port {{ .port }} {{ .database }} {{ .ssl }} --archive={{ .transferResource }}"),
 		substitutions: map[string]interface{}{
 			"hostname":         m.DbHostname,
 			"port":             m.DbPort,
-			"database":         m.DbDatabase,
+			"database":         database,
 			"transferResource": transferResource.Name,
 			"ssl":              ssl,
 		},
