@@ -1,0 +1,32 @@
+site_name: lagoon-sync
+site_url: https://uselagoon.github.io/lagoon-sync/
+repo_url: https://github.com/uselagoon/lagoon-sync/
+repo_name: uselagoon/lagoon-sync
+
+theme:
+  name: 'material'
+  palette:
+    primary: 'blue'
+    accent: 'light blue'
+  favicon: lagoon-sync-logo.png
+  icon:
+    logo: fontawesome/solid/terminal
+    repo: fontawesome/brands/github  
+    
+markdown_extensions:
+  - toc:
+      permalink: "#"
+      baselevel: 2
+  - admonition
+  - attr_list
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search
+
+nav:
+  - Getting Started: index.md
+  - Configuration: config.md
+  - Commands: commands/sync.md

@@ -30,3 +30,6 @@ builds/
 # Config files
 *.lagoon-sync
 *.lagoon-sync-defaults
+
+# Docs
+site/
