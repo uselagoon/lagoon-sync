@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -39,6 +40,14 @@ var configCmd = &cobra.Command{
 	},
 }
 
+func LoadLagoonConfig(lagoonYamlPath string) ([]byte, error) {
+	var data, err = ioutil.ReadFile(lagoonYamlPath)
+	if err != nil {
+		return []byte{}, err
+	}
+	return data, nil
+}
+
 func PrintConfigOut() []byte {
 	lagoonSyncDefaultsFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
 	if !exists {
@@ -53,7 +62,7 @@ func PrintConfigOut() []byte {
 	activeLagoonYmlFile := viper.ConfigFileUsed()
 
 	// Gather lagoon.yml configuration
-	lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
+	lagoonConfigBytestream, err := LoadLagoonConfig(activeLagoonYmlFile)
 	if err != nil {
 		utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
 	}

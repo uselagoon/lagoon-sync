@@ -1,3 +1,8 @@
+# Example .lagoon.yml file with lagoon-sync config added which is used by the sync tool.
+docker-compose-yaml: docker-compose.yml
+
+project: "lagoon-sync"
+
 lagoon-sync:
   mariadb:
     config:

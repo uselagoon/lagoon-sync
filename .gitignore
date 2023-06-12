@@ -28,5 +28,6 @@ dist/
 builds/
 
 # Config files
+/lagoon
 *.lagoon-sync
 *.lagoon-sync-defaults

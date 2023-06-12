@@ -148,7 +148,7 @@ The order of configuration precedence is as follows:
 1. `--config` argument (e.g. `lagoon-sync [command] --config ./.custom-lagoon-sync-config.yaml`).
 2.  `.lagoon.yaml` files (i.e. in project root, or `lagoon` directory). If an `.lagoon.yml` is available within the project, then this file will be used as the active configuration file by default.
 3. `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` environment variables.
-
+4. Finally, if no config file can be found the default configuration will be used a safely written to a new '.lagoon.yml`
 
 There are some configuration examples in the `examples` directory of this repo.
 
