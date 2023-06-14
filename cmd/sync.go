@@ -208,11 +208,11 @@ func createDefaultMariadbConfig() synchers.SyncherConfigRoot {
 		LagoonSync: map[string]interface{}{
 			"mariadb": map[string]interface{}{
 				"config": map[string]interface{}{
-					"hostname": "MARIADB_HOST",
-					"username": "MARIADB_USERNAME",
-					"password": "MARIADB_PASSWORD",
-					"port":     "MARIADB_PORT",
-					"database": "MARIADB_DATABASE",
+					"hostname": "${MARIADB_HOST:-mariadb}",
+					"username": "${MARIADB_USERNAME:-drupal}",
+					"password": "${MARIADB_PASSWORD:-drupal}",
+					"port":     "${MARIADB_PORT:-3306}",
+					"database": "${MARIADB_DATABASE:-drupal}",
 					"ignore-table": []string{
 						"cache_default",
 					},
