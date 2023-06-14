@@ -45,18 +45,31 @@ var syncCmd = &cobra.Command{
 }
 
 func syncCommandRun(cmd *cobra.Command, args []string) {
-
 	SyncerType := args[0]
 	viper.Set("syncer-type", args[0])
 
-	lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
-	if err != nil {
-		utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
-	}
+	var configRoot synchers.SyncherConfigRoot
 
-	configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-	if err != nil {
-		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+	// Set assumed defaults
+
+	if viper.ConfigFileUsed() == "" {
+		utils.LogWarning("No configuration has been given/found for syncer: ", SyncerType)
+	}
+	configRoot = createDefaultSyncherConfigRoot(SyncerType)
+
+	if viper.ConfigFileUsed() != "" {
+		lagoonConfigBytestream, err := LoadLagoonConfig(viper.ConfigFileUsed())
+		if err != nil {
+			utils.LogDebugInfo("Couldn't load lagoon config file - ", err.Error())
+		} else {
+			loadedConfigRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+			if err != nil {
+				log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+			} else {
+				// Update configRoot with loaded
+				configRoot = loadedConfigRoot
+			}
+		}
 	}
 
 	// If no project flag is given, find project from env var.
@@ -96,7 +109,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	// the syncer type with the argument passed through to this command
 	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
 	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
-	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
+	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
 	}
@@ -167,6 +180,137 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	if !dryRun {
 		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
+	}
+}
+
+func createDefaultSyncherConfigRoot(syncerType string) synchers.SyncherConfigRoot {
+	var configRoot synchers.SyncherConfigRoot
+
+	switch syncerType {
+	case "mariadb":
+		configRoot = createDefaultMariadbConfig()
+	case "postgres":
+		configRoot = createDefaultPostgresConfig()
+	case "mongodb":
+		configRoot = createDefaultMongoDBConfig()
+	case "files":
+		configRoot = createDefaultFilesConfig()
+	case "drupalconfig":
+		configRoot = createDefaultDrupalConfig()
+	default:
+	}
+
+	return configRoot
+}
+
+func createDefaultMariadbConfig() synchers.SyncherConfigRoot {
+	return synchers.SyncherConfigRoot{
+		LagoonSync: map[string]interface{}{
+			"mariadb": map[string]interface{}{
+				"config": map[string]interface{}{
+					"hostname": "MARIADB_HOST",
+					"username": "MARIADB_USERNAME",
+					"password": "MARIADB_PASSWORD",
+					"port":     "MARIADB_PORT",
+					"database": "MARIADB_DATABASE",
+					"ignore-table": []string{
+						"cache_default",
+					},
+					"ignore-table-data": []string{
+						"cache_data",
+						"cache_menu",
+					},
+				},
+			},
+			"local": map[string]interface{}{
+				"config": map[string]interface{}{
+					"port": "3306",
+				},
+			},
+		},
+	}
+}
+
+func createDefaultPostgresConfig() synchers.SyncherConfigRoot {
+	return synchers.SyncherConfigRoot{
+		LagoonSync: map[string]interface{}{
+			"postgres": map[string]interface{}{
+				"config": map[string]interface{}{
+					"hostname":      "${POSTGRES_HOST:-postgres}",
+					"username":      "${POSTGRES_USERNAME:-drupal}",
+					"password":      "${POSTGRES_PASSWORD:-drupal}",
+					"port":          "5432",
+					"database":      "${POSTGRES_DATABASE:-drupal}",
+					"exclude-table": []string{"cache_default"},
+					"exclude-table-data": []string{
+						"cache_data",
+						"cache_menu",
+					},
+				},
+			},
+			"local": map[string]interface{}{
+				"config": map[string]interface{}{
+					"port": "3306",
+				},
+			},
+		},
+	}
+}
+
+func createDefaultMongoDBConfig() synchers.SyncherConfigRoot {
+	return synchers.SyncherConfigRoot{
+		LagoonSync: map[string]interface{}{
+			"mongodb": map[string]interface{}{
+				"config": map[string]interface{}{
+					"hostname": "$MONGODB_HOST",
+					"port":     "$MONGODB_SERVICE_PORT",
+					"database": "MONGODB_DATABASE",
+				},
+			},
+			"local": map[string]interface{}{
+				"config": map[string]interface{}{
+					"hostname": "$MONGODB_HOST",
+					"port":     "27017",
+					"database": "local",
+				},
+			},
+		},
+	}
+}
+
+func createDefaultFilesConfig() synchers.SyncherConfigRoot {
+	return synchers.SyncherConfigRoot{
+		LagoonSync: map[string]interface{}{
+			"files": map[string]interface{}{
+				"config": map[string]interface{}{
+					"sync-directory": "/app/web/sites/default/files",
+				},
+				"local": map[string]interface{}{
+					"config": map[string]interface{}{
+						"sync-directory": "/app/web/sites/default/files",
+					},
+				},
+			},
+		},
+	}
+}
+
+func createDefaultDrupalConfig() synchers.SyncherConfigRoot {
+	return synchers.SyncherConfigRoot{
+		LagoonSync: map[string]interface{}{
+			"drupalconfig": map[string]interface{}{
+				"config": map[string]interface{}{
+					"syncpath": "./config/sync",
+				},
+				"local": map[string]interface{}{
+					"overrides": map[string]interface{}{
+						"config": map[string]interface{}{
+							"syncpath": "./config/sync",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
