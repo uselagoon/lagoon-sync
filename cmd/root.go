@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/uselagoon/lagoon-sync/assets"
 
@@ -117,11 +119,20 @@ func processConfig(cfgFile string) error {
 		}
 	}
 
-	// Next, check for 'lagoon.yml' files in the default locations and override.
+	// Next, check for common lagoon config files and override defaults.
 	for _, path := range paths {
-		filePath := filepath.Join(path, ".lagoon.yml")
-		if utils.FileExists(filePath) {
-			cfgFile = filePath
+		cfgFiles := []string{
+			// filepath.Join(path, ".lagoon.yml"),
+			filepath.Join(path, ".lagoon-sync.yml"),
+			filepath.Join(path, ".lagoon-sync"),
+		}
+		for _, filePath := range cfgFiles {
+			if utils.FileExists(filePath) {
+				cfgFile = filePath
+				break
+			}
+		}
+		if cfgFile != "" {
 			break
 		}
 	}
@@ -139,26 +150,41 @@ func processConfig(cfgFile string) error {
 		}
 	} else {
 		// If no config file is found, load default config stored as an asset
-		// defaultConfigData, err := assets.GetDefaultConfig()
-		// if err != nil {
-		// 	return fmt.Errorf("failed to load default config: %v", err)
-		// }
+		if !utils.FileExists(".lagoon-sync.yml") && !noCliInteraction {
+			var response string
+			// Ask user to safe-write config to '.lagoon-sync.yml'
+			fmt.Print("No configuration file found, do you want to add the file '.lagoon-sync.yml'? (y/n): ")
+			_, err = fmt.Scanln(&response)
+			if err != nil {
+				return fmt.Errorf("failed to read user input: %v", err)
+			}
 
-		// viper.SetConfigType("yaml")
-		// viper.SetConfigName("default")
+			defaultConfigData, err := assets.GetDefaultConfig()
+			if err != nil {
+				return fmt.Errorf("failed to load default config: %v", err)
+			}
 
-		// err = viper.ReadInConfig()
-		// if err != nil {
-		// 	panic(fmt.Errorf("fatal error config file: %w", err))
-		// }
+			viper.SetConfigType("yaml")
+			viper.SetConfigName("default")
 
-		// err = viper.ReadConfig(bytes.NewBuffer(defaultConfigData))
-		// if err != nil {
-		// 	return fmt.Errorf("failed to read default config: %v", err)
-		// }
-		// Then safe-write config to '.lagoon-sync.yml' when it doesn't exist
-		// viper.SafeWriteConfigAs(".lagoon-sync.yml")
-		// viper.SetConfigFile(".lagoon-sync.yml")
+			err = viper.ReadConfig(bytes.NewBuffer(defaultConfigData))
+			if err != nil {
+				return fmt.Errorf("failed to read default config: %v", err)
+			}
+
+			if strings.ToLower(strings.TrimSpace(response)) == "y" {
+				err = viper.SafeWriteConfigAs(".lagoon-sync.yml")
+				if err != nil {
+					return fmt.Errorf("failed to write '.lagoon-sync.yml': %v", err)
+				}
+
+				fmt.Println("The file '.lagoon-sync.yml' has been added.")
+			} else {
+				fmt.Println("Skipping the creation of '.lagoon-sync.yml'.")
+			}
+
+			viper.SetConfigFile(".lagoon-sync.yml")
+		}
 	}
 
 	return nil
