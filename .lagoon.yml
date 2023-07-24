@@ -3,17 +3,17 @@ docker-compose-yaml: docker-compose.yml
 
 project: "lagoon-sync"
 
-#lagoon-api:
-#  endpoint: "https://api.main.lagoon-core.test6.amazee.io/graphql"
-#  sshKey: "~/$HOME/.ssh/id_rsa"
-#  sshHost: "ssh.main.lagoon-core.test6.amazee.io"
-#  sshPort: "22"
+lagoon-api:
+ endpoint: "https://api.main.lagoon-core.test6.amazee.io/graphql"
+ sshHost: "ssh.main.lagoon-core.test6.amazee.io"
+ sshKey: "~/$HOME/.ssh/id_rsa"
+ sshPort: "22"
 
 lagoon-sync:
   ssh:
-    host: "example.ssh.lagoon.amazeeio.cloud"
-    port: "22"
-    privateKey: "~/.ssh/example_id_rsa"
+    # host: "ssh.test6.amazee.io"
+    # port: "22"
+    privateKey: "~/.ssh/id_rsa"
     verbose: true
   mariadb:
     config:

@@ -3,11 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/uselagoon/lagoon-sync/synchers"
-	"log"
 	"reflect"
 	"testing"
+
+	"github.com/spf13/cobra"
+	"github.com/uselagoon/lagoon-sync/synchers"
 )
 
 func Test_syncCommandRun(t *testing.T) {
@@ -144,11 +144,11 @@ func TestSetSSHOptions(t *testing.T) {
 				EnableDebug: false,
 			},
 			want: synchers.SSHOptions{
-				"main.lagoon.example.com",
-				"111",
-				true,
-				"~/.ssh/path/to/key",
-				"-a",
+				Host:       "main.lagoon.example.com",
+				Port:       "111",
+				Verbose:    true,
+				PrivateKey: "~/.ssh/path/to/key",
+				RsyncArgs:  "-a",
 			},
 		},
 	}
@@ -161,8 +161,7 @@ func TestSetSSHOptions(t *testing.T) {
 				EnableDebug: tt.args.EnableDebug,
 			}
 
-			log.Println(tt.args)
-
+			SkipAPI = true
 			if got := s.GetSSHOptions(tt.args.Project, tt.args.Source.EnvironmentName, tt.args.Config); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetSSHOptions() = %v, want %v", got, tt.want)
 			}

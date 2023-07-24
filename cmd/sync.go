@@ -37,7 +37,7 @@ var runSyncProcess synchers.RunSyncProcessFunctionType
 var skipSourceCleanup bool
 var skipTargetCleanup bool
 var skipTargetImport bool
-var skipAPI bool
+var SkipAPI bool
 var localTransferResourceName string
 var rsyncArgDefaults = "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress"
 
@@ -225,7 +225,7 @@ func (s *Sync) GetSSHOptions(project string, environment string, configRoot sync
 }
 
 func (s *Sync) fetchSSHPortalConfigFromAPI(project string, environment string, sshConfig *synchers.SSHOptions) (*synchers.SSHOptions, error) {
-	if skipAPI {
+	if SkipAPI {
 		return sshConfig, nil
 	}
 
@@ -293,7 +293,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
-	syncCmd.PersistentFlags().BoolVar(&skipAPI, "skip-api", false, "This will skip checking the api for configuration and instead use the defaults")
+	syncCmd.PersistentFlags().BoolVar(&SkipAPI, "skip-api", false, "This will skip checking the api for configuration and instead use the defaults")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
