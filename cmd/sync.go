@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -24,6 +25,7 @@ var targetEnvironmentName string
 var SyncerType string
 var ServiceName string
 var configurationFile string
+var Api string
 var SSHHost string
 var SSHPort string
 var SSHKey string
@@ -74,28 +76,6 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 	Sync.Config = configRoot
 
-	// Set LagoonAPI defaults
-	Sync.Config.LagoonAPI = synchers.LagoonAPI{
-		Endpoint: "https://api.lagoon.amazeeio.cloud/graphql",
-		SSHKey:   "~/$HOME/.ssh/id_rsa",
-		SSHHost:  "ssh.lagoon.amazeeio.cloud",
-		SSHPort:  "32222",
-	}
-
-	// Override defaults with config from yaml
-	if configRoot.LagoonAPI.Endpoint != "" {
-		Sync.Config.LagoonAPI.Endpoint = configRoot.LagoonAPI.Endpoint
-	}
-	if configRoot.LagoonAPI.SSHKey != "" {
-		Sync.Config.LagoonAPI.SSHKey = configRoot.LagoonAPI.SSHKey
-	}
-	if configRoot.LagoonAPI.SSHHost != "" {
-		Sync.Config.LagoonAPI.SSHHost = configRoot.LagoonAPI.SSHHost
-	}
-	if configRoot.LagoonAPI.SSHPort != "" {
-		Sync.Config.LagoonAPI.SSHPort = configRoot.LagoonAPI.SSHPort
-	}
-
 	// If no project flag is given, find project from env var.
 	if ProjectName == "" {
 		project, exists := os.LookupEnv("LAGOON_PROJECT")
@@ -144,7 +124,39 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		utils.LogFatalError("No Project name given", nil)
 	}
 
-	// SSH options will be set from lagoon.yaml config, or overridden by given cli arguments.
+	// get api endpoint from config if found
+	if configRoot.Api != "" {
+		Sync.Config.Api = configRoot.Api
+	}
+
+	// if no api endpoint found in config, ask the user if they want to set it
+	if !noCliInteraction {
+		if configRoot.Api == "" {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("\033[32mWe couldn't find a Lagoon API endpoint in your config.\n\033[0m")
+			fmt.Print("\033[32mDo you want to define that now, or use the default ('https://api.lagoon.amazeeio.cloud/graphql')? (yes/no): \033[0m")
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				log.Fatalf("Error reading user input: %v", err)
+			}
+			input = strings.TrimSpace(strings.ToLower(input))
+			if input == "yes" {
+
+				fmt.Print("Enter Lagoon API Endpoint: ")
+				endpoint, err := reader.ReadString('\n')
+				if err != nil {
+					log.Fatalf("Error reading user input: %v", err)
+				}
+				Sync.Config.Api = strings.TrimSpace(endpoint)
+			}
+		}
+	}
+
+	// use cli arg to override api endpoint if given
+	if Api != "" {
+		Sync.Config.Api = Api
+	}
+
 	sourceEnvironment.SSH = Sync.GetSSHOptions(ProjectName, sourceEnvironment.EnvironmentName, Sync.Config)
 	utils.LogDebugInfo("Config that is used for source SSH", sourceEnvironment.SSH)
 	targetEnvironment.SSH = Sync.GetSSHOptions(ProjectName, targetEnvironment.EnvironmentName, Sync.Config)
@@ -181,47 +193,101 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 }
 
+// Get SSH options based on the following prority:
+// 1. CLI arguments given (--ssh-host, --ssh-port, for examples)
+// 2. Deploy Targets set for the environment from the Lagoon API
+// 3. SSH defined fields in any config files (lagoon-sync.ssh, ssh)
+// 4. User prompted input if none of the above is found
+// 5. CLI defaults as fallback
 func (s *Sync) GetSSHOptions(project string, environment string, configRoot synchers.SyncherConfigRoot) synchers.SSHOptions {
-	sshConfig := synchers.SSHOptions{}
+	sshConfig := &synchers.SSHOptions{}
 
-	// SSH Config from file
+	// SSH Config from yaml
+	if s.Config.Ssh != "" {
+		sshString := strings.Split(s.Config.Ssh, ":")
+		if len(sshString) != 2 {
+			utils.LogFatalError("Invalid ssh host input format - should match 'host:port'.", nil)
+		}
+
+		host := strings.TrimSpace(sshString[0])
+		port := strings.TrimSpace(sshString[1])
+
+		sshConfig.Host = host
+		sshConfig.Port = port
+	}
 	if configRoot.LagoonSync["ssh"] != nil {
 		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 	}
-	sshHost := SSHHost
-	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
-		sshHost = sshConfig.Host
-	}
-	sshPort := SSHPort
-	if sshConfig.Port != "" && SSHPort == "32222" {
-		sshPort = sshConfig.Port
-	}
-	sshKey := SSHKey
-	if sshConfig.PrivateKey != "" && SSHKey == "" {
-		sshKey = sshConfig.PrivateKey
-	}
-	sshVerbose := SSHVerbose
-	if sshConfig.Verbose && !sshVerbose {
-		sshVerbose = sshConfig.Verbose
-	}
-	rsyncArgs := RsyncArguments
-	if sshConfig.RsyncArgs != "" && RsyncArguments == rsyncArgDefaults {
-		rsyncArgs = sshConfig.RsyncArgs
+
+	// if no ssh config is found, then ask user if they want to set it now or the defaults will be used
+	if !noCliInteraction {
+		if sshConfig.Host == "" || sshConfig.Port == "" {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("\033[32mWe couldn't find any Lagoon SSH config.\n\033[0m")
+			fmt.Print("\033[32mDo you want to define that now, or use the defaults? (yes/no): \033[0m")
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				log.Fatalf("Error reading user input: %v", err)
+			}
+			input = strings.TrimSpace(strings.ToLower(input))
+			if input == "yes" {
+
+				fmt.Print("\033[32mEnter custom LagoonAPI SSHHost: \033[0m")
+				sshHost, err := reader.ReadString('\n')
+				if err != nil {
+					log.Fatalf("Error reading user input: %v", err)
+				}
+				sshConfig.Host = strings.TrimSpace(sshHost)
+
+				fmt.Print("\033[32mEnter custom LagoonAPI SSHPort: \033[0m")
+				sshPort, err := reader.ReadString('\n')
+				if err != nil {
+					log.Fatalf("Error reading user input: %v", err)
+				}
+				sshConfig.Port = strings.TrimSpace(sshPort)
+
+				if sshConfig.PrivateKey == "" {
+					fmt.Print("\033[32mEnter custom LagoonAPI SSHKey: \033[0m")
+					sshKey, err := reader.ReadString('\n')
+					if err != nil {
+						log.Fatalf("Error reading user input: %v", err)
+					}
+					sshConfig.PrivateKey = strings.TrimSpace(sshKey)
+				}
+			}
+		}
 	}
 
-	// Check lagoon api for ssh config
-	sshOptions, err := s.fetchSSHPortalConfigFromAPI(project, environment, &synchers.SSHOptions{
-		Host:       sshHost,
-		PrivateKey: sshKey,
-		Port:       sshPort,
-		Verbose:    sshVerbose,
-		RsyncArgs:  rsyncArgs,
+	// Check lagoon api for ssh config based on deploy targets
+	sshConfig, err := s.fetchSSHPortalConfigFromAPI(project, environment, &synchers.SSHOptions{
+		Host:       sshConfig.Host,
+		PrivateKey: sshConfig.PrivateKey,
+		Port:       sshConfig.Port,
+		Verbose:    sshConfig.Verbose,
+		RsyncArgs:  sshConfig.RsyncArgs,
 	})
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
 	}
 
-	return *sshOptions
+	// cli argument overrides config
+	if SSHHost != "" && SSHHost != "ssh.lagoon.amazeeio.cloud" {
+		sshConfig.Host = SSHHost
+	}
+	if SSHPort != "" && SSHPort != "32222" {
+		sshConfig.Port = SSHPort
+	}
+	if SSHKey != "" {
+		sshConfig.PrivateKey = SSHKey
+	}
+	if SSHVerbose {
+		sshConfig.Verbose = SSHVerbose
+	}
+	if RsyncArguments != "" && RsyncArguments != "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress" {
+		sshConfig.RsyncArgs = RsyncArguments
+	}
+
+	return *sshConfig
 }
 
 func (s *Sync) fetchSSHPortalConfigFromAPI(project string, environment string, sshConfig *synchers.SSHOptions) (*synchers.SSHOptions, error) {
@@ -230,16 +296,17 @@ func (s *Sync) fetchSSHPortalConfigFromAPI(project string, environment string, s
 	}
 
 	// Grab a lagoon token
-	token, err := sshtoken.RetrieveToken(s.Config.LagoonAPI.SSHKey, s.Config.LagoonAPI.SSHHost, s.Config.LagoonAPI.SSHPort)
+	token, err := sshtoken.RetrieveToken(sshConfig.PrivateKey, sshConfig.Host, sshConfig.Port)
 	if err != nil {
 		log.Println(fmt.Sprintf("ERROR: unable to generate token: %v", err))
 	}
 
-	lc := lclient.New(s.Config.LagoonAPI.Endpoint, "lagoon-sync", &token, false)
+	lc := lclient.New(s.Config.Api, "lagoon-sync", &token, false)
 	ctx := context.TODO()
 	p, err := lagoon.GetSSHEndpointsByProject(ctx, project, lc)
 	if err != nil {
-		utils.LogFatalError(err.Error(), nil)
+		errMessage := fmt.Sprintf("Failed to get ssh config for '%s' at '%s': ", project, s.Config.Api)
+		utils.LogFatalError(errMessage, err.Error())
 	}
 
 	if p.Environments != nil {
@@ -283,8 +350,9 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
 	syncCmd.PersistentFlags().StringVarP(&ServiceName, "service-name", "s", "", "The service name (default is 'cli'")
 	syncCmd.MarkPersistentFlagRequired("remote-environment-name")
-	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
-	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port, defaults to '32222'")
+	syncCmd.PersistentFlags().StringVarP(&Api, "api", "A", "https://api.lagoon.amazeeio.cloud/graphql", "Specify your lagoon api endpoint")
+	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host")
+	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port")
 	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
 	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")

@@ -56,15 +56,9 @@ type Environment struct {
 type SyncherConfigRoot struct {
 	Project       string                              `yaml:"project" json:"project,omitempty"`
 	LagoonSync    map[string]interface{}              `yaml:"lagoon-sync,omitempty" json:"lagoon-sync,omitempty"`
-	LagoonAPI     LagoonAPI                           `yaml:"lagoon-api,omitempty" json:"lagoon-api,omitempty"`
+	Api           string                              `yaml:"api,omitempty" json:"api,omitempty"`
+	Ssh           string                              `yaml:"ssh,omitempty" json:"ssh,omitempty"`
 	Prerequisites []prerequisite.GatheredPrerequisite `yaml:"prerequisites,omitempty" json:"prerequisites,omitempty"`
-}
-
-type LagoonAPI struct {
-	Endpoint string `yaml:"endpoint,omitempty" json:"endpoint,omitempty"`
-	SSHKey   string `yaml:"sshKey,omitempty" json:"sshKey,omitempty"`
-	SSHHost  string `yaml:"sshHost,omitempty" json:"sshHost,omitempty"`
-	SSHPort  string `yaml:"sshPort,omitempty" json:"sshPort,omitempty"`
 }
 
 type SSHOptions struct {

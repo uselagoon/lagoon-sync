@@ -3,16 +3,15 @@ docker-compose-yaml: docker-compose.yml
 
 project: "lagoon-sync"
 
-lagoon-api:
- endpoint: "https://api.main.lagoon-core.test6.amazee.io/graphql"
- sshHost: "ssh.main.lagoon-core.test6.amazee.io"
- sshKey: "~/$HOME/.ssh/id_rsa"
- sshPort: "22"
+# These ssh and api settings can be added to configure Lagoon outside of amazeeio.cloud infrastructure
+# api: https://api.main.lagoon-core.cluster1.company.io/graphql
+api: https://api.main.lagoon-core.test6.amazee.io/graphql
+ssh: ssh.main.lagoon-core.test6.amazee.io:22 
 
 lagoon-sync:
   ssh:
-    # host: "ssh.test6.amazee.io"
-    # port: "22"
+    host: "ssh.main.lagoon-core.test6.amazee.io"
+    port: "22"
     privateKey: "~/.ssh/id_rsa"
     verbose: true
   mariadb:

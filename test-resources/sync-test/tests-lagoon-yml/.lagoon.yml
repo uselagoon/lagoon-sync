@@ -3,11 +3,7 @@ docker-compose-yaml: docker-compose.yml
 
 project: "lagoon-sync"
 
-#lagoon-api:
-#  endpoint: "https://api.main.lagoon-core.test6.amazee.io/graphql"
-#  sshKey: "~/$HOME/.ssh/id_rsa"
-#  sshHost: "ssh.main.lagoon-core.test6.amazee.io"
-#  sshPort: "22"
+api: "https://api.main.lagoon-core.test6.amazee.io/graphql"
 
 lagoon-sync:
   ssh:
