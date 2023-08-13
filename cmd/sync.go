@@ -34,6 +34,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 
 	configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+
 	if err != nil {
 		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
 	}
