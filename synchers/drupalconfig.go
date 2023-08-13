@@ -59,7 +59,7 @@ func init() {
 
 func (root DrupalconfigSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
-	return root, nil
+	return &root, nil
 }
 
 func (m DrupalconfigSyncRoot) IsInitialized() (bool, error) {
@@ -102,6 +102,10 @@ func (m DrupalconfigSyncRoot) GetTransferResource(environment Environment) Synce
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vdrupalconfig-sync-%v", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: true}
+}
+
+func (m *DrupalconfigSyncRoot) SetTransferResource(transferResourceName string) error {
+	return fmt.Errorf("Setting the transfer resource is not supported for drupal config")
 }
 
 func (root DrupalconfigSyncRoot) GetOutputDirectory() string {

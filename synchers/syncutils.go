@@ -28,15 +28,16 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 }
 
 type RunSyncProcessFunctionTypeArguments struct {
-	SourceEnvironment Environment
-	TargetEnvironment Environment
-	LagoonSyncer      Syncer
-	SyncerType        string
-	DryRun            bool
-	SshOptions        SSHOptions
-	SkipSourceCleanup bool
-	SkipTargetCleanup bool
-	SkipTargetImport  bool
+	SourceEnvironment    Environment
+	TargetEnvironment    Environment
+	LagoonSyncer         Syncer
+	SyncerType           string
+	DryRun               bool
+	SshOptions           SSHOptions
+	SkipSourceCleanup    bool
+	SkipTargetCleanup    bool
+	SkipTargetImport     bool
+	TransferResourceName string
 }
 
 type RunSyncProcessFunctionType = func(args RunSyncProcessFunctionTypeArguments) error

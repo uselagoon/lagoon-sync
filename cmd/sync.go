@@ -35,6 +35,7 @@ var skipSourceCleanup bool
 var skipTargetCleanup bool
 var skipTargetImport bool
 var localTransferResourceName string
+var namedTransferResource string
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -147,18 +148,27 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		RsyncArgs:  RsyncArguments,
 	}
 
+	// let's update the named transfer resource if it is set
+	if namedTransferResource != "" {
+		err = lagoonSyncer.SetTransferResource(namedTransferResource)
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
+	}
+	
 	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
-		SourceEnvironment: sourceEnvironment,
-		TargetEnvironment: targetEnvironment,
-		LagoonSyncer:      lagoonSyncer,
-		SyncerType:        SyncerType,
-		DryRun:            dryRun,
-		SshOptions:        sshOptions,
-		SkipTargetCleanup: skipTargetCleanup,
-		SkipSourceCleanup: skipSourceCleanup,
-		SkipTargetImport:  skipTargetImport,
+		SourceEnvironment:    sourceEnvironment,
+		TargetEnvironment:    targetEnvironment,
+		LagoonSyncer:         lagoonSyncer,
+		SyncerType:           SyncerType,
+		DryRun:               dryRun,
+		SshOptions:           sshOptions,
+		SkipTargetCleanup:    skipTargetCleanup,
+		SkipSourceCleanup:    skipSourceCleanup,
+		SkipTargetImport:     skipTargetImport,
+		TransferResourceName: namedTransferResource,
 	})
 
 	if err != nil {
@@ -207,6 +217,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
+	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
