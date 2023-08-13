@@ -66,7 +66,6 @@ func (m PostgresSyncPlugin) GetPluginId() string {
 func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	postgres := PostgresSyncRoot{}
 	postgres.Config.setDefaults()
-	postgres.LocalOverrides.Config.setDefaults()
 
 	// Use 'lagoon-sync' yaml as default
 	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
