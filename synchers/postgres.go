@@ -67,18 +67,17 @@ func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (
 	postgres.Config.setDefaults()
 	postgres.LocalOverrides.Config.setDefaults()
 
-	// Use 'lagoon-sync' yaml as default
 	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any
-	if len(syncerConfigRoot.LagoonSync) != 0 {
+	if configMap != nil {
 		_ = UnmarshalIntoStruct(configMap, &postgres)
 		utils.LogDebugInfo("Config that will be used for sync", postgres)
-	}
-
-	// If config from active config file is empty, then use defaults
-	if configMap == nil {
-		utils.LogDebugInfo("Active syncer config is empty, so using defaults", postgres)
+	} else {
+		// If config from active config file is empty, then use defaults
+		if configMap == nil {
+			utils.LogDebugInfo("Active syncer config is empty, so using defaults", postgres)
+		}
 	}
 
 	if postgres.Config.IsBasePostgresDbStructureEmpty() && &postgres == nil {
