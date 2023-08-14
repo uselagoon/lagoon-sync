@@ -50,12 +50,9 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	var configRoot synchers.SyncherConfigRoot
 
-	// Set assumed defaults
-
 	if viper.ConfigFileUsed() == "" {
 		utils.LogWarning("No configuration has been given/found for syncer: ", SyncerType)
 	}
-	configRoot = createDefaultSyncherConfigRoot(SyncerType)
 
 	if viper.ConfigFileUsed() != "" {
 		lagoonConfigBytestream, err := LoadLagoonConfig(viper.ConfigFileUsed())
@@ -180,137 +177,6 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	if !dryRun {
 		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
-	}
-}
-
-func createDefaultSyncherConfigRoot(syncerType string) synchers.SyncherConfigRoot {
-	var configRoot synchers.SyncherConfigRoot
-
-	switch syncerType {
-	case "mariadb":
-		configRoot = createDefaultMariadbConfig()
-	case "postgres":
-		configRoot = createDefaultPostgresConfig()
-	case "mongodb":
-		configRoot = createDefaultMongoDBConfig()
-	case "files":
-		configRoot = createDefaultFilesConfig()
-	case "drupalconfig":
-		configRoot = createDefaultDrupalConfig()
-	default:
-	}
-
-	return configRoot
-}
-
-func createDefaultMariadbConfig() synchers.SyncherConfigRoot {
-	return synchers.SyncherConfigRoot{
-		LagoonSync: map[string]interface{}{
-			"mariadb": map[string]interface{}{
-				"config": map[string]interface{}{
-					"hostname": "${MARIADB_HOST:-mariadb}",
-					"username": "${MARIADB_USERNAME:-drupal}",
-					"password": "${MARIADB_PASSWORD:-drupal}",
-					"port":     "${MARIADB_PORT:-3306}",
-					"database": "${MARIADB_DATABASE:-drupal}",
-					"ignore-table": []string{
-						"cache_default",
-					},
-					"ignore-table-data": []string{
-						"cache_data",
-						"cache_menu",
-					},
-				},
-			},
-			"local": map[string]interface{}{
-				"config": map[string]interface{}{
-					"port": "3306",
-				},
-			},
-		},
-	}
-}
-
-func createDefaultPostgresConfig() synchers.SyncherConfigRoot {
-	return synchers.SyncherConfigRoot{
-		LagoonSync: map[string]interface{}{
-			"postgres": map[string]interface{}{
-				"config": map[string]interface{}{
-					"hostname":      "${POSTGRES_HOST:-postgres}",
-					"username":      "${POSTGRES_USERNAME:-drupal}",
-					"password":      "${POSTGRES_PASSWORD:-drupal}",
-					"port":          "5432",
-					"database":      "${POSTGRES_DATABASE:-drupal}",
-					"exclude-table": []string{"cache_default"},
-					"exclude-table-data": []string{
-						"cache_data",
-						"cache_menu",
-					},
-				},
-			},
-			"local": map[string]interface{}{
-				"config": map[string]interface{}{
-					"port": "3306",
-				},
-			},
-		},
-	}
-}
-
-func createDefaultMongoDBConfig() synchers.SyncherConfigRoot {
-	return synchers.SyncherConfigRoot{
-		LagoonSync: map[string]interface{}{
-			"mongodb": map[string]interface{}{
-				"config": map[string]interface{}{
-					"hostname": "$MONGODB_HOST",
-					"port":     "$MONGODB_SERVICE_PORT",
-					"database": "MONGODB_DATABASE",
-				},
-			},
-			"local": map[string]interface{}{
-				"config": map[string]interface{}{
-					"hostname": "$MONGODB_HOST",
-					"port":     "27017",
-					"database": "local",
-				},
-			},
-		},
-	}
-}
-
-func createDefaultFilesConfig() synchers.SyncherConfigRoot {
-	return synchers.SyncherConfigRoot{
-		LagoonSync: map[string]interface{}{
-			"files": map[string]interface{}{
-				"config": map[string]interface{}{
-					"sync-directory": "/app/web/sites/default/files",
-				},
-				"local": map[string]interface{}{
-					"config": map[string]interface{}{
-						"sync-directory": "/app/web/sites/default/files",
-					},
-				},
-			},
-		},
-	}
-}
-
-func createDefaultDrupalConfig() synchers.SyncherConfigRoot {
-	return synchers.SyncherConfigRoot{
-		LagoonSync: map[string]interface{}{
-			"drupalconfig": map[string]interface{}{
-				"config": map[string]interface{}{
-					"syncpath": "./config/sync",
-				},
-				"local": map[string]interface{}{
-					"overrides": map[string]interface{}{
-						"config": map[string]interface{}{
-							"syncpath": "./config/sync",
-						},
-					},
-				},
-			},
-		},
 	}
 }
 
