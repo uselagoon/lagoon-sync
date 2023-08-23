@@ -157,9 +157,9 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		Sync.Config.Api = Api
 	}
 
-	sourceEnvironment.SSH = Sync.GetSSHOptions(ProjectName, sourceEnvironment.EnvironmentName, Sync.Config)
+	sourceEnvironment.SSH = Sync.GetSSHOptions(ProjectName, sourceEnvironment, Sync.Config)
 	utils.LogDebugInfo("Config that is used for source SSH", sourceEnvironment.SSH)
-	targetEnvironment.SSH = Sync.GetSSHOptions(ProjectName, targetEnvironment.EnvironmentName, Sync.Config)
+	targetEnvironment.SSH = Sync.GetSSHOptions(ProjectName, targetEnvironment, Sync.Config)
 	utils.LogDebugInfo("Config that is used for target SSH", targetEnvironment.SSH)
 
 	if !noCliInteraction {
@@ -195,11 +195,12 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 // Get SSH options based on the following prority:
 // 1. CLI arguments given (--ssh-host, --ssh-port, for examples)
-// 2. Deploy Targets set for the environment from the Lagoon API
-// 3. SSH defined fields in any config files (lagoon-sync.ssh, ssh)
-// 4. User prompted input if none of the above is found
-// 5. CLI defaults as fallback
-func (s *Sync) GetSSHOptions(project string, environment string, configRoot synchers.SyncherConfigRoot) synchers.SSHOptions {
+// 2. Cluster config variables such as 'LAGOON_CONFIG_SSH_HOST' and 'LAGOON_CONFIG_SSH_HOST'
+// 3. Deploy Targets set for the environment from the Lagoon API
+// 4. SSH defined fields in any config files (lagoon-sync.ssh, ssh)
+// 5. User prompted input if none of the above is found
+// 6. CLI defaults as fallback
+func (s *Sync) GetSSHOptions(project string, environment synchers.Environment, configRoot synchers.SyncherConfigRoot) synchers.SSHOptions {
 	sshConfig := &synchers.SSHOptions{}
 
 	// SSH Config from yaml
@@ -259,7 +260,7 @@ func (s *Sync) GetSSHOptions(project string, environment string, configRoot sync
 	}
 
 	// Check lagoon api for ssh config based on deploy targets
-	sshConfig, err := s.fetchSSHPortalConfigFromAPI(project, environment, &synchers.SSHOptions{
+	sshConfig, err := s.fetchSSHPortalConfigFromAPI(project, environment.EnvironmentName, &synchers.SSHOptions{
 		Host:       sshConfig.Host,
 		PrivateKey: sshConfig.PrivateKey,
 		Port:       sshConfig.Port,
@@ -268,6 +269,17 @@ func (s *Sync) GetSSHOptions(project string, environment string, configRoot sync
 	})
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
+	}
+
+	// Check LAGOOON_CONFIG_X env vars
+	lagoonSSHHost := os.Getenv("LAGOON_CONFIG_SSH_HOST")
+	if lagoonSSHHost != "" {
+		sshConfig.Host = lagoonSSHHost
+	}
+
+	lagoonSSHPort := os.Getenv("LAGOON_CONFIG_SSH_PORT")
+	if lagoonSSHPort != "" {
+		sshConfig.Port = lagoonSSHPort
 	}
 
 	// cli argument overrides config
