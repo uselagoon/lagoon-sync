@@ -191,7 +191,7 @@ lagoon-sync:
         - "mtk-dump > {{ .transferResource }}"
     target:
       commands:
-        - "mysql -h${MARIADB_HOST:-mariadb} -u${MARIADB_USERNAME:-drupal} -p${MARIADB_PASSWORD:-drupal} -P${MARIADB_PORT:-3306} ${MARIADB_DATABASE:-drupal}" < {{ .transferResource }}"
+        - "mysql -h${MARIADB_HOST:-mariadb} -u${MARIADB_USERNAME:-drupal} -p${MARIADB_PASSWORD:-drupal} -P${MARIADB_PORT:-3306} ${MARIADB_DATABASE:-drupal} < {{ .transfer-resource }}"
 ```
 
 This can then be called by running the following:

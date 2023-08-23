@@ -2,8 +2,9 @@ package synchers
 
 import (
 	"fmt"
-	"github.com/uselagoon/lagoon-sync/utils"
 	"reflect"
+
+	"github.com/uselagoon/lagoon-sync/utils"
 )
 
 type BaseCustomSyncCommands struct {
@@ -84,11 +85,6 @@ func (m CustomSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error)
 		_ = UnmarshalIntoStruct(configMap, &custom)
 		utils.LogDebugInfo("Config that will be used for sync", custom)
 	}
-
-	//if custom.IsBaseCustomStructureEmpty() && &custom == nil {
-	//	m.isConfigEmpty = true
-	//	utils.LogFatalError("No syncer configuration could be found in", viper.GetViper().ConfigFileUsed())
-	//}
 
 	lagoonSyncer, _ := custom.PrepareSyncer()
 	return lagoonSyncer, nil
