@@ -356,6 +356,7 @@ func (s *Sync) fetchSSHPortalConfigFromAPI(project string, environment string, s
 	token, err := sshtoken.RetrieveToken(sshConfig.PrivateKey, sshConfig.Host, sshConfig.Port)
 	if err != nil {
 		log.Println(fmt.Sprintf("ERROR: unable to generate token: %v", err))
+		return nil, err
 	}
 
 	lc := lclient.New(s.Config.Api, "lagoon-sync", &token, false)
@@ -364,6 +365,7 @@ func (s *Sync) fetchSSHPortalConfigFromAPI(project string, environment string, s
 	if err != nil {
 		errMessage := fmt.Sprintf("Failed to get ssh config for '%s' at '%s': ", project, s.Config.Api)
 		utils.LogFatalError(errMessage, err.Error())
+		return nil, err
 	}
 
 	if p.Environments != nil {
