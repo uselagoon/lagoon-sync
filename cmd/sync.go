@@ -42,6 +42,7 @@ var skipTargetImport bool
 var SkipAPI bool
 var localTransferResourceName string
 var rsyncArgDefaults = "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress"
+var namedTransferResource string
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -71,6 +72,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 
 	configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+
 	if err != nil {
 		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
 	}
@@ -173,15 +175,58 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	// SSH Config from file
+	sshConfig := synchers.SSHOptions{}
+	if configRoot.LagoonSync["ssh"] != nil {
+		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
+	}
+	sshHost := SSHHost
+	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
+		sshHost = sshConfig.Host
+	}
+	sshPort := SSHPort
+	if sshConfig.Port != "" && SSHPort == "32222" {
+		sshPort = sshConfig.Port
+	}
+
+	sshKey := SSHKey
+	if sshConfig.PrivateKey != "" && SSHKey == "" {
+		sshKey = sshConfig.PrivateKey
+	}
+
+	sshVerbose := SSHVerbose
+	if sshConfig.Verbose && !sshVerbose {
+		sshVerbose = sshConfig.Verbose
+	}
+	sshOptions := synchers.SSHOptions{
+		Host:       sshHost,
+		PrivateKey: sshKey,
+		Port:       sshPort,
+		Verbose:    sshVerbose,
+		RsyncArgs:  RsyncArguments,
+	}
+
+	// let's update the named transfer resource if it is set
+	if namedTransferResource != "" {
+		err = lagoonSyncer.SetTransferResource(namedTransferResource)
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
+	}
+
+	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
+
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
-		SourceEnvironment: sourceEnvironment,
-		TargetEnvironment: targetEnvironment,
-		LagoonSyncer:      lagoonSyncer,
-		SyncerType:        SyncerType,
-		DryRun:            dryRun,
-		SkipTargetCleanup: skipTargetCleanup,
-		SkipSourceCleanup: skipSourceCleanup,
-		SkipTargetImport:  skipTargetImport,
+		SourceEnvironment:    sourceEnvironment,
+		TargetEnvironment:    targetEnvironment,
+		LagoonSyncer:         lagoonSyncer,
+		SyncerType:           SyncerType,
+		DryRun:               dryRun,
+		SshOptions:           sshOptions,
+		SkipTargetCleanup:    skipTargetCleanup,
+		SkipSourceCleanup:    skipSourceCleanup,
+		SkipTargetImport:     skipTargetImport,
+		TransferResourceName: namedTransferResource,
 	})
 
 	if err != nil {
@@ -374,6 +419,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
 	syncCmd.PersistentFlags().BoolVar(&SkipAPI, "skip-api", false, "This will skip checking the api for configuration and instead use the defaults")
+	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time

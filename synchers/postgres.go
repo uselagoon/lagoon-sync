@@ -21,9 +21,10 @@ type BasePostgresSync struct {
 	OutputDirectory  string
 }
 type PostgresSyncRoot struct {
-	Config         BasePostgresSync
-	LocalOverrides PostgresSyncLocal `yaml:"local"`
-	TransferId     string
+	Config                   BasePostgresSync
+	LocalOverrides           PostgresSyncLocal `yaml:"local"`
+	TransferId               string
+	TransferResourceOverride string
 }
 
 type PostgresSyncLocal struct {
@@ -65,7 +66,6 @@ func (m PostgresSyncPlugin) GetPluginId() string {
 func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
 	postgres := PostgresSyncRoot{}
 	postgres.Config.setDefaults()
-	postgres.LocalOverrides.Config.setDefaults()
 
 	// Use 'lagoon-sync' yaml as default
 	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
@@ -94,18 +94,18 @@ func init() {
 	RegisterSyncer(PostgresSyncPlugin{})
 }
 
-func (m PostgresSyncRoot) IsInitialized() (bool, error) {
+func (m *PostgresSyncRoot) IsInitialized() (bool, error) {
 	return true, nil
 }
 
 // Sync related functions below
 
-func (root PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
+func (root *PostgresSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
 }
 
-func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+func (root *PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
 	lagoonSyncBin, _ := utils.FindLagoonSyncOnEnv()
 
 	return SyncCommand{
@@ -117,7 +117,7 @@ func (root PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, com
 	}
 }
 
-func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) []SyncCommand {
+func (root *PostgresSyncRoot) GetRemoteCommand(environment Environment) []SyncCommand {
 	m := root.Config
 	transferResource := root.GetTransferResource(environment)
 
@@ -138,7 +138,7 @@ func (root PostgresSyncRoot) GetRemoteCommand(environment Environment) []SyncCom
 	}
 }
 
-func (m PostgresSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
+func (m *PostgresSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
 	l := m.getEffectiveLocalDetails()
 	transferResource := m.GetTransferResource(environment)
 	return []SyncCommand{{
@@ -147,20 +147,25 @@ func (m PostgresSyncRoot) GetLocalCommand(environment Environment) []SyncCommand
 	}
 }
 
-func (m PostgresSyncRoot) GetFilesToCleanup(environment Environment) []string {
+func (m *PostgresSyncRoot) GetFilesToCleanup(environment Environment) []string {
 	transferResource := m.GetTransferResource(environment)
 	return []string{
 		transferResource.Name,
 	}
 }
 
-func (m PostgresSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
+func (m *PostgresSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	return SyncerTransferResource{
 		Name:        fmt.Sprintf("%vlagoon_sync_postgres_%v.sql", m.GetOutputDirectory(), m.TransferId),
 		IsDirectory: false}
 }
 
-func (root PostgresSyncRoot) GetOutputDirectory() string {
+func (m *PostgresSyncRoot) SetTransferResource(transferResourceName string) error {
+	m.TransferResourceOverride = transferResourceName
+	return nil
+}
+
+func (root *PostgresSyncRoot) GetOutputDirectory() string {
 	m := root.Config
 	if len(m.OutputDirectory) == 0 {
 		return "/tmp/"
@@ -168,7 +173,7 @@ func (root PostgresSyncRoot) GetOutputDirectory() string {
 	return m.OutputDirectory
 }
 
-func (syncConfig PostgresSyncRoot) getEffectiveLocalDetails() BasePostgresSync {
+func (syncConfig *PostgresSyncRoot) getEffectiveLocalDetails() BasePostgresSync {
 	returnDetails := BasePostgresSync{
 		DbHostname:      syncConfig.Config.DbHostname,
 		DbUsername:      syncConfig.Config.DbUsername,

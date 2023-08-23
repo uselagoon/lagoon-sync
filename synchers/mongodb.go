@@ -35,9 +35,10 @@ type MongoDbSyncLocal struct {
 }
 
 type MongoDbSyncRoot struct {
-	Config         BaseMongoDbSync
-	LocalOverrides MongoDbSyncLocal `yaml:"local"`
-	TransferId     string
+	Config                   BaseMongoDbSync
+	LocalOverrides           MongoDbSyncLocal `yaml:"local"`
+	TransferId               string
+	TransferResourceOverride string
 }
 
 // Init related types and functions follow
@@ -94,17 +95,17 @@ func init() {
 	RegisterSyncer(MongoDbSyncPlugin{})
 }
 
-func (m MongoDbSyncRoot) IsInitialized() (bool, error) {
+func (m *MongoDbSyncRoot) IsInitialized() (bool, error) {
 	return true, nil
 }
 
 // Sync related functions follow
-func (root MongoDbSyncRoot) PrepareSyncer() (Syncer, error) {
+func (root *MongoDbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
 }
 
-func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+func (root *MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
 	lagoonSyncBin, _ := utils.FindLagoonSyncOnEnv()
 
 	return SyncCommand{
@@ -116,7 +117,7 @@ func (root MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []SyncCommand {
+func (root *MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -136,7 +137,7 @@ func (root MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []Sy
 	}
 }
 
-func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCommand {
+func (m *MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCommand {
 	l := m.Config
 	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		l = m.getEffectiveLocalDetails()
@@ -153,20 +154,29 @@ func (m MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCo
 	}
 }
 
-func (m MongoDbSyncRoot) GetFilesToCleanup(environment Environment) []string {
+func (m *MongoDbSyncRoot) GetFilesToCleanup(environment Environment) []string {
 	transferResource := m.GetTransferResource(environment)
 	return []string{
 		transferResource.Name,
 	}
 }
 
-func (m MongoDbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
+func (m *MongoDbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
+	resourceName := fmt.Sprintf("%vlagoon_sync_mongodb_%v.bson", m.GetOutputDirectory(), m.TransferId)
+	if m.TransferResourceOverride != "" {
+		resourceName = m.TransferResourceOverride
+	}
 	return SyncerTransferResource{
-		Name:        fmt.Sprintf("%vlagoon_sync_mongodb_%v.bson", m.GetOutputDirectory(), m.TransferId),
+		Name:        resourceName,
 		IsDirectory: false}
 }
 
-func (root MongoDbSyncRoot) GetOutputDirectory() string {
+func (m *MongoDbSyncRoot) SetTransferResource(transferResourceName string) error {
+	m.TransferResourceOverride = transferResourceName
+	return nil
+}
+
+func (root *MongoDbSyncRoot) GetOutputDirectory() string {
 	m := root.Config
 	if len(m.OutputDirectory) == 0 {
 		return "/tmp/"
@@ -174,7 +184,7 @@ func (root MongoDbSyncRoot) GetOutputDirectory() string {
 	return m.OutputDirectory
 }
 
-func (syncConfig MongoDbSyncRoot) getEffectiveLocalDetails() BaseMongoDbSync {
+func (syncConfig *MongoDbSyncRoot) getEffectiveLocalDetails() BaseMongoDbSync {
 	returnDetails := BaseMongoDbSync{
 		DbHostname:      syncConfig.Config.DbHostname,
 		DbPort:          syncConfig.Config.DbPort,
