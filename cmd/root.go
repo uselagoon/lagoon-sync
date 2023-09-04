@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/uselagoon/lagoon-sync/assets"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/uselagoon/lagoon-sync/assets"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -47,7 +51,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./.lagoon.yml", "config file (default is .lagoon.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Path to the file used to set lagoon-sync configuration")
 	rootCmd.PersistentFlags().BoolVar(&ShowDebug, "show-debug", false, "Shows debug information")
 	viper.BindPFlag("show-debug", rootCmd.PersistentFlags().Lookup("show-debug"))
 
@@ -56,66 +60,132 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-// initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	// Find home directory.
-	home, err := homedir.Dir()
+	err := processConfig(cfgFile)
 	if err != nil {
-		fmt.Println(err)
+		utils.LogFatalError("Unable to read in config file", err)
 		os.Exit(1)
 	}
-	// Search config in home directory with name ".lagoon-sync" (without extension).
-	viper.AddConfigPath(home)
-	viper.AddConfigPath("/lagoon")
-	viper.AddConfigPath("/tmp")
+}
+
+func processConfig(cfgFile string) error {
+	// If cfgFile arg given, return early
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+		viper.AutomaticEnv()
+
+		if err := viper.ReadInConfig(); err == nil {
+			utils.LogDebugInfo("Using config file", viper.ConfigFileUsed())
+		} else {
+			return fmt.Errorf("failed to read config file: %v", err)
+		}
+
+		return nil
+	}
+
+	home, err := homedir.Dir()
+	if err != nil {
+		return fmt.Errorf("unable to find home directory: %v", err)
+	}
+
+	paths := []string{".", "./lagoon", "/tmp", home}
+	for _, path := range paths {
+		viper.AddConfigPath(path)
+	}
 	viper.SetConfigName(cfgFile)
 	viper.SetConfigType("yaml")
 
-	// Find default config file for env vars (e.g. 'lagoon-sync-defaults')
-	lagoonSyncDefaultsFile, exists := os.LookupEnv("LAGOON_SYNC_DEFAULTS_PATH")
-	if exists {
-		utils.LogDebugInfo("LAGOON_SYNC_DEFAULTS_PATH env var found", lagoonSyncDefaultsFile)
-	} else {
-		lagoonSyncDefaultsFile = "/lagoon/.lagoon-sync-defaults"
+	// Find config file from env vars (e.g., 'LAGOON_SYNC_DEFAULTS_PATH' and 'LAGOON_SYNC_PATH')
+	defaultFiles := map[string]string{
+		"LAGOON_SYNC_DEFAULTS_PATH": "/lagoon/.lagoon-sync-defaults",
+		"LAGOON_SYNC_PATH":          "/lagoon/.lagoon-sync",
 	}
 
-	// Find lagoon-sync config file (e.g. 'lagoon-sync')
-	lagoonSyncCfgFile, exists := os.LookupEnv("LAGOON_SYNC_PATH")
-	if exists {
-		utils.LogDebugInfo("LAGOON_SYNC_PATH env var found", lagoonSyncCfgFile)
-	} else {
-		lagoonSyncCfgFile = "/lagoon/.lagoon-sync"
+	for envVar, defaultFile := range defaultFiles {
+		filePath, exists := os.LookupEnv(envVar)
+		if exists {
+			utils.LogDebugInfo(envVar+" env var found", filePath)
+			if utils.FileExists(filePath) {
+				viper.SetConfigFile(filePath)
+				cfgFile = filePath
+				break
+			}
+		} else {
+			if utils.FileExists(defaultFile) {
+				viper.SetConfigFile(defaultFile)
+				cfgFile = defaultFile
+				break
+			}
+		}
 	}
 
+	// Next, check for common lagoon config files and override defaults.
+	for _, path := range paths {
+		cfgFiles := []string{
+			// filepath.Join(path, ".lagoon.yml"),
+			filepath.Join(path, ".lagoon-sync.yml"),
+			filepath.Join(path, ".lagoon-sync"),
+		}
+		for _, filePath := range cfgFiles {
+			if utils.FileExists(filePath) {
+				cfgFile = filePath
+				break
+			}
+		}
+		if cfgFile != "" {
+			break
+		}
+	}
+
+	// Set the config file if found
 	if cfgFile != "" {
-		// Use config file from the flag, default for this is '.lagoon.yml'
-		if utils.FileExists(cfgFile) {
-			viper.SetConfigName(cfgFile)
-			viper.SetConfigFile(cfgFile)
-		}
+		viper.SetConfigFile(cfgFile)
+		viper.AutomaticEnv()
 
-		// Set '.lagoon-sync-defaults' as config file is it exists.
-		if utils.FileExists(lagoonSyncDefaultsFile) {
-			viper.SetConfigName(lagoonSyncDefaultsFile)
-			viper.SetConfigFile(lagoonSyncDefaultsFile)
-			cfgFile = lagoonSyncDefaultsFile
+		// If a config file is found, read it in.
+		if err := viper.ReadInConfig(); err == nil {
+			utils.LogDebugInfo("Using config file", viper.ConfigFileUsed())
+		} else {
+			return fmt.Errorf("failed to read config file: %v", err)
 		}
+	} else {
+		// If no config file is found, load default config stored as an asset
+		if !utils.FileExists(".lagoon-sync.yml") && !noCliInteraction {
+			var response string
+			// Ask user to safe-write config to '.lagoon-sync.yml'
+			fmt.Print("No configuration file found, do you want to add the file '.lagoon-sync.yml'? (y/n): ")
+			_, err = fmt.Scanln(&response)
+			if err != nil {
+				return fmt.Errorf("failed to read user input: %v", err)
+			}
 
-		// Set '.lagoon-sync' as config file is it exists.
-		if utils.FileExists(lagoonSyncCfgFile) {
-			viper.SetConfigName(lagoonSyncCfgFile)
-			viper.SetConfigFile(lagoonSyncCfgFile)
-			cfgFile = lagoonSyncCfgFile
+			defaultConfigData, err := assets.GetDefaultConfig()
+			if err != nil {
+				return fmt.Errorf("failed to load default config: %v", err)
+			}
+
+			viper.SetConfigType("yaml")
+			viper.SetConfigName("default")
+
+			err = viper.ReadConfig(bytes.NewBuffer(defaultConfigData))
+			if err != nil {
+				return fmt.Errorf("failed to read default config: %v", err)
+			}
+
+			if strings.ToLower(strings.TrimSpace(response)) == "y" {
+				err = viper.SafeWriteConfigAs(".lagoon-sync.yml")
+				if err != nil {
+					return fmt.Errorf("failed to write '.lagoon-sync.yml': %v", err)
+				}
+
+				fmt.Println("The file '.lagoon-sync.yml' has been added.")
+			} else {
+				fmt.Println("Skipping the creation of '.lagoon-sync.yml'.")
+			}
+
+			viper.SetConfigFile(".lagoon-sync.yml")
 		}
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		utils.LogDebugInfo("Using config file", viper.ConfigFileUsed())
-	}
-	if err := viper.ReadInConfig(); err != nil {
-		utils.LogFatalError("Unable to read in config file", err)
-	}
+	return nil
 }

@@ -35,6 +35,24 @@ type MariadbSyncRoot struct {
 	TransferResourceOverride string
 }
 
+func (mariadbConfig *BaseMariaDbSync) setDefaults() {
+	if mariadbConfig.DbHostname == "" {
+		mariadbConfig.DbHostname = "${MARIADB_HOST:-mariadb}"
+	}
+	if mariadbConfig.DbUsername == "" {
+		mariadbConfig.DbUsername = "${MARIADB_USERNAME:-drupal}"
+	}
+	if mariadbConfig.DbPassword == "" {
+		mariadbConfig.DbPassword = "${MARIADB_PASSWORD:-drupal}"
+	}
+	if mariadbConfig.DbPort == "" {
+		mariadbConfig.DbPort = "${MARIADB_PORT:-3306}"
+	}
+	if mariadbConfig.DbDatabase == "" {
+		mariadbConfig.DbDatabase = "${MARIADB_DATABASE:-drupal}"
+	}
+}
+
 // Init related types and functions follow
 
 type MariadbSyncPlugin struct {
@@ -51,21 +69,21 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
+	mariadb.Config.setDefaults()
+	mariadb.LocalOverrides.Config.setDefaults()
 
-	// Use 'lagoon-sync' yaml as default
-	configMap := root.LagoonSync[m.GetPluginId()]
+	syncherConfig := root.LagoonSync[m.GetPluginId()]
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any
-	if len(root.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(configMap, &mariadb)
+	if syncherConfig != nil {
+		_ = UnmarshalIntoStruct(syncherConfig, &mariadb)
 		utils.LogDebugInfo("Config that will be used for sync", mariadb)
+	} else {
+		// If config from active config file is empty, then use defaults
+		if syncherConfig == nil {
+			utils.LogDebugInfo("Active syncer config is empty, so using defaults", mariadb)
+		}
 	}
-
-	// If config from active config file is empty, then use defaults
-	if configMap == nil {
-		utils.LogDebugInfo("Active syncer config is empty, so using defaults", mariadb)
-	}
-
 	if mariadb.Config.IsBaseMariaDbStructureEmpty() && &mariadb == nil {
 		m.isConfigEmpty = true
 		utils.LogFatalError("No syncer configuration could be found in", viper.GetViper().ConfigFileUsed())
