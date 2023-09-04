@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/uselagoon/lagoon-sync/synchers"
 )
 
@@ -32,12 +33,12 @@ func Test_syncCommandRun(t *testing.T) {
 				},
 			},
 			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
-				if args.SourceEnvironment.SSH.Port != "32222" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", args.SourceEnvironment.SSH.Port))
+				if args.SshOptions.Port != "32222" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", args.SshOptions.Port))
 				}
 
-				if args.SourceEnvironment.SSH.Host != "ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SourceEnvironment.SSH.Host))
+				if args.SshOptions.Host != "ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SshOptions.Host))
 				}
 
 				return nil
@@ -54,12 +55,16 @@ func Test_syncCommandRun(t *testing.T) {
 				},
 			},
 			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
-				if args.SourceEnvironment.SSH.Port != "777" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", args.SourceEnvironment.SSH.Port))
+				if args.SourceEnvironment.ProjectName != "lagoon-sync" {
+					return errors.New(fmt.Sprintf("Expecting project name 'lagoon-sync' - found: %v", args.SourceEnvironment.ProjectName))
 				}
 
-				if args.SourceEnvironment.SSH.Host != "example.ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SourceEnvironment.SSH.Host))
+				if args.SshOptions.Port != "777" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", args.SshOptions.Port))
+				}
+
+				if args.SshOptions.Host != "example.ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SshOptions.Host))
 				}
 
 				return nil
@@ -72,6 +77,11 @@ func Test_syncCommandRun(t *testing.T) {
 			runSyncProcess = tt.runSyncProcess
 			cfgFile = tt.lagoonYmlFile
 			noCliInteraction = true
+			SkipAPI = true
+
+			viper.SetConfigFile(cfgFile)
+			viper.AutomaticEnv()
+
 			syncCommandRun(tt.args.cmd, tt.args.args)
 		})
 	}
@@ -134,7 +144,7 @@ func TestSetSSHOptions(t *testing.T) {
 			SkipAPI = true
 			noCliInteraction = true
 
-			if got := s.GetSSHOptions(tt.args.Project, tt.args.Source.EnvironmentName, tt.args.Config); !reflect.DeepEqual(got, tt.want) {
+			if got := s.GetSSHOptions(tt.args.Project, tt.args.Source, tt.args.Config); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetSSHOptions() = %v, want %v", got, tt.want)
 			}
 		})
