@@ -46,19 +46,28 @@ var syncCmd = &cobra.Command{
 }
 
 func syncCommandRun(cmd *cobra.Command, args []string) {
-
 	SyncerType := args[0]
 	viper.Set("syncer-type", args[0])
 
-	lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
-	if err != nil {
-		utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
+	var configRoot synchers.SyncherConfigRoot
+
+	if viper.ConfigFileUsed() == "" {
+		utils.LogWarning("No configuration has been given/found for syncer: ", SyncerType)
 	}
 
-	configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-	
-	if err != nil {
-		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+	if viper.ConfigFileUsed() != "" {
+		lagoonConfigBytestream, err := LoadLagoonConfig(viper.ConfigFileUsed())
+		if err != nil {
+			utils.LogDebugInfo("Couldn't load lagoon config file - ", err.Error())
+		} else {
+			loadedConfigRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+			if err != nil {
+				log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+			} else {
+				// Update configRoot with loaded
+				configRoot = loadedConfigRoot
+			}
+		}
 	}
 
 	// If no project flag is given, find project from env var.
@@ -98,7 +107,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	// the syncer type with the argument passed through to this command
 	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
 	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
-	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
+	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
 	}

@@ -141,54 +141,18 @@ This command would attempt to sync mariadb databases from `prod` to `dev` enviro
 
 ## Configuring lagoon-sync
 
-It is possible to configure the data consumed by lagoon-sync via adding a `lagoon-sync:` key to an existing `.lagoon.yml` file or via a configuration file such as (`.lagoon-sync`). See the `.lagoon.yml` and `.example-lagoon-sync` in the root of this repo for examples.
+Lagoon-sync configuration can be managed via yaml-formatted configuration files. The paths to these config files can be defined either by the `--config` argument, or by environment variables (`LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH`).
 
-If a `.lagoon.yml` is available within the project, then this file will be used as the active configuration file to attempt to gather configuration data from by default.
+The order of configuration precedence is as follows:
 
-Next, if a `.lagoon-sync` or `.lagoon-sync-defaults` file is added to the `/lagoon` directory then these will be used as the active configuration file. Running the sync with `--show-debug` you are able to see the configuration that will be run prior to running the process:
+1. `--config` argument (e.g. `lagoon-sync [command] --config ./.custom-lagoon-sync-config.yaml`).
+2.  `.lagoon.yaml` files (i.e. in project root, or `lagoon` directory). If an `.lagoon.yml` is available within the project, then this file will be used as the active configuration file by default.
+3. `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` environment variables.
+4. Finally, if no config file can be found the default configuration will be used a safely written to a new '.lagoon.yml`
 
-```
-$ lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+There are some configuration examples in the `examples` directory of this repo.
 
-2021/01/22 11:34:10 (DEBUG) Using config file: /lagoon/.lagoon-sync
-2021/01/22 11:34:10 (DEBUG) Config that will be used for sync:
- {
-  "Config": {
-    "DbHostname": "$MARIADB_HOST",
-    "DbUsername": "$MARIADB_USERNAME",
-    "DbPassword": "$MARIADB_PASSWORD",
-    "DbPort": "$MARIADB_PORT",
-    "DbDatabase": "$MARIADB_DATABASE",
-    ...
-```
-
-To recap, the configuration files that can be used by default, in order of priority when available are:
-* /lagoon/.lagoon-sync-defaults
-* /lagoon/.lagoon-sync
-* .lagoon.yml
-
-### Custom configuration files
-If you don't want your configuration file inside `/lagoon` and want to give it another name then you can define a custom file and tell sync to use that by providing the file path. This can be done with `--config` flag such as:Config files that can be used in order of priority:
-- .lagoon-sync-defaults _(no yaml ext neeeded)_
-- .lagoon-sync _(no yaml ext neeeded)_
-- .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_
-å
-```
-$ lagoon-sync sync mariadb -p mysite-com -e dev --config=/app/.lagoon-sync --show-debug
-
-2021/01/22 11:43:50 (DEBUG) Using config file: /app/.lagoon-sync
-```
-
-You can also use an environment variable to set the config sync path with either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH`.
-
-```
-$ LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
-
-2021/01/22 11:46:42 (DEBUG) LAGOON_SYNC_PATH env var found: /app/.lagoon-sync
-2021/01/22 11:46:42 (DEBUG) Using config file: /app/.lagoon-sync
-```
-
-To double check which config file is active you can also run the `$ lagoon-sync config` command.
+To double check which config file is loaded you can also run the `lagoon-sync config` command.
 
 ### Example sync config overrides
 ```
