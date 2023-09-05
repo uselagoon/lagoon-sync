@@ -177,7 +177,6 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	rsyncRemoteSystemUsername := ""
 
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-		//sourceEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", sourceEnvironment.GetOpenshiftProjectName(), sourceEnvironmentName)
 		sourceEnvironmentName = fmt.Sprintf(":%s", sourceEnvironmentName)
 		rsyncRemoteSystemUsername = sourceEnvironment.GetOpenshiftProjectName()
 		if sourceEnvironment.ServiceName != "" {
@@ -187,7 +186,6 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 
 	targetEnvironmentName := syncer.GetTransferResource(targetEnvironment).Name
 	if targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && executeRsyncRemotelyOnTarget == false {
-		//targetEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", targetEnvironment.GetOpenshiftProjectName(), targetEnvironmentName)
 		targetEnvironmentName = fmt.Sprintf(":%s", targetEnvironmentName)
 		rsyncRemoteSystemUsername = targetEnvironment.GetOpenshiftProjectName()
 		if targetEnvironment.ServiceName != "" {

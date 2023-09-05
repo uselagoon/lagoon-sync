@@ -6,7 +6,7 @@ project: "lagoon-sync"
 # These ssh and api settings can be added to configure Lagoon outside of amazeeio.cloud infrastructure
 # api: https://api.main.lagoon-core.cluster1.company.io/graphql
 api: https://api.main.lagoon-core.test6.amazee.io/graphql
-ssh: ssh.main.lagoon-core.test6.amazee.io:22 
+ssh: ssh.main.lagoon-core.test6.amazee.io:22
 
 lagoon-sync:
   ssh:

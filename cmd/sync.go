@@ -278,7 +278,8 @@ func (s *Sync) GetSSHOptions(project string, environment synchers.Environment, c
 	if !noCliInteraction {
 		if sshConfig.Host == "" || sshConfig.Port == "" {
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("\033[32mWe couldn't find any Lagoon SSH config.\n\033[0m")
+
+			fmt.Printf("\033[32mWe couldn't find any Lagoon SSH config for environment '%s'.\n\033[0m", environment.EnvironmentName)
 			fmt.Print("\033[32mDo you want to define that now, or use the defaults? (yes/no): \033[0m")
 			input, err := reader.ReadString('\n')
 			if err != nil {
@@ -286,15 +287,14 @@ func (s *Sync) GetSSHOptions(project string, environment synchers.Environment, c
 			}
 			input = strings.TrimSpace(strings.ToLower(input))
 			if input == "yes" {
-
-				fmt.Print("\033[32mEnter custom LagoonAPI SSHHost: \033[0m")
+				fmt.Printf("\033[32mEnter SSH Host for '%s': \033[0m", environment.EnvironmentName)
 				sshHost, err := reader.ReadString('\n')
 				if err != nil {
 					log.Fatalf("Error reading user input: %v", err)
 				}
 				sshConfig.Host = strings.TrimSpace(sshHost)
 
-				fmt.Print("\033[32mEnter custom LagoonAPI SSHPort: \033[0m")
+				fmt.Printf("\033[32mEnter SSH Port for '%s': \033[0m", environment.EnvironmentName)
 				sshPort, err := reader.ReadString('\n')
 				if err != nil {
 					log.Fatalf("Error reading user input: %v", err)
@@ -302,7 +302,7 @@ func (s *Sync) GetSSHOptions(project string, environment synchers.Environment, c
 				sshConfig.Port = strings.TrimSpace(sshPort)
 
 				if sshConfig.PrivateKey == "" {
-					fmt.Print("\033[32mEnter custom LagoonAPI SSHKey: \033[0m")
+					fmt.Printf("\033[32mEnter SSH Key for '%s': \033[0m", environment.EnvironmentName)
 					sshKey, err := reader.ReadString('\n')
 					if err != nil {
 						log.Fatalf("Error reading user input: %v", err)
