@@ -3,6 +3,8 @@ docker-compose-yaml: docker-compose.yml
 
 project: "lagoon-sync"
 
+api: "https://api.main.lagoon-core.test6.amazee.io/graphql"
+
 lagoon-sync:
   ssh:
     host: "example.ssh.lagoon.amazeeio.cloud"

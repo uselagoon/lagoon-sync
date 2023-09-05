@@ -153,7 +153,7 @@ func processConfig(cfgFile string) error {
 		if !utils.FileExists(".lagoon-sync.yml") && !noCliInteraction {
 			var response string
 			// Ask user to safe-write config to '.lagoon-sync.yml'
-			fmt.Print("No configuration file found, do you want to add the file '.lagoon-sync.yml'? (y/n): ")
+			fmt.Print("No configuration file found, do you want to add the default config file '.lagoon-sync.yml'? (y/n): ")
 			_, err = fmt.Scanln(&response)
 			if err != nil {
 				return fmt.Errorf("failed to read user input: %v", err)

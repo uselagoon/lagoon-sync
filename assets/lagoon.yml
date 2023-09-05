@@ -1,3 +1,6 @@
+api: https://api.lagoon.amazeeio.cloud/graphql
+ssh: ssh.lagoon.amazeeio.cloud:32222
+
 lagoon-sync:
   ssh:
     host: "ssh.lagoon.amazeeio.cloud"
