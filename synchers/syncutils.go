@@ -34,6 +34,7 @@ type RunSyncProcessFunctionTypeArguments struct {
 	SyncerType           string
 	DryRun               bool
 	SshOptions           SSHOptions
+	SkipSourceRun        bool
 	SkipSourceCleanup    bool
 	SkipTargetCleanup    bool
 	SkipTargetImport     bool
@@ -57,10 +58,12 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return err
 	}
 
-	err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
-	if err != nil {
-		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
-		return err
+	if !args.SkipSourceRun {
+		err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		if err != nil {
+			_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+			return err
+		}
 	}
 
 	args.TargetEnvironment, err = RunPrerequisiteCommand(args.TargetEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptions)
