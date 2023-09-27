@@ -33,19 +33,19 @@ type PostgresSyncLocal struct {
 
 func (postgresConfig *BasePostgresSync) setDefaults() {
 	if postgresConfig.DbHostname == "" {
-		postgresConfig.DbHostname = "$AMAZEEIO_DB_HOST"
+		postgresConfig.DbHostname = "${POSTGRES_HOST:-postgres}"
 	}
 	if postgresConfig.DbUsername == "" {
-		postgresConfig.DbUsername = "$AMAZEEIO_DB_USERNAME"
+		postgresConfig.DbUsername = "${POSTGRES_USERNAME:-drupal}"
 	}
 	if postgresConfig.DbPassword == "" {
-		postgresConfig.DbPassword = "$AMAZEEIO_DB_PASSWORD"
+		postgresConfig.DbPassword = "${POSTGRES_PASSWORD:-drupal}"
 	}
 	if postgresConfig.DbPort == "" {
-		postgresConfig.DbPort = "$AMAZEEIO_DB_PORT"
+		postgresConfig.DbPort = "${POSTGRES_PORT:-5432}"
 	}
 	if postgresConfig.DbDatabase == "" {
-		postgresConfig.DbDatabase = "$POSTGRES_DATABASE"
+		postgresConfig.DbDatabase = "${POSTGRES_DATABASE:-drupal}"
 	}
 }
 
