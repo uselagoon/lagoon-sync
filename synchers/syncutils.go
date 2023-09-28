@@ -269,9 +269,14 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 
 		utils.LogExecutionStep(fmt.Sprintf("Running the following for target (%s)", targetEnvironment.EnvironmentName), execString)
 		if !dryRun {
-			err, _, errstring := utils.Shellout(execString)
+			err, outstring, errstring := utils.Shellout(execString)
 			if err != nil {
-				utils.LogFatalError(errstring, nil)
+				utils.LogError(outstring, nil)
+				if errstring != "" {
+					utils.LogFatalError(errstring, nil)
+				} else {
+					utils.LogFatalError(fmt.Sprintf("Error: %s", err), nil)
+				}
 				return err
 			}
 		}
