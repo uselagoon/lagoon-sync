@@ -65,6 +65,20 @@ func LogDebugInfo(message string, output interface{}) {
 	}
 }
 
+func LogError(message string, output interface{}) {
+	logger := log.New(os.Stdout)
+	if colour {
+		logger.WithColor()
+	} else {
+		logger.WithoutColor()
+	}
+	if output == nil {
+		logger.Error(message)
+	} else if output != nil {
+		logger.Error(message, output)
+	}
+}
+
 func LogFatalError(message string, output interface{}) {
 	logger := log.New(os.Stdout)
 	if colour {
