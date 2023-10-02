@@ -140,7 +140,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 				//execString = GenerateRemoteCommand(remoteEnvironment, command, sshOptions)
 				err, _, _ := utils.RemoteShellout(execString, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
 				if err != nil {
-					utils.LogFatalError("Unable to exec remote command", nil)
+					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 					return err
 				}
 			}
@@ -240,7 +240,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 			//execString = GenerateRemoteCommand(targetEnvironment, execString, sshOptions)
 			err, _, _ := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
 			if err != nil {
-				utils.LogFatalError("Unable to exec remote command", nil)
+				utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 				return err
 			}
 		} else {
@@ -285,7 +285,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 				//execString = GenerateRemoteCommand(targetEnvironment, tcomm, sshOptions)
 				err, _, _ := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
 				if err != nil {
-					utils.LogFatalError("Unable to exec remote command", nil)
+					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 					return err
 				}
 			}
@@ -316,7 +316,7 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptions
 				//execString = GenerateRemoteCommand(environment, execString, sshOptions)
 				err, _, _ := utils.RemoteShellout(execString, environment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
 				if err != nil {
-					utils.LogFatalError("Unable to exec remote command", nil)
+					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 					return err
 				}
 			}
