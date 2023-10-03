@@ -289,7 +289,6 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 					return err
 				}
 			}
-
 		}
 	}
 	return nil
