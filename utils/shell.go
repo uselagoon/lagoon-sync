@@ -21,7 +21,7 @@ func Shellout(command string) (error, string, string) {
 	return err, stdout.String(), stderr.String()
 }
 
-func RemoteShellout(command string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string) (error, string, string) {
+func RemoteShellout(command string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string) (error, string) {
 	// Read the private key file
 
 	skipAgent := false
@@ -44,14 +44,14 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 
 	// if there are authMethods already, let's keep going
 	if err != nil && len(authMethods) == 0 {
-		return err, "", ""
+		return err, ""
 	}
 
 	if len(privateKeyBytes) > 0 {
 		// Parse the private key
 		signer, err := ssh.ParsePrivateKey(privateKeyBytes)
 		if err != nil {
-			return err, "", ""
+			return err, ""
 		}
 
 		// SSH client configuration
@@ -68,7 +68,7 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 	// Connect to the remote server
 	client, err := ssh.Dial("tcp", remoteHost+":"+remotePort, config)
 	if err != nil {
-		return err, "", ""
+		return err, ""
 	}
 
 	defer client.Close()
@@ -76,31 +76,30 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 	// Create a session
 	session, err := client.NewSession()
 	if err != nil {
-		return err, "", ""
+		return err, ""
 	}
 	defer session.Close()
 
+	var outputBuffer bytes.Buffer
+
 	// Set up pipes for stdin, stdout, and stderr
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
-	stdin, err := session.StdinPipe()
+	session.Stdout = &outputBuffer
+	session.Stderr = &outputBuffer
+	//stdin, err := session.StdinPipe()
 	if err != nil {
-		return err, "", ""
+		return err, ""
 	}
 
 	// Start the remote command
 	err = session.Start(command)
 	if err != nil {
-		return err, "", ""
+		return err, outputBuffer.String()
 	}
 	// Wait for the command to complete
 	err = session.Wait()
 	if err != nil {
-		return err, "", ""
+		return err, outputBuffer.String()
 	}
 
-	// Close the stdin pipe
-	stdin.Close()
-
-	return nil, "", ""
+	return nil, outputBuffer.String()
 }

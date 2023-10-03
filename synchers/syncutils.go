@@ -137,8 +137,8 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 					log.Println(response)
 				}
 			} else {
-				//execString = GenerateRemoteCommand(remoteEnvironment, command, sshOptions)
-				err, _, _ := utils.RemoteShellout(execString, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+				err, output := utils.RemoteShellout(execString, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+				utils.LogDebugInfo(output, nil)
 				if err != nil {
 					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 					return err
@@ -237,8 +237,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	if !dryRun {
 
 		if executeRsyncRemotelyOnTarget {
-			//execString = GenerateRemoteCommand(targetEnvironment, execString, sshOptions)
-			err, _, _ := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+			err, output := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+			utils.LogDebugInfo(output, nil)
 			if err != nil {
 				utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 				return err
@@ -282,8 +282,8 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 					return err
 				}
 			} else {
-				//execString = GenerateRemoteCommand(targetEnvironment, tcomm, sshOptions)
-				err, _, _ := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+				err, output := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+				utils.LogDebugInfo(output, nil)
 				if err != nil {
 					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 					return err
@@ -313,8 +313,8 @@ func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptions
 		utils.LogExecutionStep("Running the following", execString)
 		if !dryRun {
 			if environment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
-				//execString = GenerateRemoteCommand(environment, execString, sshOptions)
-				err, _, _ := utils.RemoteShellout(execString, environment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+				err, output := utils.RemoteShellout(execString, environment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey)
+				utils.LogDebugInfo(output, nil)
 				if err != nil {
 					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
 					return err
