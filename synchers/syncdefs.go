@@ -20,6 +20,8 @@ type Syncer interface {
 	GetLocalCommand(environment Environment) []SyncCommand
 	// GetTransferResource will return the command that executes the transfer
 	GetTransferResource(environment Environment) SyncerTransferResource
+	// SetTransferResource allows for the overriding of the resource transfer name that's typically generated
+	SetTransferResource(transferResourceName string) error
 	// GetFilesToCleanup will return a list of files to be deleted after completing the transfer
 	GetFilesToCleanup(environment Environment) []string
 	// PrepareSyncer does any preparations required on a Syncer before it is used
@@ -99,6 +101,6 @@ func GenerateRemoteCommand(remoteEnvironment Environment, command string, sshOpt
 		serviceArgument = fmt.Sprintf("service=%v", remoteEnvironment.ServiceName)
 	}
 
-	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s '%s'",
+	return fmt.Sprintf("ssh%s -tt -o LogLevel=FATAL -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s '%s'",
 		sshOptionsStr.String(), sshOptions.Port, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
 }

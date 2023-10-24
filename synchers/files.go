@@ -77,39 +77,39 @@ func init() {
 	RegisterSyncer(FilesSyncPlugin{})
 }
 
-func (m FilesSyncRoot) IsInitialized() (bool, error) {
+func (m *FilesSyncRoot) IsInitialized() (bool, error) {
 	return true, nil
 }
 
-func (root FilesSyncRoot) PrepareSyncer() (Syncer, error) {
+func (root *FilesSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
 }
 
-func (root FilesSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+func (root *FilesSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
 	return SyncCommand{}
 }
 
-func (root FilesSyncRoot) GetRemoteCommand(environment Environment) []SyncCommand {
+func (root *FilesSyncRoot) GetRemoteCommand(environment Environment) []SyncCommand {
 	return []SyncCommand{
 		generateNoOpSyncCommand(),
 	}
 }
 
-func (m FilesSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
+func (m *FilesSyncRoot) GetLocalCommand(environment Environment) []SyncCommand {
 	return []SyncCommand{
 		generateNoOpSyncCommand(),
 	}
 }
 
-func (m FilesSyncRoot) GetFilesToCleanup(environment Environment) []string {
+func (m *FilesSyncRoot) GetFilesToCleanup(environment Environment) []string {
 	transferResource := m.GetTransferResource(environment)
 	return []string{
 		transferResource.Name,
 	}
 }
 
-func (m FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
+func (m *FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	config := m.Config
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		config = m.getEffectiveLocalDetails()
@@ -122,7 +122,11 @@ func (m FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransf
 	}
 }
 
-func (syncConfig FilesSyncRoot) getEffectiveLocalDetails() BaseFilesSync {
+func (m *FilesSyncRoot) SetTransferResource(transferResourceName string) error {
+	return fmt.Errorf("Setting the transfer resource is not supported for files")
+}
+
+func (syncConfig *FilesSyncRoot) getEffectiveLocalDetails() BaseFilesSync {
 	returnDetails := BaseFilesSync{
 		SyncPath: syncConfig.Config.SyncPath,
 	}

@@ -35,6 +35,7 @@ var skipSourceCleanup bool
 var skipTargetCleanup bool
 var skipTargetImport bool
 var localTransferResourceName string
+var namedTransferResource string
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -45,18 +46,28 @@ var syncCmd = &cobra.Command{
 }
 
 func syncCommandRun(cmd *cobra.Command, args []string) {
-
 	SyncerType := args[0]
 	viper.Set("syncer-type", args[0])
 
-	lagoonConfigBytestream, err := LoadLagoonConfig(cfgFile)
-	if err != nil {
-		utils.LogFatalError("Couldn't load lagoon config file - ", err.Error())
+	var configRoot synchers.SyncherConfigRoot
+
+	if viper.ConfigFileUsed() == "" {
+		utils.LogWarning("No configuration has been given/found for syncer: ", SyncerType)
 	}
 
-	configRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-	if err != nil {
-		log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+	if viper.ConfigFileUsed() != "" {
+		lagoonConfigBytestream, err := LoadLagoonConfig(viper.ConfigFileUsed())
+		if err != nil {
+			utils.LogDebugInfo("Couldn't load lagoon config file - ", err.Error())
+		} else {
+			loadedConfigRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+			if err != nil {
+				log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
+			} else {
+				// Update configRoot with loaded
+				configRoot = loadedConfigRoot
+			}
+		}
 	}
 
 	// If no project flag is given, find project from env var.
@@ -92,9 +103,11 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 
 	var lagoonSyncer synchers.Syncer
-
-	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
-
+	// Syncers are registered in their init() functions - so here we attempt to match
+	// the syncer type with the argument passed through to this command
+	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
+	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
+	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
 		// Let's ask the custom syncer if this will work, if so, we fall back on it ...
 		lagoonSyncer, err = synchers.GetCustomSync(configRoot, SyncerType)
@@ -149,18 +162,27 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		RsyncArgs:  RsyncArguments,
 	}
 
+	// let's update the named transfer resource if it is set
+	if namedTransferResource != "" {
+		err = lagoonSyncer.SetTransferResource(namedTransferResource)
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
+	}
+
 	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
-		SourceEnvironment: sourceEnvironment,
-		TargetEnvironment: targetEnvironment,
-		LagoonSyncer:      lagoonSyncer,
-		SyncerType:        SyncerType,
-		DryRun:            dryRun,
-		SshOptions:        sshOptions,
-		SkipTargetCleanup: skipTargetCleanup,
-		SkipSourceCleanup: skipSourceCleanup,
-		SkipTargetImport:  skipTargetImport,
+		SourceEnvironment:    sourceEnvironment,
+		TargetEnvironment:    targetEnvironment,
+		LagoonSyncer:         lagoonSyncer,
+		SyncerType:           SyncerType,
+		DryRun:               dryRun,
+		SshOptions:           sshOptions,
+		SkipTargetCleanup:    skipTargetCleanup,
+		SkipSourceCleanup:    skipSourceCleanup,
+		SkipTargetImport:     skipTargetImport,
+		TransferResourceName: namedTransferResource,
 	})
 
 	if err != nil {
@@ -209,6 +231,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
+	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time

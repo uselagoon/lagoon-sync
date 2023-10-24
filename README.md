@@ -141,15 +141,18 @@ This command would attempt to sync mariadb databases from `prod` to `dev` enviro
 
 ## Configuring lagoon-sync
 
-It is possible to configure the data consumed by lagoon-sync via adding a `lagoon-sync:` key to an existing `.lagoon.yml` file or via a configuration file such as (`.lagoon-sync`). See the `.lagoon.yml` and `.example-lagoon-sync` in the root of this repo for examples.
+Lagoon-sync configuration can be managed via yaml-formatted configuration files. The paths to these config files can be defined either by the `--config` argument, or by environment variables (`LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH`).
 
-If a `.lagoon.yml` is available within the project, then this file will be used as the active configuration file to attempt to gather configuration data from by default.
+The order of configuration precedence is as follows:
 
-Next, if a `.lagoon-sync` or `.lagoon-sync-defaults` file is added to the `/lagoon` directory then these will be used as the active configuration file. Running the sync with `--show-debug` you are able to see the configuration that will be run prior to running the process:
+1. `--config` argument (e.g. `lagoon-sync [command] --config ./.custom-lagoon-sync-config.yaml`).
+2.  `.lagoon.yaml` files (i.e. in project root, or `lagoon` directory). If an `.lagoon.yml` is available within the project, then this file will be used as the active configuration file by default.
+3. `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH` environment variables.
+4. Finally, if no config file can be found the default configuration will be used a safely written to a new '.lagoon.yml`
 
-```
-$ lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+There are some configuration examples in the `examples` directory of this repo.
 
+<<<<<<< HEAD
 2021/01/22 11:34:10 (DEBUG) Using config file: /lagoon/.lagoon-sync
 2021/01/22 11:34:10 (DEBUG) Config that will be used for sync:
  {
@@ -221,6 +224,9 @@ $ LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e d
 ```
 
 To double check which config file is active you can also run the `$ lagoon-sync config` command.
+=======
+To double check which config file is loaded you can also run the `lagoon-sync config` command.
+>>>>>>> main
 
 ### Example sync config overrides
 ```

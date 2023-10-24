@@ -29,9 +29,28 @@ type MariadbSyncLocal struct {
 }
 
 type MariadbSyncRoot struct {
-	Config         BaseMariaDbSync
-	LocalOverrides MariadbSyncLocal `yaml:"local"`
-	TransferId     string
+	Config                   BaseMariaDbSync
+	LocalOverrides           MariadbSyncLocal `yaml:"local"`
+	TransferId               string
+	TransferResourceOverride string
+}
+
+func (mariadbConfig *BaseMariaDbSync) setDefaults() {
+	if mariadbConfig.DbHostname == "" {
+		mariadbConfig.DbHostname = "${MARIADB_HOST:-mariadb}"
+	}
+	if mariadbConfig.DbUsername == "" {
+		mariadbConfig.DbUsername = "${MARIADB_USERNAME:-drupal}"
+	}
+	if mariadbConfig.DbPassword == "" {
+		mariadbConfig.DbPassword = "${MARIADB_PASSWORD:-drupal}"
+	}
+	if mariadbConfig.DbPort == "" {
+		mariadbConfig.DbPort = "${MARIADB_PORT:-3306}"
+	}
+	if mariadbConfig.DbDatabase == "" {
+		mariadbConfig.DbDatabase = "${MARIADB_DATABASE:-drupal}"
+	}
 }
 
 // Init related types and functions follow
@@ -50,21 +69,21 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
+	mariadb.Config.setDefaults()
+	mariadb.LocalOverrides.Config.setDefaults()
 
-	// Use 'lagoon-sync' yaml as default
-	configMap := root.LagoonSync[m.GetPluginId()]
+	syncherConfig := root.LagoonSync[m.GetPluginId()]
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any
-	if len(root.LagoonSync) != 0 {
-		_ = UnmarshalIntoStruct(configMap, &mariadb)
+	if syncherConfig != nil {
+		_ = UnmarshalIntoStruct(syncherConfig, &mariadb)
 		utils.LogDebugInfo("Config that will be used for sync", mariadb)
+	} else {
+		// If config from active config file is empty, then use defaults
+		if syncherConfig == nil {
+			utils.LogDebugInfo("Active syncer config is empty, so using defaults", mariadb)
+		}
 	}
-
-	// If config from active config file is empty, then use defaults
-	if configMap == nil {
-		utils.LogDebugInfo("Active syncer config is empty, so using defaults", mariadb)
-	}
-
 	if mariadb.Config.IsBaseMariaDbStructureEmpty() && &mariadb == nil {
 		m.isConfigEmpty = true
 		utils.LogFatalError("No syncer configuration could be found in", viper.GetViper().ConfigFileUsed())
@@ -78,7 +97,7 @@ func init() {
 	RegisterSyncer(MariadbSyncPlugin{})
 }
 
-func (m MariadbSyncRoot) IsInitialized() (bool, error) {
+func (m *MariadbSyncRoot) IsInitialized() (bool, error) {
 
 	var missingEnvvars []string
 
@@ -105,12 +124,12 @@ func (m MariadbSyncRoot) IsInitialized() (bool, error) {
 	return true, nil
 }
 
-func (root MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
+func (root *MariadbSyncRoot) PrepareSyncer() (Syncer, error) {
 	root.TransferId = strconv.FormatInt(time.Now().UnixNano(), 10)
 	return root, nil
 }
 
-func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
+func (root *MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, command string) SyncCommand {
 	lagoonSyncBin, _ := utils.FindLagoonSyncOnEnv()
 
 	return SyncCommand{
@@ -122,7 +141,7 @@ func (root MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, comm
 	}
 }
 
-func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []SyncCommand {
+func (root *MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []SyncCommand {
 	m := root.Config
 
 	if sourceEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
@@ -166,7 +185,7 @@ func (root MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []Sy
 	}
 }
 
-func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCommand {
+func (m *MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCommand {
 	l := m.Config
 	if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		l = m.getEffectiveLocalDetails()
@@ -195,7 +214,7 @@ func (m MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCo
 	}
 }
 
-func (m MariadbSyncRoot) GetFilesToCleanup(environment Environment) []string {
+func (m *MariadbSyncRoot) GetFilesToCleanup(environment Environment) []string {
 	transferResource := m.GetTransferResource(environment)
 	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
 	return []string{
@@ -204,13 +223,22 @@ func (m MariadbSyncRoot) GetFilesToCleanup(environment Environment) []string {
 	}
 }
 
-func (m MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
+func (m *MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
+	resourceName := fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql.gz", m.GetOutputDirectory(), m.TransferId)
+	if m.TransferResourceOverride != "" {
+		resourceName = m.TransferResourceOverride
+	}
 	return SyncerTransferResource{
-		Name:        fmt.Sprintf("%vlagoon_sync_mariadb_%v.sql.gz", m.GetOutputDirectory(), m.TransferId),
+		Name:        resourceName,
 		IsDirectory: false}
 }
 
-func (root MariadbSyncRoot) GetOutputDirectory() string {
+func (m *MariadbSyncRoot) SetTransferResource(transferResourceName string) error {
+	m.TransferResourceOverride = transferResourceName
+	return nil
+}
+
+func (root *MariadbSyncRoot) GetOutputDirectory() string {
 	m := root.Config
 	if len(m.OutputDirectory) == 0 {
 		return "/tmp/"
@@ -218,7 +246,7 @@ func (root MariadbSyncRoot) GetOutputDirectory() string {
 	return m.OutputDirectory
 }
 
-func (syncConfig MariadbSyncRoot) getEffectiveLocalDetails() BaseMariaDbSync {
+func (syncConfig *MariadbSyncRoot) getEffectiveLocalDetails() BaseMariaDbSync {
 	returnDetails := BaseMariaDbSync{
 		DbHostname:      syncConfig.Config.DbHostname,
 		DbUsername:      syncConfig.Config.DbUsername,
