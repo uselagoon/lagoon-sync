@@ -152,7 +152,6 @@ The order of configuration precedence is as follows:
 
 There are some configuration examples in the `examples` directory of this repo.
 
-<<<<<<< HEAD
 2021/01/22 11:34:10 (DEBUG) Using config file: /lagoon/.lagoon-sync
 2021/01/22 11:34:10 (DEBUG) Config that will be used for sync:
  {
@@ -163,7 +162,6 @@ There are some configuration examples in the `examples` directory of this repo.
     "DbPort": "$MARIADB_PORT",
     "DbDatabase": "$MARIADB_DATABASE",
     ...
-```
 
 To recap, the configuration files that can be used by default, in order of priority when available are:
 * /lagoon/.lagoon-sync-defaults
@@ -223,10 +221,9 @@ $ LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e d
 2021/01/22 11:46:42 (DEBUG) Using config file: /app/.lagoon-sync
 ```
 
-To double check which config file is active you can also run the `$ lagoon-sync config` command.
-=======
+
 To double check which config file is loaded you can also run the `lagoon-sync config` command.
->>>>>>> main
+
 
 ### Example sync config overrides
 ```
