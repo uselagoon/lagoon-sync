@@ -24,6 +24,11 @@ type CustomSyncRoot struct {
 	Target           BaseCustomSyncCommands `yaml:"target"`
 }
 
+func (m CustomSyncRoot) SetTransferResource(transferResourceName string) error {
+	m.TransferResource = transferResourceName
+	return nil
+}
+
 // Init related types and functions follow
 
 type CustomSyncPlugin struct {
