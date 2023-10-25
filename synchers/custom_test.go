@@ -104,6 +104,29 @@ func TestGetCustomSync(t *testing.T) {
 				Target:           BaseCustomSyncCommands{Commands: []string{"second"}},
 			},
 		},
+		{
+			name: "simple unmarshalling with multiple commands",
+			//fields: fields{isConfigEmpty: false},
+			args: args{
+				syncerName: "customroot",
+				configRoot: SyncherConfigRoot{
+					Project: "",
+					LagoonSync: map[string]interface{}{
+						"customroot": CustomSyncRoot{
+							TransferResource: "testing",
+							Source:           BaseCustomSyncCommands{Commands: []string{"first of one", "second of one"}},
+							Target:           BaseCustomSyncCommands{Commands: []string{"first of two", "second of two"}},
+						},
+					},
+					Prerequisites: nil,
+				},
+			},
+			want: CustomSyncRoot{
+				TransferResource: "testing",
+				Source:           BaseCustomSyncCommands{Commands: []string{"first of one", "second of one"}},
+				Target:           BaseCustomSyncCommands{Commands: []string{"first of two", "second of two"}},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

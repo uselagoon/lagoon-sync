@@ -124,23 +124,34 @@ func (root CustomSyncRoot) GetPrerequisiteCommand(environment Environment, comma
 func (root CustomSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []SyncCommand {
 
 	transferResource := root.GetTransferResource(sourceEnvironment)
-	return []SyncCommand{{
-		command: fmt.Sprintf(root.Source.Commands[0]),
-		substitutions: map[string]interface{}{
-			"transferResource": transferResource.Name,
-		},
-	},
+
+	ret := []SyncCommand{}
+
+	substitutions := map[string]interface{}{
+		"transferResource": transferResource.Name,
 	}
+
+	for _, c := range root.Source.Commands {
+		ret = append(ret, generateSyncCommand(c, substitutions))
+	}
+
+	return ret
 }
 
 func (m CustomSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncCommand {
 	transferResource := m.GetTransferResource(targetEnvironment)
-	return []SyncCommand{
-		generateSyncCommand(m.Target.Commands[0],
-			map[string]interface{}{
-				"transferResource": transferResource.Name,
-			}),
+
+	ret := []SyncCommand{}
+
+	substitutions := map[string]interface{}{
+		"transferResource": transferResource.Name,
 	}
+
+	for _, c := range m.Target.Commands {
+		ret = append(ret, generateSyncCommand(c, substitutions))
+	}
+
+	return ret
 }
 
 func (m CustomSyncRoot) GetFilesToCleanup(environment Environment) []string {
