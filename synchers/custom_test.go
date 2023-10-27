@@ -1,20 +1,9 @@
 package synchers
 
 import (
-	"gopkg.in/yaml.v2"
-	"os"
 	"reflect"
 	"testing"
 )
-
-func marshallIntoTestStruct(c CustomSyncRoot) []byte {
-	out, err := yaml.Marshal(c)
-
-	if err != nil {
-		os.Exit(1)
-	}
-	return []byte(out)
-}
 
 func TestCustomSyncPlugin_UnmarshallYaml(t *testing.T) {
 	type fields struct {
@@ -127,12 +116,33 @@ func TestGetCustomSync(t *testing.T) {
 				Target:           BaseCustomSyncCommands{Commands: []string{"first of two", "second of two"}},
 			},
 		},
+		{
+			name: "Fails because of empty transfer resource",
+			//fields: fields{isConfigEmpty: false},
+			wantErr: true,
+			args: args{
+				syncerName: "customroot",
+				configRoot: SyncherConfigRoot{
+					Project: "",
+					LagoonSync: map[string]interface{}{
+						"customroot": CustomSyncRoot{
+							TransferResource: "",
+							Source:           BaseCustomSyncCommands{Commands: []string{"first of one", "second of one"}},
+							Target:           BaseCustomSyncCommands{Commands: []string{"first of two", "second of two"}},
+						},
+					},
+					Prerequisites: nil,
+				},
+			},
+			want: CustomSyncRoot{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetCustomSync(tt.args.configRoot, tt.args.syncerName)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetCustomSync() error = %v, wantErr %v", err, tt.wantErr)
+
+			got, errs := GetCustomSync(tt.args.configRoot, tt.args.syncerName)
+			if (errs != nil) != tt.wantErr {
+				t.Errorf("GetCustomSync() error = %v, wantErr %v", errs, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {

@@ -1,6 +1,7 @@
 package synchers
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -92,6 +93,11 @@ func (m CustomSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error)
 	}
 
 	lagoonSyncer, _ := custom.PrepareSyncer()
+
+	if custom.TransferResource == "" {
+		return lagoonSyncer, errors.New("Transfer resource MUST be set on custom syncher definition")
+	}
+
 	return lagoonSyncer, nil
 }
 
