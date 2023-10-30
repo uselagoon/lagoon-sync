@@ -109,7 +109,11 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
 	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
-		utils.LogFatalError(err.Error(), nil)
+		// Let's ask the custom syncer if this will work, if so, we fall back on it ...
+		lagoonSyncer, err = synchers.GetCustomSync(configRoot, SyncerType)
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
 	}
 
 	if ProjectName == "" {
