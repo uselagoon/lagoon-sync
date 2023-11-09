@@ -122,7 +122,7 @@ func processConfig(cfgFile string) error {
 	// Next, check for common lagoon config files and override defaults.
 	for _, path := range paths {
 		cfgFiles := []string{
-			// filepath.Join(path, ".lagoon.yml"),
+			filepath.Join(path, ".lagoon.yml"),
 			filepath.Join(path, ".lagoon-sync.yml"),
 			filepath.Join(path, ".lagoon-sync"),
 		}
