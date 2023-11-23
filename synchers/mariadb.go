@@ -134,7 +134,7 @@ func (root *MariadbSyncRoot) GetPrerequisiteCommand(environment Environment, com
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),
-		substitutions: map[string]interface{}{
+		substitutions: map[string]string{
 			"bin":     lagoonSyncBin,
 			"command": command,
 		},
@@ -163,7 +163,7 @@ func (root *MariadbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []S
 	//We remove the `.gz` from the transfer resource name for because we _first_ generate a plain `.sql` file
 	//and _then_ gzip it
 	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
-	substitutions := map[string]interface{}{
+	substitutions := map[string]string{
 		"dumpOptions":      "--max-allowed-packet=500M --quick --add-locks --no-autocommit --single-transaction",
 		"hostname":         m.DbHostname,
 		"username":         m.DbUsername,
@@ -194,7 +194,7 @@ func (m *MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncC
 	resourceNameWithoutGz := strings.TrimSuffix(transferResource.Name, filepath.Ext(transferResource.Name))
 	return []SyncCommand{
 		generateSyncCommand("gunzip {{ .transferResource }}",
-			map[string]interface{}{
+			map[string]string{
 				"hostname":         l.DbHostname,
 				"username":         l.DbUsername,
 				"password":         l.DbPassword,
@@ -203,7 +203,7 @@ func (m *MariadbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncC
 				"transferResource": transferResource.Name,
 			}),
 		generateSyncCommand("mysql -h{{ .hostname }} -u{{ .username }} -p{{ .password }} -P{{ .port }} {{ .database }} < {{ .resourceNameWithoutGz }}",
-			map[string]interface{}{
+			map[string]string{
 				"hostname":              l.DbHostname,
 				"username":              l.DbUsername,
 				"password":              l.DbPassword,

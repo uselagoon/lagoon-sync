@@ -32,7 +32,7 @@ type Syncer interface {
 
 type SyncCommand struct {
 	command       string
-	substitutions map[string]interface{}
+	substitutions map[string]string
 	NoOp          bool // NoOp can be set to true if this command performs no operation (in situations like file transfers)
 }
 
