@@ -21,16 +21,16 @@ func Shellout(command string) (error, string, string) {
 	return err, stdout.String(), stderr.String()
 }
 
-func RemoteShellout(command string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string) (error, string) {
-	// Read the private key file
+func RemoteShellout(command string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string, skipSshAgent bool) (error, string) {
 
-	skipAgent := false
+	sshAuthSock, present := os.LookupEnv("SSH_AUTH_SOCK")
+	skipAgent := !present || skipSshAgent
 
 	var authMethods []ssh.AuthMethod
 
 	if skipAgent != true {
 		// Connect to SSH agent to ask for unencrypted private keys
-		if sshAgentConn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
+		if sshAgentConn, err := net.Dial("unix", sshAuthSock); err == nil {
 			sshAgent := agent.NewClient(sshAgentConn)
 			keys, _ := sshAgent.List()
 			if len(keys) > 0 {
@@ -38,6 +38,8 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 				authMethods = append(authMethods, agentAuthmethods)
 			}
 		}
+	} else {
+		LogDebugInfo("Skipping ssh agent", os.Stdout)
 	}
 
 	privateKeyBytes, err := os.ReadFile(privateKeyfile)

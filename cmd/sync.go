@@ -25,6 +25,7 @@ var SSHHost string
 var SSHPort string
 var SSHKey string
 var SSHVerbose bool
+var SSHSkipAgent bool
 var CmdSSHKey string
 var noCliInteraction bool
 var dryRun bool
@@ -150,16 +151,33 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		sshKey = sshConfig.PrivateKey
 	}
 
+	if sshKey == "" { //let's try guess it from the OS
+		userPath, err := os.UserHomeDir()
+		if err != nil {
+			utils.LogWarning("No ssh key given and no home directory available", os.Stdout)
+		}
+		potentialKey := fmt.Sprintf("%s/.ssh/id_rsa", userPath)
+		_, err = os.Stat(potentialKey)
+		if err != nil {
+			if SSHSkipAgent == true {
+				utils.LogFatalError(fmt.Sprintf("Unable to find key at fallback location '%v' - please provide an ssh key with the `--ssh-key` option, or use the ssh-agent", potentialKey), os.Stderr)
+			}
+		}
+		sshKey = potentialKey
+	}
+
 	sshVerbose := SSHVerbose
 	if sshConfig.Verbose && !sshVerbose {
 		sshVerbose = sshConfig.Verbose
 	}
+
 	sshOptions := synchers.SSHOptions{
 		Host:       sshHost,
 		PrivateKey: sshKey,
 		Port:       sshPort,
 		Verbose:    sshVerbose,
 		RsyncArgs:  RsyncArguments,
+		SkipAgent:  SSHSkipAgent,
 	}
 
 	// let's update the named transfer resource if it is set
@@ -224,6 +242,7 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
 	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port, defaults to '32222'")
 	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	syncCmd.PersistentFlags().BoolVar(&SSHSkipAgent, "ssh-skip-agent", false, "Do not attempt to use an ssh-agent for key management")
 	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
