@@ -151,21 +151,6 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		sshKey = sshConfig.PrivateKey
 	}
 
-	if sshKey == "" { //let's try guess it from the OS
-		userPath, err := os.UserHomeDir()
-		if err != nil {
-			utils.LogWarning("No ssh key given and no home directory available", os.Stdout)
-		}
-		potentialKey := fmt.Sprintf("%s/.ssh/id_rsa", userPath)
-		_, err = os.Stat(potentialKey)
-		if err != nil {
-			if SSHSkipAgent == true {
-				utils.LogFatalError(fmt.Sprintf("Unable to find key at fallback location '%v' - please provide an ssh key with the `--ssh-key` option, or use the ssh-agent", potentialKey), os.Stderr)
-			}
-		}
-		sshKey = potentialKey
-	}
-
 	sshVerbose := SSHVerbose
 	if sshConfig.Verbose && !sshVerbose {
 		sshVerbose = sshConfig.Verbose
