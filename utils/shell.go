@@ -48,23 +48,35 @@ func getAuthMethodFromPrivateKey(filename string) (ssh.AuthMethod, error) {
 	return nil, errors.New(fmt.Sprint("No data in privateKey: ", filename))
 }
 
-func findSSHKeyFiles(directory string) ([]string, error) {
-	var keys []string
+func getSSHAuthMethodsFromDirectory(directory string) ([]ssh.AuthMethod, error) {
+	var authMethods []ssh.AuthMethod
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !info.IsDir() && filepath.Ext(path) == ".pub" {
-			privateKeyPath := path[:len(path)-4] // remove ".pub" extension
-			keys = append(keys, privateKeyPath)
+		if !info.IsDir() && filepath.Ext(path) != ".pub" {
+
+			// let's test this is a valid ssh key
+			am, err := getAuthMethodFromPrivateKey(path)
+			if err != nil {
+				switch {
+				case isPassphraseMissingError(err):
+					LogDebugInfo(fmt.Sprintf("Found a passphrase based ssh key: %v", err.Error()), os.Stdout)
+				default:
+					LogWarning(err.Error(), os.Stdout)
+				}
+			} else {
+				LogDebugInfo(fmt.Sprintf("Found a valid key at %v - will try auth", path), os.Stdout)
+				authMethods = append(authMethods, am)
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return keys, nil
+	return authMethods, nil
 }
 
 func isPassphraseMissingError(err error) bool {
@@ -80,7 +92,13 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 	var authMethods []ssh.AuthMethod
 
 	if validAuthMethod == nil { // This makes it so that in subsequent calls, we don't have to recheck all auth methods
+		LogDebugInfo("First time running, no cached valid auth methods", os.Stdout)
 		authMethods = getAuthmethods(skipAgent, privateKeyfile, sshAuthSock, authMethods)
+	} else {
+		LogDebugInfo("Found existing auth method", os.Stdout)
+		authMethods = []ssh.AuthMethod{
+			*validAuthMethod,
+		}
 	}
 
 	if len(authMethods) == 0 && validAuthMethod == nil {
@@ -95,36 +113,31 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 
 	var client *ssh.Client
 	var err error
-	if validAuthMethod != nil {
-		LogDebugInfo("Have a valid auth method", os.Stdout)
-		// Connect to the remote server
+
+	//we need to iterate over the auth methods till we find one that works
+	// for subsequent runs, this will only run once, since only whatever is in
+	// validAuthMethod will be attemtped.
+	for _, am := range authMethods {
 		config.Auth = []ssh.AuthMethod{
-			*validAuthMethod,
+			am,
 		}
 		client, err = ssh.Dial("tcp", remoteHost+":"+remotePort, config)
 		if err != nil {
-			return err, ""
+			continue
 		}
-		defer client.Close()
-	} else {
-		//we need to iterate over the auth methods till we find one that works
-		LogDebugInfo("Trying an auth method", os.Stdout)
-		for _, am := range authMethods {
-			config.Auth = []ssh.AuthMethod{
-				am,
-			}
-			client, err = ssh.Dial("tcp", remoteHost+":"+remotePort, config)
-			if err != nil {
-				continue
-			}
-			validAuthMethod = &am // set the valid auth method so that future calls won't need to retry
-			break
-		}
+
 		if validAuthMethod == nil {
-			return errors.New("unable to find valid auth method for ssh"), ""
+			LogDebugInfo("Dial success - caching auth method for subsequent runs", os.Stdout)
+			validAuthMethod = &am // set the valid auth method so that future calls won't need to retry
 		}
-		defer client.Close()
+		break
 	}
+
+	if validAuthMethod == nil {
+		return errors.New("unable to find valid auth method for ssh"), ""
+	}
+
+	defer client.Close()
 
 	// Create a session
 	session, err := client.NewSession()
@@ -181,23 +194,11 @@ func getAuthmethods(skipAgent bool, privateKeyfile string, sshAuthSock string, a
 		userPath = filepath.Join(userPath, ".ssh")
 
 		if _, err := os.Stat(userPath); err == nil {
-			files, err := findSSHKeyFiles(userPath)
+			sshAm, err := getSSHAuthMethodsFromDirectory(userPath)
 			if err != nil {
 				LogWarning(err.Error(), os.Stdout)
 			}
-			for _, f := range files {
-				am, err := getAuthMethodFromPrivateKey(f)
-				if err != nil {
-					switch {
-					case isPassphraseMissingError(err):
-						LogDebugInfo(fmt.Sprintf("Found a passphrase based ssh key: %v", err.Error()), os.Stdout)
-					default:
-						LogWarning(err.Error(), os.Stdout)
-					}
-				} else {
-					authMethods = append(authMethods, am)
-				}
-			}
+			authMethods = append(authMethods, sshAm...)
 		} else {
 			LogWarning("Unable to find .ssh directory in user home", os.Stdout)
 		}
