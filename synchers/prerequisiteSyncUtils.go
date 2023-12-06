@@ -26,29 +26,38 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	var execString string
 	var configRespSuccessful bool
 
-	command, commandErr := syncer.GetPrerequisiteCommand(environment, "config").GetCommand()
+	execString, commandErr := syncer.GetPrerequisiteCommand(environment, "config").GetCommand()
 	if commandErr != nil {
 		return environment, commandErr
 	}
 
-	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		execString = command
-	} else {
-		execString = GenerateRemoteCommand(environment, command, sshOptions)
-	}
-
 	utils.LogExecutionStep("Running the following prerequisite command", execString)
 
-	err, configResponseJson, errstring := utils.Shellout(execString)
-	if err != nil {
-		fmt.Println(errstring)
+	var output string
+
+	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
+		err, response, errstring := utils.Shellout(execString)
+		if err != nil {
+			log.Printf(errstring)
+			return environment, err
+		}
+		if response != "" && debug == false {
+			log.Println(response)
+		}
+	} else {
+		err, output := utils.RemoteShellout(execString, environment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
+		utils.LogDebugInfo(output, nil)
+		if err != nil {
+			utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
+			return environment, err
+		}
 	}
 
 	data := &prerequisite.PreRequisiteResponse{}
-	json.Unmarshal([]byte(configResponseJson), &data)
+	json.Unmarshal([]byte(output), &data)
 
 	if !data.IsPrerequisiteResponseEmpty() {
-		utils.LogDebugInfo("'lagoon-sync config' response", configResponseJson)
+		utils.LogDebugInfo("'lagoon-sync config' response", output)
 		configRespSuccessful = true
 	} else {
 		utils.LogWarning("'lagoon-sync' is not available on", environment.EnvironmentName)
@@ -84,7 +93,6 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 		// Add rsync to env
 		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion, sshOptions)
 		if err != nil {
-			fmt.Println(errstring)
 			return environment, err
 		}
 

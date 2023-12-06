@@ -69,6 +69,7 @@ type SSHOptions struct {
 	Port       string `yaml:"port,omitempty" json:"port,omitempty"`
 	Verbose    bool   `yaml:"verbose,omitempty" json:"verbose,omitempty"`
 	PrivateKey string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	SkipAgent  bool
 	RsyncArgs  string `yaml:"rsyncArgs,omitempty" json:"rsyncArgs,omitempty"`
 }
 
