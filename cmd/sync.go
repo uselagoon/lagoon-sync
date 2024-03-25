@@ -156,6 +156,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		sshVerbose = sshConfig.Verbose
 	}
 
+	// Here we have the default - let's add it to a wrapper
 	sshOptions := synchers.SSHOptions{
 		Host:       sshHost,
 		PrivateKey: sshKey,
@@ -164,6 +165,8 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		RsyncArgs:  RsyncArguments,
 		SkipAgent:  SSHSkipAgent,
 	}
+
+	sshOptionWrapper := synchers.NewSshOptionWrapper(ProjectName, sshOptions)
 
 	// let's update the named transfer resource if it is set
 	if namedTransferResource != "" {
@@ -176,12 +179,13 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
-		SourceEnvironment:    sourceEnvironment,
-		TargetEnvironment:    targetEnvironment,
-		LagoonSyncer:         lagoonSyncer,
-		SyncerType:           SyncerType,
-		DryRun:               dryRun,
-		SshOptions:           sshOptions,
+		SourceEnvironment: sourceEnvironment,
+		TargetEnvironment: targetEnvironment,
+		LagoonSyncer:      lagoonSyncer,
+		SyncerType:        SyncerType,
+		DryRun:            dryRun,
+		//SshOptions:           sshOptions,
+		SshOptionWrapper:     sshOptionWrapper,
 		SkipTargetCleanup:    skipTargetCleanup,
 		SkipSourceCleanup:    skipSourceCleanup,
 		SkipTargetImport:     skipTargetImport,

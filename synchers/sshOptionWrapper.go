@@ -2,6 +2,7 @@ package synchers
 
 // sshOptionWrapper.go contains the logic for the new system for passing ssh portal data
 
+// SSHOptionWrapper is passed around instead of specific SSHOptions - this allows resolution of the ssh endpoint when and where it's needed
 type SSHOptionWrapper struct {
 	ProjectName string                // this is primarily used to ensure someone doesn't do something silly - it's an assertion
 	Options     map[string]SSHOptions // a map off all named ssh options - environment => ssh config
