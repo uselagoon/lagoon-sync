@@ -1,0 +1,73 @@
+site_name: Lagoon Sync Documentation
+site_url: https://uselagoon.github.io/lagoon-sync/
+repo_url: https://github.com/uselagoon/lagoon-sync/
+repo_name: uselagoon/lagoon-sync
+edit_uri: edit/main/docs
+site_author: The Lagoon Authors
+
+nav:
+  - Getting Started: index.md
+  - Configuration: config.md
+  - Commands:
+    - Overview: commands/overview.md
+    - Sync: commands/sync.md
+  - Guides:
+      - Syncing remote to local: guides/syncing-locally.md
+  - Example Configs: https://github.com/uselagoon/lagoon-sync/examples
+  - Troubleshoot: troubleshoot.md
+  - Release Notes: https://github.com/uselagoon/lagoon-sync/releases
+
+
+theme:
+  name: 'material'
+  palette:
+    # Palette toggle for light mode
+    - primary: 'blue'
+      accent: 'light blue'
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: 'blue'
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+
+extra:
+  analytics:
+    provider: google
+    property: G-W1SJFEVFDB
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - mdx_truly_sane_lists
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      auto_title: true
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tilde
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences
+  - tables
+  - toc:
+      permalink: "#"
+      baselevel: 1
+
+plugins:
+  - search
+  # - redirects:
+  #     redirect_maps:
+  #       'lagoon/README.md': 'README.md'
