@@ -12,6 +12,7 @@ require (
 	github.com/uselagoon/machinery v0.0.18
 	github.com/withmandala/go-log v0.1.0
 	golang.org/x/crypto v0.19.0
+	golang.org/x/net v0.21.0
 	gopkg.in/ini.v1 v1.64.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
