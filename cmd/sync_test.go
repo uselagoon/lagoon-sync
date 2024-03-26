@@ -30,12 +30,13 @@ func Test_syncCommandRun(t *testing.T) {
 				},
 			},
 			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
-				if args.SshOptions.Port != "32222" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", args.SshOptions.Port))
+				sshOptions := args.SshOptionWrapper.Default
+				if sshOptions.Port != "32222" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 32222 - found: %v", sshOptions.Port))
 				}
 
-				if args.SshOptions.Host != "ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SshOptions.Host))
+				if sshOptions.Host != "ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", sshOptions.Host))
 				}
 
 				return nil
@@ -52,12 +53,13 @@ func Test_syncCommandRun(t *testing.T) {
 				},
 			},
 			runSyncProcess: func(args synchers.RunSyncProcessFunctionTypeArguments) error {
-				if args.SshOptions.Port != "777" {
-					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", args.SshOptions.Port))
+				sshOptions := args.SshOptionWrapper.Default
+				if sshOptions.Port != "777" {
+					return errors.New(fmt.Sprintf("Expecting ssh port 777 - found: %v", sshOptions.Port))
 				}
 
-				if args.SshOptions.Host != "example.ssh.lagoon.amazeeio.cloud" {
-					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", args.SshOptions.Host))
+				if sshOptions.Host != "example.ssh.lagoon.amazeeio.cloud" {
+					return errors.New(fmt.Sprintf("Expecting ssh host ssh.lagoon.amazeeio.cloud - found: %v", sshOptions.Host))
 				}
 
 				return nil
