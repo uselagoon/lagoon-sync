@@ -28,12 +28,13 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 }
 
 type RunSyncProcessFunctionTypeArguments struct {
-	SourceEnvironment    Environment
-	TargetEnvironment    Environment
-	LagoonSyncer         Syncer
-	SyncerType           string
-	DryRun               bool
-	SshOptions           SSHOptions
+	SourceEnvironment Environment
+	TargetEnvironment Environment
+	LagoonSyncer      Syncer
+	SyncerType        string
+	DryRun            bool
+	//SshOptions           SSHOptions
+	SshOptionWrapper     *SSHOptionWrapper
 	SkipSourceCleanup    bool
 	SkipTargetCleanup    bool
 	SkipTargetImport     bool
@@ -50,54 +51,54 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 	}
 
 	//TODO: this can come out.
-	args.SourceEnvironment, err = RunPrerequisiteCommand(args.SourceEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptions)
+	args.SourceEnvironment, err = RunPrerequisiteCommand(args.SourceEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptionWrapper)
 	sourceRsyncPath := "rsync" //args.SourceEnvironment.RsyncPath
 	args.SourceEnvironment.RsyncPath = "rsync"
 	if err != nil {
-		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
+		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptionWrapper)
 		return err
 	}
 
-	err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 	if err != nil {
-		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 		return err
 	}
 
-	args.TargetEnvironment, err = RunPrerequisiteCommand(args.TargetEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptions)
+	args.TargetEnvironment, err = RunPrerequisiteCommand(args.TargetEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptionWrapper)
 	targetRsyncPath := args.TargetEnvironment.RsyncPath
 	if err != nil {
-		_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
+		_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptionWrapper)
 		return err
 	}
 
-	err = SyncRunTransfer(args.SourceEnvironment, args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	err = SyncRunTransfer(args.SourceEnvironment, args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 	if err != nil {
-		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
-		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptionWrapper)
+		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 		return err
 	}
 
 	if !args.SkipTargetImport {
-		err = SyncRunTargetCommand(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		err = SyncRunTargetCommand(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 		if err != nil {
-			_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
-			_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
-			_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
-			_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+			_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptionWrapper)
+			_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptionWrapper)
+			_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
+			_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 			return err
 		}
 	} else {
 		utils.LogProcessStep("Skipping target import step", nil)
 	}
 
-	_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
-	_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptions)
+	_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptionWrapper)
+	_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptionWrapper)
 	if !args.SkipSourceCleanup {
-		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 	}
 	if !args.SkipTargetCleanup {
-		_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+		_ = SyncCleanUp(args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 	} else {
 		utils.LogProcessStep("File on the target saved as: "+args.LagoonSyncer.GetTransferResource(args.TargetEnvironment).Name, nil)
 	}
@@ -105,9 +106,11 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 	return nil
 }
 
-func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, sshOptions SSHOptions) error {
+func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun bool, sshOptionWrapper *SSHOptionWrapper) error {
 
 	utils.LogProcessStep("Beginning export on source environment", remoteEnvironment.EnvironmentName)
+
+	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(remoteEnvironment.EnvironmentName)
 
 	remoteCommands := syncer.GetRemoteCommand(remoteEnvironment)
 	for _, remoteCommand := range remoteCommands {
@@ -151,8 +154,12 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	return nil
 }
 
-func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptions SSHOptions) error {
+func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptionWrapper *SSHOptionWrapper) error {
 	utils.LogProcessStep("Beginning file transfer logic", nil)
+
+	// TODO: This is going to be the trickiest of the ssh option calculations.
+	// We need to determine ssh endpoints for both environments separately
+	sshOptions := sshOptionWrapper.Default
 
 	// If we're transferring to the same resource, we can skip this whole process.
 	if sourceEnvironment.EnvironmentName == targetEnvironment.EnvironmentName {
@@ -218,6 +225,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		sshOptionsStr.WriteString(fmt.Sprintf(" -i %s", sshOptions.PrivateKey))
 	}
 
+	sourceEnvSshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(sourceEnvironmentName)
 	rsyncArgs := sshOptions.RsyncArgs
 	execString := fmt.Sprintf("%s %s --rsync-path=%s %s -e \"ssh%s -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p %s -l %s %s service=%s\" %s %s %s",
 		targetEnvironment.RsyncPath,
@@ -225,9 +233,9 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		sourceEnvironment.RsyncPath,
 		verboseFlag,
 		sshOptionsStr.String(),
-		sshOptions.Port,
+		sourceEnvSshOptions.Port,
 		rsyncRemoteSystemUsername,
-		sshOptions.Host,
+		sourceEnvSshOptions.Host,
 		lagoonRsyncService,
 		syncExcludes,
 		sourceEnvironmentName,
@@ -238,7 +246,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	if !dryRun {
 
 		if executeRsyncRemotelyOnTarget {
-			err, output := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
+			TargetEnvSshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(targetEnvironmentName)
+			err, output := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), TargetEnvSshOptions.Host, TargetEnvSshOptions.Port, TargetEnvSshOptions.PrivateKey, TargetEnvSshOptions.SkipAgent)
 			utils.LogDebugInfo(output, nil)
 			if err != nil {
 				utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
@@ -255,9 +264,11 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	return nil
 }
 
-func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptions SSHOptions) error {
+func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptionWrapper *SSHOptionWrapper) error {
 
 	utils.LogProcessStep("Beginning import on target environment", targetEnvironment.EnvironmentName)
+
+	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(targetEnvironment.EnvironmentName)
 
 	targetCommands := syncer.GetLocalCommand(targetEnvironment)
 
@@ -295,8 +306,10 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 	return nil
 }
 
-func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptions SSHOptions) error {
+func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptionWrapper *SSHOptionWrapper) error {
 	transferResouce := syncer.GetTransferResource(environment)
+
+	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(environment.EnvironmentName)
 
 	if transferResouce.SkipCleanup == true {
 		log.Printf("Skipping cleanup for %v on %v environment", transferResouce.Name, environment.EnvironmentName)
