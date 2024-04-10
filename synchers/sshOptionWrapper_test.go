@@ -65,8 +65,8 @@ func TestSSHOptionWrapper_getSSHOptionsForEnvironment(t *testing.T) {
 				Options:     tt.fields.Options,
 				Default:     tt.fields.Default,
 			}
-			if got := receiver.getSSHOptionsForEnvironment(tt.args.environmentName); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getSSHOptionsForEnvironment() = %v, want %v", got, tt.want)
+			if got := receiver.GetSSHOptionsForEnvironment(tt.args.environmentName); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetSSHOptionsForEnvironment() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -115,8 +115,8 @@ func TestSSHOptionWrapper_addSsshOptionForEnvironment(t *testing.T) {
 				Options:     tt.fields.Options,
 				Default:     tt.fields.Default,
 			}
-			receiver.addSsshOptionForEnvironment(tt.args.environmentName, tt.args.environmentSSHOptions)
-			if got := receiver.getSSHOptionsForEnvironment(tt.args.environmentName); !reflect.DeepEqual(got, tt.want) {
+			receiver.AddSsshOptionForEnvironment(tt.args.environmentName, tt.args.environmentSSHOptions)
+			if got := receiver.GetSSHOptionsForEnvironment(tt.args.environmentName); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getSSHOptionsForEnvironment() = %v, want %v", got, tt.want)
 			}
 		})

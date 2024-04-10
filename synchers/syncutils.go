@@ -28,12 +28,11 @@ func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, 
 }
 
 type RunSyncProcessFunctionTypeArguments struct {
-	SourceEnvironment Environment
-	TargetEnvironment Environment
-	LagoonSyncer      Syncer
-	SyncerType        string
-	DryRun            bool
-	//SshOptions           SSHOptions
+	SourceEnvironment    Environment
+	TargetEnvironment    Environment
+	LagoonSyncer         Syncer
+	SyncerType           string
+	DryRun               bool
 	SshOptionWrapper     *SSHOptionWrapper
 	SkipSourceCleanup    bool
 	SkipTargetCleanup    bool
@@ -110,7 +109,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 
 	utils.LogProcessStep("Beginning export on source environment", remoteEnvironment.EnvironmentName)
 
-	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(remoteEnvironment.EnvironmentName)
+	sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(remoteEnvironment.EnvironmentName)
 
 	remoteCommands := syncer.GetRemoteCommand(remoteEnvironment)
 	for _, remoteCommand := range remoteCommands {
@@ -225,8 +224,9 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		sshOptionsStr.WriteString(fmt.Sprintf(" -i %s", sshOptions.PrivateKey))
 	}
 
-	sourceEnvSshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(sourceEnvironmentName)
+	sourceEnvSshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(targetEnvironment.EnvironmentName)
 	rsyncArgs := sshOptions.RsyncArgs
+
 	execString := fmt.Sprintf("%s %s --rsync-path=%s %s -e \"ssh%s -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p %s -l %s %s service=%s\" %s %s %s",
 		targetEnvironment.RsyncPath,
 		rsyncArgs,
@@ -244,9 +244,8 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	utils.LogExecutionStep(fmt.Sprintf("Running the following for target (%s)", targetEnvironment.EnvironmentName), execString)
 
 	if !dryRun {
-
 		if executeRsyncRemotelyOnTarget {
-			TargetEnvSshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(targetEnvironmentName)
+			TargetEnvSshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(targetEnvironmentName)
 			err, output := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), TargetEnvSshOptions.Host, TargetEnvSshOptions.Port, TargetEnvSshOptions.PrivateKey, TargetEnvSshOptions.SkipAgent)
 			utils.LogDebugInfo(output, nil)
 			if err != nil {
@@ -268,7 +267,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 
 	utils.LogProcessStep("Beginning import on target environment", targetEnvironment.EnvironmentName)
 
-	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(targetEnvironment.EnvironmentName)
+	sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(targetEnvironment.EnvironmentName)
 
 	targetCommands := syncer.GetLocalCommand(targetEnvironment)
 
@@ -309,7 +308,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 func SyncCleanUp(environment Environment, syncer Syncer, dryRun bool, sshOptionWrapper *SSHOptionWrapper) error {
 	transferResouce := syncer.GetTransferResource(environment)
 
-	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(environment.EnvironmentName)
+	sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(environment.EnvironmentName)
 
 	if transferResouce.SkipCleanup == true {
 		log.Printf("Skipping cleanup for %v on %v environment", transferResouce.Name, environment.EnvironmentName)

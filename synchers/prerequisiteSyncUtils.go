@@ -16,7 +16,7 @@ import (
 
 func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType string, dryRun bool, sshOptionWrapper *SSHOptionWrapper) (Environment, error) {
 
-	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(environment.EnvironmentName)
+	sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(environment.EnvironmentName)
 
 	// We don't run prerequisite checks on these syncers for now.
 	if syncerType == "files" || syncerType == "drupalconfig" {
@@ -109,7 +109,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 
 func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool, sshOptionWrapper *SSHOptionWrapper) error {
 
-	sshOptions := sshOptionWrapper.getSSHOptionsForEnvironment(environment.EnvironmentName)
+	sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(environment.EnvironmentName)
 
 	if rsyncPath == "" || rsyncPath == "rsync" || !strings.Contains(rsyncPath, "/tmp/") {
 		return nil

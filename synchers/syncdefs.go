@@ -55,6 +55,7 @@ type Environment struct {
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
+	Api           string                              `yaml:"api,omitempty" json:"api,omitempty"`
 	Project       string                              `yaml:"project" json:"project,omitempty"`
 	LagoonSync    map[string]interface{}              `yaml:"lagoon-sync" json:"lagoonSync,omitempty"`
 	Prerequisites []prerequisite.GatheredPrerequisite `yaml:"prerequisites" json:"prerequisites,omitempty"`
