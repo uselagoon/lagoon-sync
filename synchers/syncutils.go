@@ -170,7 +170,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	executeRsyncRemotelyOnTarget := false
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		//TODO: if we have multiple remotes, we need to treat the target environment as local, and run the rysync from there ...
-		utils.LogWarning(fmt.Sprintf("Using %s syncer for remote to remote transfer is expirimental at present", viper.Get("syncer-type")), nil)
+		utils.LogWarning(fmt.Sprintf("Using %s syncer for remote to remote transfer is experimental at present", viper.Get("syncer-type")), nil)
 		utils.LogDebugInfo("Since we're syncing across two remote systems, we're pulling the files to the target", targetEnvironment.EnvironmentName)
 		executeRsyncRemotelyOnTarget = true
 	}

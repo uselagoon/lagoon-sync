@@ -210,6 +210,11 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
+	// Add assertion - we no longer support Remote to Remote syncs
+	if sourceEnvironment.EnvironmentName != synchers.LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != synchers.LOCAL_ENVIRONMENT_NAME {
+		utils.LogFatalError("Remote to Remote transfers are not supported", nil)
+	}
+
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
 		SourceEnvironment: sourceEnvironment,
 		TargetEnvironment: targetEnvironment,
@@ -252,7 +257,6 @@ func getEnvironmentSshDetails(conn utils.ApiConn, projectName string, defaultSsh
 	defaultSet := false
 
 	for _, environment := range *environments {
-		fmt.Println("Got environment %v - type: %v \n", environment.Name, environment.EnvironmentType)
 		retMap[environment.Name] = synchers.SSHOptions{
 			Host:       environment.DeployTarget.SSHHost,
 			Port:       environment.DeployTarget.SSHPort,

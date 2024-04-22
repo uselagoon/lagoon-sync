@@ -1,7 +1,5 @@
 package synchers
 
-import "fmt"
-
 // sshOptionWrapper.go contains the logic for the new system for passing ssh portal data
 
 // SSHOptionWrapper is passed around instead of specific SSHOptions - this allows resolution of the ssh endpoint when and where it's needed
@@ -20,7 +18,6 @@ func NewSshOptionWrapper(projectName string, defaultSshOptions SSHOptions) *SSHO
 }
 
 func (receiver *SSHOptionWrapper) GetSSHOptionsForEnvironment(environmentName string) SSHOptions {
-	fmt.Println("Got a request for : ", environmentName)
 	sshOptionsMapValue, ok := receiver.Options[environmentName]
 	if ok {
 		return sshOptionsMapValue
