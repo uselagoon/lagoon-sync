@@ -131,20 +131,21 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 		if !dryRun {
 
 			if remoteEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-				err, response, errstring := utils.Shellout(execString)
+				err, outstring, errstring := utils.Shellout(execString)
 				if err != nil {
-					log.Printf(errstring)
+					if errstring != "" {
+						utils.LogError(errstring, nil)
+					}
 					return err
 				}
-				if response != "" && debug == false {
-					log.Println(response)
-				}
+				utils.LogDebugInfo(outstring, nil)
 			} else {
 				err, output := utils.RemoteShellout(execString, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
-				utils.LogDebugInfo(output, nil)
 				if err != nil {
-					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
+					utils.LogError(output, nil)
 					return err
+				} else {
+					utils.LogDebugInfo(output, nil)
 				}
 			}
 		}
@@ -287,17 +288,21 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 		utils.LogExecutionStep(fmt.Sprintf("Running the following for target (%s)", targetEnvironment.EnvironmentName), execString)
 		if !dryRun {
 			if targetEnvironment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-				err, _, errstring := utils.Shellout(execString)
+				err, outstring, errstring := utils.Shellout(execString)
 				if err != nil {
-					utils.LogFatalError(errstring, nil)
+					if errstring != "" {
+						utils.LogError(errstring, nil)
+					}
 					return err
 				}
+				utils.LogDebugInfo(outstring, nil)
 			} else {
 				err, output := utils.RemoteShellout(execString, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
-				utils.LogDebugInfo(output, nil)
 				if err != nil {
-					utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)
+					utils.LogError(output, nil)
 					return err
+				} else {
+					utils.LogDebugInfo(output, nil)
 				}
 			}
 		}
