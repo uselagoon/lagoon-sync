@@ -17,7 +17,7 @@ func NewSshOptionWrapper(projectName string, defaultSshOptions SSHOptions) *SSHO
 	}
 }
 
-func (receiver *SSHOptionWrapper) getSSHOptionsForEnvironment(environmentName string) SSHOptions {
+func (receiver *SSHOptionWrapper) GetSSHOptionsForEnvironment(environmentName string) SSHOptions {
 	sshOptionsMapValue, ok := receiver.Options[environmentName]
 	if ok {
 		return sshOptionsMapValue
@@ -25,6 +25,10 @@ func (receiver *SSHOptionWrapper) getSSHOptionsForEnvironment(environmentName st
 	return receiver.Default
 }
 
-func (receiver *SSHOptionWrapper) addSsshOptionForEnvironment(environmentName string, sshOptions SSHOptions) {
+func (receiver *SSHOptionWrapper) AddSsshOptionForEnvironment(environmentName string, sshOptions SSHOptions) {
 	receiver.Options[environmentName] = sshOptions
+}
+
+func (receiver *SSHOptionWrapper) SetDefaultSshOptions(sshOptions SSHOptions) {
+	receiver.Default = sshOptions
 }
