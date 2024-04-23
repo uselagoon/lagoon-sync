@@ -2,13 +2,10 @@ package synchers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"strings"
-
-	"github.com/uselagoon/lagoon-sync/assets"
 
 	"github.com/uselagoon/lagoon-sync/prerequisite"
 	"github.com/uselagoon/lagoon-sync/utils"
@@ -77,11 +74,6 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 		}
 	}
 
-	lagoonSyncVersion := "unknown"
-	if data.Version != "" {
-		lagoonSyncVersion = data.Version
-	}
-
 	// Check if prerequisite checks were successful.
 	if !configRespSuccessful {
 		utils.LogDebugInfo("Unable to determine rsync config, will attempt to use 'rsync' path instead", environment.EnvironmentName)
@@ -93,15 +85,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	}
 
 	if !dryRun && !environment.RsyncAvailable {
-		// Add rsync to env
-		rsyncPath, err := createRsync(environment, syncer, lagoonSyncVersion, sshOptions)
-		if err != nil {
-			return environment, err
-		}
-
-		utils.LogDebugInfo("Rsync path", rsyncPath)
-		environment.RsyncPath = rsyncPath
-		return environment, nil
+		return environment, errors.New("Unable to find rsync - unable to continue")
 	}
 
 	return environment, nil
@@ -135,99 +119,4 @@ func PrerequisiteCleanUp(environment Environment, rsyncPath string, dryRun bool,
 	}
 
 	return nil
-}
-
-var RsyncAssetPath = "/tmp/rsync"
-
-// will add bundled rsync onto environment and return the new rsync path as string
-func createRsync(environment Environment, syncer Syncer, lagoonSyncVersion string, sshOptions SSHOptions) (string, error) {
-	utils.LogDebugInfo("%v environment doesn't have rsync", environment.EnvironmentName)
-	utils.LogDebugInfo("Downloading rsync asset on", environment.EnvironmentName)
-
-	environmentName := syncer.GetTransferResource(environment).Name
-	if syncer.GetTransferResource(environment).IsDirectory == true {
-		environmentName += "/"
-	}
-
-	// Create rsync asset
-	RsyncAssetPath, err := createRsyncAssetFromBytes(lagoonSyncVersion)
-	if err != nil {
-		log.Println(err)
-	}
-
-	rsyncDestinationPath := fmt.Sprintf("%vlagoon_sync_rsync_%v", "/tmp/", strings.ReplaceAll(lagoonSyncVersion, ".", "_"))
-
-	environment.RsyncLocalPath = rsyncDestinationPath
-	environment.RsyncPath = RsyncAssetPath
-
-	// If local we bail out here
-	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		return rsyncDestinationPath, nil
-	}
-
-	var execString string
-	command := fmt.Sprintf("'cat > %v && chmod +x %v' < %s",
-		rsyncDestinationPath,
-		rsyncDestinationPath,
-		rsyncDestinationPath,
-	)
-
-	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
-		execString = command
-	} else {
-		serviceArgument := ""
-		if environment.ServiceName != "" {
-			serviceArgument = fmt.Sprintf("service=%v", environment.ServiceName)
-
-		}
-
-		execString = fmt.Sprintf("ssh -t -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s %s",
-			sshOptions.Port, environment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
-	}
-
-	utils.LogExecutionStep(fmt.Sprintf("Running the following for %s", environment.EnvironmentName), execString)
-
-	if err, _, errstring := utils.Shellout(execString); err != nil {
-		log.Println(errstring)
-		return "", err
-	}
-
-	// Remove local versioned rsync (post ssh transfer) - otherwise rsync will be avialable on target at /tmp/
-	log.Printf("Removing rsync binary locally stored: %s", rsyncDestinationPath)
-	if err := os.Remove(rsyncDestinationPath); err != nil {
-		log.Println(err.Error())
-	}
-
-	return rsyncDestinationPath, nil
-}
-
-func createRsyncAssetFromBytes(lagoonSyncVersion string) (string, error) {
-	tempRsyncPath := "/tmp/rsync"
-	err := ioutil.WriteFile(tempRsyncPath, assets.RsyncBin(), 0774)
-	if err != nil {
-		utils.LogFatalError("Unable to write to file", err)
-	}
-
-	if lagoonSyncVersion == "" {
-		utils.LogDebugInfo("No lagoon-sync version set", nil)
-	}
-
-	// Rename rsync binary with latest lagoon version appended.
-	versionedRsyncPath := fmt.Sprintf("%vlagoon_sync_rsync_%v", "/tmp/", strings.ReplaceAll(lagoonSyncVersion, ".", "_"))
-	cpRsyncCmd := fmt.Sprintf("cp %s %s",
-		tempRsyncPath,
-		versionedRsyncPath,
-	)
-
-	if err, _, errstring := utils.Shellout(cpRsyncCmd); err != nil {
-		log.Println(errstring)
-		return "", err
-	}
-
-	log.Printf("Removing temp rsync binary: %s", tempRsyncPath)
-	if err := os.Remove(tempRsyncPath); err != nil {
-		log.Println(err.Error())
-	}
-
-	return versionedRsyncPath, nil
 }
