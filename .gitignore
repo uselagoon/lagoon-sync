@@ -31,3 +31,6 @@ builds/
 /lagoon
 *.lagoon-sync
 *.lagoon-sync-defaults
+
+# Docs
+site/
