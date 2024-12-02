@@ -67,6 +67,10 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 	return "mariadb"
 }
 
+func (m MariadbSyncPlugin) GetPluginAliases() []string {
+	return []string{"mysql"}
+}
+
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
 	mariadb.Config.setDefaults()

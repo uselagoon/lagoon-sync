@@ -19,7 +19,6 @@ import (
 var ProjectName string
 var sourceEnvironmentName string
 var targetEnvironmentName string
-var SyncerType string
 var ServiceName string
 var configurationFile string
 var SSHHost string
@@ -44,7 +43,11 @@ var useSshPortal bool // This is our feature flag for now. With the major versio
 const fallbackApi = "https://api.lagoon.amazeeio.cloud/graphql"
 
 var syncCmd = &cobra.Command{
-	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
+	Use: func() string {
+		//let's build a list of aliases
+		ids := synchers.ListSyncers(true)
+		return fmt.Sprintf("sync [%s]", strings.Join(ids, ", "))
+	}(),
 	Short: "Sync a resource type",
 	Long:  `Use Lagoon-Sync to sync an external environments resources with the local environment`,
 	Args:  cobra.MinimumNArgs(1),
@@ -52,7 +55,8 @@ var syncCmd = &cobra.Command{
 }
 
 func syncCommandRun(cmd *cobra.Command, args []string) {
-	SyncerType := args[0]
+	SyncerType, err := synchers.ResolveSyncerIdFromAlias(args[0])
+
 	viper.Set("syncer-type", args[0])
 
 	var configRoot synchers.SyncherConfigRoot
@@ -81,9 +85,10 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		project, exists := os.LookupEnv("LAGOON_PROJECT")
 		if exists {
 			ProjectName = strings.Replace(project, "_", "-", -1)
-		}
-		if configRoot.Project != "" {
-			ProjectName = configRoot.Project
+		} else {
+			if configRoot.Project != "" {
+				ProjectName = configRoot.Project
+			}
 		}
 	}
 
@@ -113,7 +118,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	// the syncer type with the argument passed through to this command
 	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
 	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
-	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
+	lagoonSyncer, err = synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
 		// Let's ask the custom syncer if this will work, if so, we fall back on it ...
 		lagoonSyncer, err = synchers.GetCustomSync(configRoot, SyncerType)
@@ -142,13 +147,30 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	if configRoot.LagoonSync["ssh"] != nil {
 		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 	}
+
+	// Host passed through args is top
 	sshHost := SSHHost
-	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
-		sshHost = sshConfig.Host
+	if SSHHost == "ssh.lagoon.amazeeio.cloud" { // we're using the default - lets see if there are other options
+		envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_SSH_HOST")
+		if exists {
+			sshHost = envSshHost
+		} else {
+			if sshConfig.Host != "" {
+				sshHost = sshConfig.Host
+			}
+		}
 	}
+
 	sshPort := SSHPort
-	if sshConfig.Port != "" && SSHPort == "32222" {
-		sshPort = sshConfig.Port
+	if SSHPort == "32222" { // we're using the default - lets see if there are other options
+		envSshPort, exists := os.LookupEnv("LAGOON_CONFIG_SSH_PORT")
+		if exists {
+			sshPort = envSshPort
+		} else {
+			if sshConfig.Port != "" {
+				sshPort = sshConfig.Port
+			}
+		}
 	}
 
 	sshKey := SSHKey

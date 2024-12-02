@@ -48,6 +48,10 @@ func (m CustomSyncPlugin) GetPluginId() string {
 	return "custom"
 }
 
+func (m CustomSyncPlugin) GetPluginAliases() []string {
+	return []string{}
+}
+
 func GetCustomSync(configRoot SyncherConfigRoot, syncerName string) (Syncer, error) {
 
 	m := CustomSyncPlugin{

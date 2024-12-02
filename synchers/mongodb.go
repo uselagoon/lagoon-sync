@@ -55,6 +55,10 @@ func (m MongoDbSyncPlugin) GetPluginId() string {
 	return "mongodb"
 }
 
+func (m MongoDbSyncPlugin) GetPluginAliases() []string {
+	return []string{}
+}
+
 func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	mongodb := MongoDbSyncRoot{}
 	mongodb.Config.setDefaults()

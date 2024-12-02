@@ -46,6 +46,10 @@ func (m FilesSyncPlugin) GetPluginId() string {
 	return "files"
 }
 
+func (m FilesSyncPlugin) GetPluginAliases() []string {
+	return []string{}
+}
+
 func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
 	filesroot := FilesSyncRoot{}
 	filesroot.Config.setDefaults()
