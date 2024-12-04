@@ -47,7 +47,7 @@ func TestCustomSyncPlugin_UnmarshallYaml(t *testing.T) {
 			m := CustomSyncPlugin{
 				isConfigEmpty: tt.fields.isConfigEmpty,
 			}
-			got, err := m.UnmarshallYaml(tt.args.root)
+			got, err := m.UnmarshallYaml(tt.args.root, "custom")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnmarshallYaml() error = %v, wantErr %v", err, tt.wantErr)
 				return

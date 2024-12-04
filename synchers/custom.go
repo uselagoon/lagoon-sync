@@ -54,7 +54,7 @@ func GetCustomSync(configRoot SyncherConfigRoot, syncerName string) (Syncer, err
 		CustomRoot: syncerName,
 	}
 
-	ret, err := m.UnmarshallYaml(configRoot)
+	ret, err := m.UnmarshallYaml(configRoot, syncerName)
 	if err != nil {
 		return CustomSyncRoot{}, err
 	}
@@ -62,7 +62,7 @@ func GetCustomSync(configRoot SyncherConfigRoot, syncerName string) (Syncer, err
 	return ret, nil
 }
 
-func (m CustomSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
+func (m CustomSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
 	custom := CustomSyncRoot{}
 
 	// Use 'environment-defaults' if present

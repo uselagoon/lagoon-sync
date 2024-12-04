@@ -63,11 +63,11 @@ func (m PostgresSyncPlugin) GetPluginId() string {
 	return "postgres"
 }
 
-func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
+func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot, targetService string) (Syncer, error) {
 	postgres := PostgresSyncRoot{}
 	postgres.Config.setDefaults()
 
-	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
+	configMap := syncerConfigRoot.LagoonSync[targetService]
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if configMap != nil {

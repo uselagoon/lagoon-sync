@@ -67,12 +67,12 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 	return "mariadb"
 }
 
-func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
+func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
 	mariadb.Config.setDefaults()
 	mariadb.LocalOverrides.Config.setDefaults()
 
-	syncherConfig := root.LagoonSync[m.GetPluginId()]
+	syncherConfig := root.LagoonSync[targetService]
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if syncherConfig != nil {

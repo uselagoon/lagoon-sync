@@ -238,6 +238,9 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 }
 
+// getServiceName will return the name of the service in which we run the commands themselves. This is typically
+// the cli pod in a project
+// TODO: this needs to be expanded to be dynamic in the future.
 func getServiceName(SyncerType string) string {
 	if SyncerType == "mongodb" {
 		return SyncerType
