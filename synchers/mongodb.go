@@ -35,6 +35,7 @@ type MongoDbSyncLocal struct {
 }
 
 type MongoDbSyncRoot struct {
+	Type                     string `yaml:"type" json:"type"`
 	Config                   BaseMongoDbSync
 	LocalOverrides           MongoDbSyncLocal `yaml:"local"`
 	TransferId               string
@@ -57,6 +58,7 @@ func (m MongoDbSyncPlugin) GetPluginId() string {
 
 func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
 	mongodb := MongoDbSyncRoot{}
+	mongodb.Type = m.GetPluginId()
 	mongodb.Config.setDefaults()
 	mongodb.LocalOverrides.Config.setDefaults()
 

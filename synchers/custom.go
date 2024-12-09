@@ -20,6 +20,7 @@ func (customConfig *BaseCustomSync) setDefaults() {
 }
 
 type CustomSyncRoot struct {
+	Type             string                 `yaml:"type" json:"type"`
 	TransferResource string                 `yaml:"transfer-resource"`
 	Source           BaseCustomSyncCommands `yaml:"source"`
 	Target           BaseCustomSyncCommands `yaml:"target"`
@@ -64,7 +65,7 @@ func GetCustomSync(configRoot SyncherConfigRoot, syncerName string) (Syncer, err
 
 func (m CustomSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
 	custom := CustomSyncRoot{}
-
+	custom.Type = m.GetPluginId()
 	// Use 'environment-defaults' if present
 	envVars := root.Prerequisites
 	var configMap interface{}

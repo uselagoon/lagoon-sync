@@ -1,15 +1,20 @@
-package utils
+package generator
 
 import (
-	"fmt"
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/types"
 	"golang.org/x/net/context"
 	"strings"
 )
 
-// docker-compose.go contains all the functionality needed to parse docker compose files for lagoon labels
+// syncdefGenerator.go contains all the functionality needed to parse docker compose files for lagoon labels
 // and generate sync definitions
+
+type LagoonServiceDefinition struct {
+	ServiceName string
+	ServiceType string
+	Labels      map[string]string
+}
 
 func LoadComposeFile(composeFile string) (*types.Project, error) {
 	// Load the Compose file
@@ -26,16 +31,9 @@ func LoadComposeFile(composeFile string) (*types.Project, error) {
 	return project, nil
 }
 
-type LagoonServiceDefinition struct {
-	ServiceName string
-	ServiceType string
-	Labels      map[string]string
-}
-
 func ProcessServicesFromCompose(project *types.Project) []LagoonServiceDefinition {
 	serviceDefinitions := []LagoonServiceDefinition{}
 	for _, service := range project.Services {
-		fmt.Printf("Service name: %s, Image: %s\n", service.Name, service.Image)
 		sd := LagoonServiceDefinition{
 			ServiceName: service.Name,
 			Labels:      map[string]string{},

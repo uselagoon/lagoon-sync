@@ -62,19 +62,21 @@ Usage:
 Available Commands:
   completion  generate the autocompletion script for the specified shell
   config      Print the config that is being used by lagoon-sync
+  generate    Generate a lagoon-sync configuration stanza from a docker-compose file
   help        Help about any command
   selfUpdate  Update this tool to the latest version
   sync        Sync a resource type
   version     Print the version number of lagoon-sync
 
 Flags:
-      --config string   config file (default is .lagoon.yaml) (default "./.lagoon.yml")
+      --config string   Path to the file used to set lagoon-sync configuration
   -h, --help            help for lagoon-sync
       --show-debug      Shows debug information
   -t, --toggle          Help message for toggle
   -v, --version         version for lagoon-sync
 
 Use "lagoon-sync [command] --help" for more information about a command.
+
 ```
 
 ## sync

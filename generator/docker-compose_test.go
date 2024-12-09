@@ -1,34 +1,8 @@
-package utils
+package generator
 
 import (
 	"testing"
 )
-
-//func TestLoadComposeFile(t *testing.T) {
-//	type args struct {
-//		composeFile string
-//	}
-//	tests := []struct {
-//		name    string
-//		args    args
-//		want    *types.Project
-//		wantErr bool
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			got, err := LoadComposeFile(tt.args.composeFile)
-//			if (err != nil) != tt.wantErr {
-//				t.Errorf("LoadComposeFile() error = %v, wantErr %v", err, tt.wantErr)
-//				return
-//			}
-//			if !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("LoadComposeFile() got = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
 
 func TestProcessServicesFromCompose(t *testing.T) {
 	type args struct {

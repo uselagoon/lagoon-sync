@@ -24,18 +24,27 @@ type BaseMariaDbSync struct {
 	OutputDirectory string
 }
 
+const mariadbDefaultServiceName = "mariadb"
+
 type MariadbSyncLocal struct {
 	Config BaseMariaDbSync
 }
 
 type MariadbSyncRoot struct {
+	Type                     string `yaml:"type" json:"type"`
+	ServiceName              string `yaml:"serviceName"`
 	Config                   BaseMariaDbSync
 	LocalOverrides           MariadbSyncLocal `yaml:"local"`
 	TransferId               string
 	TransferResourceOverride string
 }
 
-func (mariadbConfig *BaseMariaDbSync) setDefaults() {
+func (m *MariadbSyncRoot) setDefaults() {
+	m.Type = MariadbSyncPlugin{}.GetPluginId()
+	m.ServiceName = mariadbDefaultServiceName
+}
+
+func (mariadbConfig *BaseMariaDbSync) SetDefaults() {
 	if mariadbConfig.DbHostname == "" {
 		mariadbConfig.DbHostname = "${MARIADB_HOST:-mariadb}"
 	}
@@ -69,8 +78,9 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 
 func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
-	mariadb.Config.setDefaults()
-	mariadb.LocalOverrides.Config.setDefaults()
+	mariadb.setDefaults()
+	mariadb.Config.SetDefaults()
+	mariadb.LocalOverrides.Config.SetDefaults()
 
 	syncherConfig := root.LagoonSync[targetService]
 
