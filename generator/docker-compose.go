@@ -1,13 +1,13 @@
 package generator
 
 import (
-	"github.com/compose-spec/compose-go/v2/cli"
-	"github.com/compose-spec/compose-go/v2/types"
-	"golang.org/x/net/context"
+	"github.com/compose-spec/compose-go/cli"
+	"github.com/compose-spec/compose-go/loader"
+	"github.com/compose-spec/compose-go/types"
 	"strings"
 )
 
-// syncdefGenerator.go contains all the functionality needed to parse docker compose files for lagoon labels
+// docker-compose.go contains all the functionality needed to parse docker compose files for lagoon labels
 // and generate sync definitions
 
 type LagoonServiceDefinition struct {
@@ -18,12 +18,26 @@ type LagoonServiceDefinition struct {
 
 func LoadComposeFile(composeFile string) (*types.Project, error) {
 	// Load the Compose file
-	projectOptions, err := cli.NewProjectOptions([]string{composeFile}, cli.WithDefaultConfigPath)
+
+	// NOTE: importantly - we're using a very permissive parsing scheme here
+	// including the upstream library used in the lagoon build-deploy tool
+	// we're only interested in pulling the service definitions here - so it's not so much of a problem.
+	projectOptions, err := cli.NewProjectOptions([]string{composeFile},
+		cli.WithResolvedPaths(false),
+		cli.WithLoadOptions(
+			loader.WithSkipValidation,
+			loader.WithDiscardEnvFiles,
+			func(o *loader.Options) {
+				o.IgnoreNonStringKeyErrors = true
+				o.IgnoreMissingEnvFileCheck = true
+			},
+		),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	project, err := cli.ProjectFromOptions(context.TODO(), projectOptions)
+	project, err := cli.ProjectFromOptions(projectOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +46,7 @@ func LoadComposeFile(composeFile string) (*types.Project, error) {
 }
 
 func ProcessServicesFromCompose(project *types.Project) []LagoonServiceDefinition {
-	serviceDefinitions := []LagoonServiceDefinition{}
+	var serviceDefinitions []LagoonServiceDefinition
 	for _, service := range project.Services {
 		sd := LagoonServiceDefinition{
 			ServiceName: service.Name,
