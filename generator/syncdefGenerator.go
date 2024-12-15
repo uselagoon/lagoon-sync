@@ -18,14 +18,6 @@ func BuildConfigStanzaFromServices(services []LagoonServiceDefinition) (string, 
 	// we go through the service definitions and try to generate text for them
 	for _, v := range services {
 		switch v.ServiceType {
-		case "mariadb", "mariadb-single", "mariadb-dbaas":
-			sr, err := GenerateMariadbSyncRootFromService(v)
-			if err != nil {
-				return "", err
-			}
-			serviceCount += 1
-			mariadbServices = append(mariadbServices, sr)
-			break
 		case "cli-persistent": //cli and cli-persisten
 			sr, err := GenerateFilesSyncRootFromPersistentService(v)
 			if err != nil {
@@ -42,6 +34,14 @@ func BuildConfigStanzaFromServices(services []LagoonServiceDefinition) (string, 
 			}
 			serviceCount += len(srs)
 			filesystemServices = append(filesystemServices, srs...)
+			break
+		case "mariadb", "mariadb-single", "mariadb-dbaas":
+			sr, err := GenerateMariadbSyncRootFromService(v)
+			if err != nil {
+				return "", err
+			}
+			serviceCount += 1
+			mariadbServices = append(mariadbServices, sr)
 			break
 		case "postgres", "postgres-single", "postgres-dbaas":
 			sr, err := GeneratePgqlSyncRootFromService(v)
