@@ -68,9 +68,25 @@ func BuildConfigStanzaFromServices(services []LagoonServiceDefinition) (string, 
 	}
 
 	const yamlTemplate = `
+# Below is your configuration for lagoon-sync.
+# These data can live in either a separate .lagoon-sync.yml file
+# or your .lagoon.yml file.
+
+# If your project is on anything except the amazeeio cluster, which are the defaults
+# and you're running lagoon-sync from a local container, you may have to set these variables
+# you can grab this information from running the lagoon cli's "lagoon config list"
+# this will output the ssh endpoints and ports you need.
+# Typically, though, this information is also available in the environment variables
+# LAGOON_CONFIG_SSH_HOST and LAGOON_CONFIG_SSH_PORT
+# 
+# These, for instance, are the amazeeio defaults
+# ssh: ssh.lagoon.amazeeio.cloud:32222
+# api: https://api.lagoon.amazeeio.cloud/graphql
+
+
 lagoon-sync:
 {{- range .Mariadb }}
-  - {{ .ServiceName }}:
+  {{ .ServiceName }}:
     type: {{ .Type }}
     config:
       hostname: "{{ .Config.DbHostname }}"
@@ -80,7 +96,7 @@ lagoon-sync:
       database: "{{ .Config.DbDatabase }}"
 {{- end }}
 {{- range .Postgres }}
-  - {{ .ServiceName }}:
+  {{ .ServiceName }}:
     type: {{ .Type }}
     config:
       hostname: "{{ .Config.DbHostname }}"
@@ -90,10 +106,10 @@ lagoon-sync:
       database: "{{ .Config.DbDatabase }}"
 {{- end }}
 {{- range .Filesystem }}
-  - {{ .ServiceName }}:
+  {{ .ServiceName }}:
     type: {{ .Type }}
-      config:
-        sync-directory: "{{ .Config.SyncPath }}"
+    config:
+      sync-directory: "{{ .Config.SyncPath }}"
 {{- end }}
 `
 	// Parse and execute the template
