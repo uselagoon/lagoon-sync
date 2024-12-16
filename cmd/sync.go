@@ -150,13 +150,29 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	if configRoot.LagoonSync["ssh"] != nil {
 		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 	}
+
 	sshHost := SSHHost
-	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
-		sshHost = sshConfig.Host
+	if SSHHost == "ssh.lagoon.amazeeio.cloud" { // we're using the default - lets see if there are other options
+		envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_SSH_HOST")
+		if exists { // we prioritize env data
+			sshHost = envSshHost
+		} else {
+			if sshConfig.Host != "" {
+				sshHost = sshConfig.Host
+			}
+		}
 	}
+
 	sshPort := SSHPort
-	if sshConfig.Port != "" && SSHPort == "32222" {
-		sshPort = sshConfig.Port
+	if SSHPort == "32222" { // we're using the default - lets see if there are other options
+		envSshPort, exists := os.LookupEnv("LAGOON_CONFIG_SSH_PORT")
+		if exists { // we prioritize env data
+			sshPort = envSshPort
+		} else {
+			if sshConfig.Port != "" {
+				sshPort = sshConfig.Port
+			}
+		}
 	}
 
 	sshKey := SSHKey
