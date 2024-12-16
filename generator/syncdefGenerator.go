@@ -5,9 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/uselagoon/lagoon-sync/synchers"
+	"log"
 	"strings"
 	"text/template"
 )
+
+type configTemplateData struct {
+	Mariadb    []synchers.MariadbSyncRoot
+	Filesystem []synchers.FilesSyncRoot
+	Postgres   []synchers.PostgresSyncRoot
+	Ssh        string
+	Api        string
+}
 
 func BuildConfigStanzaFromServices(services []LagoonServiceDefinition) (string, error) {
 
@@ -57,16 +66,21 @@ func BuildConfigStanzaFromServices(services []LagoonServiceDefinition) (string, 
 		return "", errors.New("No sync definitions were able to be extracted from service list")
 	}
 
-	allServices := struct {
-		Mariadb    []synchers.MariadbSyncRoot
-		Filesystem []synchers.FilesSyncRoot
-		Postgres   []synchers.PostgresSyncRoot
-	}{
+	templateData := configTemplateData{
 		Mariadb:    mariadbServices,
 		Filesystem: filesystemServices,
 		Postgres:   postgresServices,
 	}
 
+	retString, err := generateSyncStanza(templateData)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return retString, nil
+}
+
+func generateSyncStanza(templateData configTemplateData) (string, error) {
 	const yamlTemplate = `
 # Below is your configuration for lagoon-sync.
 # These data can live in either a separate .lagoon-sync.yml file
@@ -82,6 +96,13 @@ func BuildConfigStanzaFromServices(services []LagoonServiceDefinition) (string, 
 # These, for instance, are the amazeeio defaults
 # ssh: ssh.lagoon.amazeeio.cloud:32222
 # api: https://api.lagoon.amazeeio.cloud/graphql
+
+{{if ne .Ssh ""}}
+ssh: {{ .Ssh }}
+{{end}}
+{{if ne .Api ""}}
+ssh: {{ .Api }}
+{{end}}
 
 
 lagoon-sync:
@@ -115,16 +136,17 @@ lagoon-sync:
 	// Parse and execute the template
 	tmpl, err := template.New("yaml").Parse(yamlTemplate)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	var output bytes.Buffer
-	err = tmpl.Execute(&output, allServices)
+	err = tmpl.Execute(&output, templateData)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
-	return output.String(), nil
+	retString := output.String()
+	return retString, nil
 }
 
 func GenerateMariadbSyncRootFromService(definition LagoonServiceDefinition) (synchers.MariadbSyncRoot, error) {

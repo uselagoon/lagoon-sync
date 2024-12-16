@@ -277,3 +277,63 @@ func TestGenerateFilesSyncRootsFromServiceDefinition(t *testing.T) {
 		})
 	}
 }
+
+func Test_generateSyncStanza(t *testing.T) {
+	type args struct {
+		templateData configTemplateData
+	}
+	tests := []struct {
+		name     string
+		args     args
+		contains []string
+		wantErr  bool
+	}{
+		{
+			name: "Checking basic templating works",
+			args: args{templateData: configTemplateData{
+				Filesystem: []synchers.FilesSyncRoot{
+					{
+						Config: synchers.BaseFilesSync{
+							SyncPath: "/path/to/files",
+						},
+					},
+				},
+			},
+			},
+			contains: []string{"path/to/files"},
+			wantErr:  false,
+		},
+		{
+			name: "Api and ssh templating",
+			args: args{templateData: configTemplateData{
+				Filesystem: []synchers.FilesSyncRoot{
+					{
+						Config: synchers.BaseFilesSync{
+							SyncPath: "/path/to/files",
+						},
+					},
+				},
+				Ssh: "sshtoappearhere",
+				Api: "apitoappearhere",
+			},
+			},
+			contains: []string{"sshtoappearhere", "apitoappearhere"},
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := generateSyncStanza(tt.args.templateData)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("generateSyncStanza() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			for _, contString := range tt.contains {
+				if !strings.Contains(got, contString) {
+					t.Errorf("generateSyncStanza() should, but doesn't, contain '%v'", tt.contains)
+				}
+			}
+		})
+	}
+}

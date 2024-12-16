@@ -23,6 +23,12 @@ Currently supports filesystem definitions, mariadb/mysql services, and postgres.
 
 func genCommandRun(cmd *cobra.Command, args []string) {
 
+	str, gerr := generator.RunWizard()
+
+	if gerr == nil || gerr != nil {
+		fmt.Println(str)
+		return
+	}
 	_, err := os.Stat(args[0])
 	if err != nil {
 		log.Fatal(err)
