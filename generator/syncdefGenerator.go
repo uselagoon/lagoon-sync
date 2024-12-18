@@ -96,15 +96,12 @@ func generateSyncStanza(templateData configTemplateData) (string, error) {
 # These, for instance, are the amazeeio defaults
 # ssh: ssh.lagoon.amazeeio.cloud:32222
 # api: https://api.lagoon.amazeeio.cloud/graphql
-
-{{if ne .Ssh ""}}
+{{if ne .Ssh ""}} 
 ssh: {{ .Ssh }}
 {{end}}
 {{if ne .Api ""}}
 ssh: {{ .Api }}
 {{end}}
-
-
 lagoon-sync:
 {{- range .Mariadb }}
   {{ .ServiceName }}:
@@ -161,13 +158,30 @@ func GenerateMariadbSyncRootFromService(definition LagoonServiceDefinition) (syn
 	}
 	syncRoot.Config.SetDefaults()
 
-	if serviceNameUppercase != strings.ToUpper(synchers.MariadbSyncPlugin{}.GetPluginId()) {
-		syncRoot.Config.DbHostname = fmt.Sprintf("${%v_HOST:-mariadb}", serviceNameUppercase)
-		syncRoot.Config.DbUsername = fmt.Sprintf("${%v_USERNAME:-drupal}", serviceNameUppercase)
-		syncRoot.Config.DbPassword = fmt.Sprintf("${%v_PASSWORD:-drupal}", serviceNameUppercase)
-		syncRoot.Config.DbPort = fmt.Sprintf("${%v_PORT:-3306}", serviceNameUppercase)
-		syncRoot.Config.DbDatabase = fmt.Sprintf("${%v_DATABASE:-drupal}", serviceNameUppercase)
+	// now we try to infer the defaults for password and username
+	defaultUser := ""
+	defaultHost := ":-" + definition.ServiceName
+	defaultPassword := ""
+	defaultDatabase := ""
+	if definition.image != "" && strings.Contains(definition.image, "uselagoon/mariadb") {
+
+		if strings.Contains(definition.image, "drupal") {
+			defaultUser = ":-drupal"
+			defaultDatabase = ":-drupal"
+			defaultPassword = ":-drupal"
+		} else {
+			defaultUser = ":-lagoon"
+			defaultDatabase = ":-lagoon"
+			defaultPassword = ":-lagoon"
+		}
+
 	}
+
+	syncRoot.Config.DbHostname = fmt.Sprintf("${%v_HOST%v}", serviceNameUppercase, defaultHost)
+	syncRoot.Config.DbUsername = fmt.Sprintf("${%v_USERNAME%v}", serviceNameUppercase, defaultUser)
+	syncRoot.Config.DbPassword = fmt.Sprintf("${%v_PASSWORD%v}", serviceNameUppercase, defaultPassword)
+	syncRoot.Config.DbPort = fmt.Sprintf("${%v_PORT:-3306}", serviceNameUppercase)
+	syncRoot.Config.DbDatabase = fmt.Sprintf("${%v_DATABASE%v}", serviceNameUppercase, defaultDatabase)
 
 	return syncRoot, nil
 }

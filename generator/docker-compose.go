@@ -13,6 +13,7 @@ import (
 type LagoonServiceDefinition struct {
 	ServiceName string
 	ServiceType string
+	image       string
 	Labels      map[string]string
 }
 
@@ -50,6 +51,7 @@ func ProcessServicesFromCompose(project *types.Project) []LagoonServiceDefinitio
 	for _, service := range project.Services {
 		sd := LagoonServiceDefinition{
 			ServiceName: service.Name,
+			image:       service.Image,
 			Labels:      map[string]string{},
 		}
 		// we only process this if this _has_ a lagoon.type, and that is not "none"

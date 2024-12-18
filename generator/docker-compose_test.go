@@ -25,14 +25,17 @@ func TestProcessServicesFromCompose(t *testing.T) {
 				{
 					ServiceName: "nginx",
 					ServiceType: "nginx-php-persistent",
+					image:       "drupal-base-nginx:latest",
 				},
 				{
 					ServiceName: "php",
 					ServiceType: "nginx-php-persistent",
+					image:       "drupal-base-php:latest",
 				},
 				{
 					ServiceName: "mariadb",
 					ServiceType: "mariadb",
+					image:       "uselagoon/mariadb-10.11-drupal:latest",
 				},
 			},
 			wantErr: false,
@@ -44,6 +47,7 @@ func TestProcessServicesFromCompose(t *testing.T) {
 				{
 					ServiceName: "mariadb",
 					ServiceType: "mariadb",
+					image:       "uselagoon/mariadb-10.5-drupal:latest",
 				},
 			},
 			wantErr: false,
@@ -72,7 +76,7 @@ func TestProcessServicesFromCompose(t *testing.T) {
 func testDockerComposeServiceHasService(serviceDefinitions []LagoonServiceDefinition, serviceDef LagoonServiceDefinition) bool {
 	// here we match the incoming services to the name
 	for _, v := range serviceDefinitions {
-		if v.ServiceName == serviceDef.ServiceName && v.ServiceType == serviceDef.ServiceType {
+		if v.ServiceName == serviceDef.ServiceName && v.ServiceType == serviceDef.ServiceType && serviceDef.image == v.image {
 			return true
 		}
 	}

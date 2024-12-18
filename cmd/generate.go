@@ -21,14 +21,10 @@ Currently supports filesystem definitions, mariadb/mysql services, and postgres.
 	Run:  genCommandRun,
 }
 
+var outputfile string
+
 func genCommandRun(cmd *cobra.Command, args []string) {
 
-	str, gerr := generator.RunWizard()
-
-	if gerr == nil || gerr != nil {
-		fmt.Println(str)
-		return
-	}
 	_, err := os.Stat(args[0])
 	if err != nil {
 		log.Fatal(err)
@@ -65,9 +61,29 @@ func genCommandRun(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	fmt.Println(output.String())
+	if outputfile != "" {
+		// Create or open the file
+		file, err := os.Create(outputfile)
+		if err != nil {
+			fmt.Println("Error creating file:", err)
+			return
+		}
+		defer file.Close()
+
+		// Write the string to the file
+		_, err = file.WriteString(output.String())
+		if err != nil {
+			fmt.Println("Error writing to file:", err)
+			return
+		}
+		fmt.Println("Successfully wrote output to : " + outputfile)
+	} else {
+		fmt.Println(output.String())
+	}
+
 }
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
+	generateCmd.PersistentFlags().StringVarP(&outputfile, "outputfile", "o", "", "Write output to file - outputs to STDOUT if unset")
 }

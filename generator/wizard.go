@@ -28,7 +28,6 @@ func displayConfigTemplateData(d configTemplateData) {
 		}
 	}
 
-	fmt.Println("\n")
 }
 
 func RunWizard() (string, error) {
@@ -36,10 +35,12 @@ func RunWizard() (string, error) {
 	template := configTemplateData{}
 
 	done := false
+	const setClusterDetailsString = "Set cluster details"
 	const addMariadbString = "Add Mariadb"
 	const addPostgressString = "Add Postgres"
 	const addFSString = "Add filesystem"
-	const exitString = "Exit"
+	const editService = "Edit service"
+	const exitString = "Done"
 
 	for !done {
 		displayConfigTemplateData(template)
