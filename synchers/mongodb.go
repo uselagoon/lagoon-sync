@@ -35,6 +35,7 @@ type MongoDbSyncLocal struct {
 }
 
 type MongoDbSyncRoot struct {
+	Type                     string `yaml:"type" json:"type"`
 	Config                   BaseMongoDbSync
 	LocalOverrides           MongoDbSyncLocal `yaml:"local"`
 	TransferId               string
@@ -55,8 +56,9 @@ func (m MongoDbSyncPlugin) GetPluginId() string {
 	return "mongodb"
 }
 
-func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
+func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
 	mongodb := MongoDbSyncRoot{}
+	mongodb.Type = m.GetPluginId()
 	mongodb.Config.setDefaults()
 	mongodb.LocalOverrides.Config.setDefaults()
 
@@ -66,7 +68,7 @@ func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error
 
 	if envVars == nil {
 		// Use 'lagoon-sync' yaml as override if env vars are not available
-		configMap = root.LagoonSync[m.GetPluginId()]
+		configMap = root.LagoonSync[targetService]
 	}
 
 	// If config from active config file is empty, then use defaults

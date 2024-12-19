@@ -1,0 +1,28 @@
+# Below is your configuration for lagoon-sync.
+# These data can live in either a separate .lagoon-sync.yml file
+# or your .lagoon.yml file.
+
+# If your project is on anything except the amazeeio cluster, which are the defaults
+# and you're running lagoon-sync from a local container, you may have to set these variables
+# you can grab this information from running the lagoon cli's "lagoon config list"
+# this will output the ssh endpoints and ports you need.
+# Typically, though, this information is also available in the environment variables
+# LAGOON_CONFIG_SSH_HOST and LAGOON_CONFIG_SSH_PORT
+#
+# These, for instance, are the amazeeio defaults
+# ssh: ssh.lagoon.amazeeio.cloud:32222
+# api: https://api.lagoon.amazeeio.cloud/graphql
+
+lagoon-sync:
+  mariadb:
+    type: mariadb
+    config:
+      hostname: "${MARIADB_HOST:-mariadb}"
+      username: "${MARIADB_USERNAME:-lagoon}"
+      password: "${MARIADB_PASSWORD:-lagoon}"
+      port:     "${MARIADB_PORT:-3306}"
+      database: "${MARIADB_DATABASE:-lagoon}"
+  cli:
+    type: files
+    config:
+      sync-directory: "/app/storage/"
