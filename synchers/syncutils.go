@@ -34,6 +34,7 @@ type RunSyncProcessFunctionTypeArguments struct {
 	SyncerType           string
 	DryRun               bool
 	SshOptionWrapper     *SSHOptionWrapper
+	SkipSourceRun        bool
 	SkipSourceCleanup    bool
 	SkipTargetCleanup    bool
 	SkipTargetImport     bool
@@ -58,10 +59,12 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return err
 	}
 
-	err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
-	if err != nil {
-		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
-		return err
+	if !args.SkipSourceRun {
+		err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
+		if err != nil {
+			_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
+			return err
+		}
 	}
 
 	args.TargetEnvironment, err = RunPrerequisiteCommand(args.TargetEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptionWrapper)
@@ -71,7 +74,7 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return err
 	}
 
-	err = SyncRunTransfer(args.SourceEnvironment, args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
+	err = SyncRunTransfer(args.SourceEnvironment, args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper, args.TransferResourceName)
 	if err != nil {
 		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptionWrapper)
 		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
@@ -154,7 +157,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	return nil
 }
 
-func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptionWrapper *SSHOptionWrapper) error {
+func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptionWrapper *SSHOptionWrapper, transferResourceName string) error {
 	utils.LogProcessStep("Beginning file transfer logic", nil)
 
 	// TODO: This is going to be the trickiest of the ssh option calculations.
@@ -189,6 +192,13 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	lagoonRsyncService := "cli"
 	// rsyncRemoteSystemUsername is used by the rsync command to set up the ssh tunnel
 	rsyncRemoteSystemUsername := ""
+
+	// checks transferResourceName is provided for a file sync
+	if transferResourceName != "" {
+		if _, ok := syncer.(*FilesSyncRoot); ok {
+			sourceEnvironmentName = transferResourceName
+		}
+	}
 
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		//sourceEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", sourceEnvironment.GetOpenshiftProjectName(), sourceEnvironmentName)

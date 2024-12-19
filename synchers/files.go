@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -111,12 +112,20 @@ func (m *FilesSyncRoot) GetFilesToCleanup(environment Environment) []string {
 
 func (m *FilesSyncRoot) GetTransferResource(environment Environment) SyncerTransferResource {
 	config := m.Config
+	isDirectory := true
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		config = m.getEffectiveLocalDetails()
 	}
+	isFile, err := regexp.MatchString(`^(?:\.|~)?\/?[\w\/\-\.]*\.\w+$`, config.SyncPath)
+	if err != nil {
+		log.Fatalf("Error while matching file path: %v", err)
+	}
+	if isFile {
+		isDirectory = false
+	}
 	return SyncerTransferResource{
 		Name:             fmt.Sprintf(config.SyncPath),
-		IsDirectory:      true,
+		IsDirectory:      isDirectory,
 		SkipCleanup:      true,
 		ExcludeResources: m.Config.Exclude,
 	}
