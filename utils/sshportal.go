@@ -20,7 +20,7 @@ type ApiConn struct {
 }
 
 func (r *ApiConn) Init(graphqlEndpoint, sshkeyPath, sshHost, sshPort string) error {
-	token, err := sshtoken.RetrieveToken(sshkeyPath, sshHost, sshPort)
+	token, err := sshtoken.RetrieveToken(sshkeyPath, sshHost, sshPort, nil, nil, false)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (r *ApiConn) GetProjectEnvironmentDeployTargets(projectName string) (*[]sch
 	if r.token == "" {
 		return nil, errors.New("ApiConn has not been initialized")
 	}
-	lc := lclient.New(r.graphqlEndpoint, userAgentString, &r.token, false)
+	lc := lclient.New(r.graphqlEndpoint, userAgentString, "", &r.token, false)
 	environments := []schema.Environment{}
 	err := lc.EnvironmentsByProjectName(context.TODO(), projectName, &environments)
 	if err != nil {
