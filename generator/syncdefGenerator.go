@@ -96,12 +96,13 @@ func generateSyncStanza(templateData configTemplateData) (string, error) {
 # These, for instance, are the amazeeio defaults
 # ssh: ssh.lagoon.amazeeio.cloud:32222
 # api: https://api.lagoon.amazeeio.cloud/graphql
-{{if ne .Ssh ""}} 
+{{- if ne .Ssh ""}} 
 ssh: {{ .Ssh }}
-{{end}}
-{{if ne .Api ""}}
-ssh: {{ .Api }}
-{{end}}
+{{- end}}
+{{- if ne .Api ""}}
+api: {{ .Api }}
+{{- end}}
+
 lagoon-sync:
 {{- range .Mariadb }}
   {{ .ServiceName }}:
