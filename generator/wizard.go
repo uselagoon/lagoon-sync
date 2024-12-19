@@ -27,7 +27,15 @@ func displayConfigTemplateData(d configTemplateData) {
 			fmt.Println("\t\t" + s.ServiceName + ":" + s.Config.SyncPath)
 		}
 	}
-
+	if d.Api != "" || d.Ssh != "" {
+		fmt.Println("\t Cluster details")
+	}
+	if d.Api != "" {
+		fmt.Println("\t\tApi:%v", d.Api)
+	}
+	if d.Ssh != "" {
+		fmt.Println("\t\tSsh:%v", d.Ssh)
+	}
 }
 
 func RunWizard() (string, error) {
@@ -36,6 +44,7 @@ func RunWizard() (string, error) {
 
 	done := false
 	const setClusterDetailsString = "Set cluster details"
+	const addSshDetails = "Add cluster details (if running dedicated cluster)"
 	const addMariadbString = "Add Mariadb"
 	const addPostgressString = "Add Postgres"
 	const addFSString = "Add filesystem"
@@ -45,15 +54,16 @@ func RunWizard() (string, error) {
 	for !done {
 		displayConfigTemplateData(template)
 		prompt := &survey.Select{
-			Message: "Choose a color:",
-			Options: []string{addMariadbString, addPostgressString, addFSString, exitString},
+			Message: "Select:",
+			Options: []string{setClusterDetailsString, addMariadbString, addPostgressString, addFSString, exitString},
 		}
 		var opt string
-		// or define a default for the single call to `AskOne`
-		// the answer will get written to the color variable
+
 		survey.AskOne(prompt, &opt, survey.WithValidator(survey.Required))
 
 		switch opt {
+		case setClusterDetailsString:
+			addClusterDetails(&template)
 		case addMariadbString:
 			addMariadbService(&template)
 		case addPostgressString:
@@ -71,6 +81,59 @@ func RunWizard() (string, error) {
 	}
 
 	return generateSyncStanza(template)
+}
+
+func addClusterDetails(c *configTemplateData) {
+
+	fmt.Println("Adding cluster details:")
+	fmt.Println("Note: you're able to get these details from your administrator or the lagoon cli (run 'lagoon config list')")
+
+	var qs = []*survey.Question{
+		{
+			Name: "SshEndpoint",
+			Prompt: &survey.Input{
+				Renderer: survey.Renderer{},
+				Message:  "Enter the SSH Hostname for your lagoon instance",
+				Default:  "ssh.lagoon.amazeeio.cloud",
+				Help:     "",
+				Suggest:  nil,
+			},
+			Validate: survey.Required,
+		},
+		{
+			Name: "SshPort",
+			Prompt: &survey.Input{
+				Renderer: survey.Renderer{},
+				Message:  "Enter the SSH port for your lagoon instance",
+				Default:  "32222",
+				Help:     "",
+				Suggest:  nil,
+			},
+			Validate: survey.Required,
+		},
+		{
+			Name: "GraphqlEndpoint",
+			Prompt: &survey.Input{
+				Renderer: survey.Renderer{},
+				Message:  "Enter the graphql endpoint for your lagoon instance",
+				Default:  "https://api.lagoon.amazeeio.cloud/graphql",
+				Help:     "",
+				Suggest:  nil,
+			},
+		},
+	}
+	answers := struct {
+		SshEndpoint     string
+		SshPort         string
+		GraphqlEndpoint string
+	}{}
+	err := survey.Ask(qs, &answers)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	c.Ssh = fmt.Sprintf("%v:%v", answers.SshEndpoint, answers.SshPort)
+	c.Api = answers.GraphqlEndpoint
 }
 
 func addMariadbService(c *configTemplateData) {
