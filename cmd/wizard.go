@@ -9,7 +9,7 @@ import (
 )
 
 var wizardCmd = &cobra.Command{
-	Use:   "interactive",
+	Use:   "interactive-config",
 	Short: "Generate a lagoon-sync configuration stanza interactively",
 	Long:  `This command shows a wizard that will help with generating a .lagoon-sync.yml style yaml stanza`,
 	Run:   genwizCommandRun,

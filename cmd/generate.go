@@ -40,8 +40,6 @@ func genCommandRun(cmd *cobra.Command, args []string) {
 	stanza, err := generator.BuildConfigStanzaFromServices(services)
 
 	const yamlTemplate = `
-# Copy the following and add it to your .lagoon.yml file (see https://docs.lagoon.sh/concepts-basics/lagoon-yml/)
-
 {{ .Sync }}
 `
 
