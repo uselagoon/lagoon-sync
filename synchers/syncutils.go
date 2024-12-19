@@ -73,7 +73,7 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return err
 	}
 
-	err = SyncRunTransfer(args.SourceEnvironment, args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
+	err = SyncRunTransfer(args.SourceEnvironment, args.TargetEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions, args.TransferResourceName)
 	if err != nil {
 		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptions)
 		_ = SyncCleanUp(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptions)
@@ -148,7 +148,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 	return nil
 }
 
-func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptions SSHOptions) error {
+func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environment, syncer Syncer, dryRun bool, sshOptions SSHOptions, transferResourceName string) error {
 	utils.LogProcessStep("Beginning file transfer logic", nil)
 
 	// If we're transferring to the same resource, we can skip this whole process.
@@ -179,6 +179,13 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 	lagoonRsyncService := "cli"
 	// rsyncRemoteSystemUsername is used by the rsync command to set up the ssh tunnel
 	rsyncRemoteSystemUsername := ""
+
+	// checks transferResourceName is provided for a file sync
+	if transferResourceName != "" {
+		if _, ok := syncer.(*FilesSyncRoot); ok {
+			sourceEnvironmentName = transferResourceName
+		}
+	}
 
 	if sourceEnvironment.EnvironmentName != LOCAL_ENVIRONMENT_NAME {
 		//sourceEnvironmentName = fmt.Sprintf("%s@ssh.lagoon.amazeeio.cloud:%s", sourceEnvironment.GetOpenshiftProjectName(), sourceEnvironmentName)

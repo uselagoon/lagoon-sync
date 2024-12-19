@@ -170,8 +170,8 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		RsyncArgs:  RsyncArguments,
 	}
 
-	// let's update the named transfer resource if it is set
-	if namedTransferResource != "" {
+	// let's update the named transfer resource if it is set & not syncing to/from a file
+	if namedTransferResource != "" && !strings.Contains(cmd.Name(), "-file") {
 		err = lagoonSyncer.SetTransferResource(namedTransferResource)
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
@@ -222,45 +222,37 @@ func confirmPrompt(message string) (bool, error) {
 	return false, err
 }
 
-func addToFileSubCommand(parentCmd *cobra.Command) {
-	var toFileCmd = &cobra.Command{
-		Use:   "to-file",
-		Short: "Sync to a file",
-		Long:  "Sync/Dump to a file to produce a resource dump",
-		Run: func(cmd *cobra.Command, args []string) {
-			fileFlag, _ := cmd.Parent().PersistentFlags().GetString("transfer-resource-name")
-			fmt.Println("You are about to dump to:", fileFlag)
+var toFileCmd = &cobra.Command{
+	Use:   "to-file",
+	Short: "Sync to a file",
+	Long:  "Sync/Dump to a file to produce a resource dump",
+	Run: func(cmd *cobra.Command, args []string) {
+		fileFlag, _ := cmd.Flags().GetString("transfer-resource-name")
+		fmt.Println("You are about to dump to:", fileFlag)
 
-			// set the skipTargetImport and skipTargetCleanup flags to true
-			cmd.Parent().PersistentFlags().Set("skip-target-import", "true")
-			cmd.Parent().PersistentFlags().Set("skip-source-cleanup", "true")
-			cmd.Parent().PersistentFlags().Set("skip-target-cleanup", "true")
+		// set the skipTargetImport and skipTargetCleanup flags to true
+		cmd.Parent().PersistentFlags().Set("skip-target-import", "true")
+		cmd.Parent().PersistentFlags().Set("skip-source-cleanup", "true")
+		cmd.Parent().PersistentFlags().Set("skip-target-cleanup", "true")
 
-			syncCommandRun(cmd, args)
-		},
-	}
-
-	parentCmd.AddCommand(toFileCmd)
+		syncCommandRun(cmd, args)
+	},
 }
 
-func addFromFileSubCommand(parentCmd *cobra.Command) {
-	var fromFileCmd = &cobra.Command{
-		Use:   "from-file",
-		Short: "Sync from a file",
-		Long:  "Sync from a file and perform related actions",
-		Run: func(cmd *cobra.Command, args []string) {
-			fileFlag, _ := cmd.Parent().PersistentFlags().GetString("transfer-resource-name")
-			fmt.Println("You are about to import from:", fileFlag)
+var fromFileCmd = &cobra.Command{
+	Use:   "from-file",
+	Short: "Sync from a file",
+	Long:  "Sync from a file and perform related actions",
+	Run: func(cmd *cobra.Command, args []string) {
+		fileFlag, _ := cmd.Flags().GetString("transfer-resource-name")
+		fmt.Println("You are about to import from:", fileFlag)
 
-			cmd.Parent().PersistentFlags().Set("skip-source-run", "true")
-			cmd.Parent().PersistentFlags().Set("skip-source-cleanup", "true")
-			cmd.Parent().PersistentFlags().Set("skip-target-cleanup", "true")
+		cmd.Parent().PersistentFlags().Set("skip-source-run", "true")
+		cmd.Parent().PersistentFlags().Set("skip-source-cleanup", "true")
+		cmd.Parent().PersistentFlags().Set("skip-target-cleanup", "true")
 
-			syncCommandRun(cmd, args)
-		},
-	}
-
-	parentCmd.AddCommand(fromFileCmd)
+		syncCommandRun(cmd, args)
+	},
 }
 
 func init() {
@@ -284,8 +276,8 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
 	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "f", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
 
-	addToFileSubCommand(syncCmd)
-	addFromFileSubCommand(syncCmd)
+	syncCmd.AddCommand(toFileCmd)
+	syncCmd.AddCommand(fromFileCmd)
 
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
