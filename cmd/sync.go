@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -25,6 +26,7 @@ var SSHHost string
 var SSHPort string
 var SSHKey string
 var SSHVerbose bool
+var SSHSkipAgent bool
 var CmdSSHKey string
 var noCliInteraction bool
 var dryRun bool
@@ -37,6 +39,10 @@ var skipTargetCleanup bool
 var skipTargetImport bool
 var localTransferResourceName string
 var namedTransferResource string
+
+var apiEndpoint string
+var useSshPortal bool // This is our feature flag for now. With the major version, we change the ssh config details for lagoon-sync files
+const fallbackApi = "https://api.lagoon.amazeeio.cloud/graphql"
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -121,7 +127,11 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
 	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
-		utils.LogFatalError(err.Error(), nil)
+		// Let's ask the custom syncer if this will work, if so, we fall back on it ...
+		lagoonSyncer, err = synchers.GetCustomSync(configRoot, SyncerType)
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
 	}
 
 	if ProjectName == "" {
@@ -162,12 +172,44 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	if sshConfig.Verbose && !sshVerbose {
 		sshVerbose = sshConfig.Verbose
 	}
+
+	// Here we have the default - let's add it to a wrapper
 	sshOptions := synchers.SSHOptions{
 		Host:       sshHost,
 		PrivateKey: sshKey,
 		Port:       sshPort,
 		Verbose:    sshVerbose,
 		RsyncArgs:  RsyncArguments,
+		SkipAgent:  SSHSkipAgent,
+	}
+
+	sshOptionWrapper := synchers.NewSshOptionWrapper(ProjectName, sshOptions)
+
+	if useSshPortal {
+
+		//Let's work out the api endpoint
+		if configRoot.Api != "" && apiEndpoint != "" {
+			apiEndpoint = configRoot.Api
+		}
+
+		apiConn := utils.ApiConn{}
+		err := apiConn.Init(apiEndpoint, sshKey, "ssh.main.lagoon-core.test6.amazee.io", "22")
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		defaultSshOption, sshopts, err := getEnvironmentSshDetails(apiConn, ProjectName, sshOptions)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		sshOptionWrapper.SetDefaultSshOptions(defaultSshOption)
+		for envName, option := range sshopts {
+			sshOptionWrapper.AddSsshOptionForEnvironment(envName, option)
+		}
+
 	}
 
 	// let's update the named transfer resource if it is set & not syncing to/from a file
@@ -180,14 +222,20 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	utils.LogDebugInfo("Config that is used for SSH", sshOptions)
 
+	// Add assertion - we no longer support Remote to Remote syncs
+	if sourceEnvironment.EnvironmentName != synchers.LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != synchers.LOCAL_ENVIRONMENT_NAME {
+		utils.LogFatalError("Remote to Remote transfers are not supported", nil)
+	}
+
 	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
-		SourceEnvironment:    sourceEnvironment,
-		TargetEnvironment:    targetEnvironment,
-		LagoonSyncer:         lagoonSyncer,
-		SyncerType:           SyncerType,
-		DryRun:               dryRun,
-		SshOptions:           sshOptions,
+		SourceEnvironment: sourceEnvironment,
+		TargetEnvironment: targetEnvironment,
+		LagoonSyncer:      lagoonSyncer,
+		SyncerType:        SyncerType,
+		DryRun:            dryRun,
+		//SshOptions:           sshOptions,
 		SkipSourceRun:        skipSourceRun,
+		SshOptionWrapper:     sshOptionWrapper,
 		SkipTargetCleanup:    skipTargetCleanup,
 		SkipSourceCleanup:    skipSourceCleanup,
 		SkipTargetImport:     skipTargetImport,
@@ -208,6 +256,38 @@ func getServiceName(SyncerType string) string {
 		return SyncerType
 	}
 	return "cli"
+}
+
+func getEnvironmentSshDetails(conn utils.ApiConn, projectName string, defaultSshOptions synchers.SSHOptions) (synchers.SSHOptions, map[string]synchers.SSHOptions, error) {
+	environments, err := conn.GetProjectEnvironmentDeployTargets(projectName)
+	retMap := map[string]synchers.SSHOptions{}
+
+	if err != nil {
+		return synchers.SSHOptions{}, retMap, err
+	}
+
+	var defaultOptions synchers.SSHOptions
+	defaultSet := false
+
+	for _, environment := range *environments {
+		retMap[environment.Name] = synchers.SSHOptions{
+			Host:       environment.DeployTarget.SSHHost,
+			Port:       environment.DeployTarget.SSHPort,
+			Verbose:    defaultSshOptions.Verbose,
+			PrivateKey: "",
+			SkipAgent:  defaultSshOptions.SkipAgent,
+			RsyncArgs:  defaultSshOptions.RsyncArgs,
+		}
+
+		if environment.EnvironmentType == "production" {
+			defaultOptions = retMap[environment.Name]
+			defaultSet = true
+		}
+	}
+	if defaultSet == false {
+		return synchers.SSHOptions{}, retMap, errors.New("COULD NOT FIND DEFAULT OPTION SET")
+	}
+	return defaultOptions, retMap, nil
 }
 
 func confirmPrompt(message string) (bool, error) {
@@ -266,6 +346,7 @@ func init() {
 	syncCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
 	syncCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port, defaults to '32222'")
 	syncCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	syncCmd.PersistentFlags().BoolVar(&SSHSkipAgent, "ssh-skip-agent", false, "Do not attempt to use an ssh-agent for key management")
 	syncCmd.PersistentFlags().BoolVar(&SSHVerbose, "verbose", false, "Run ssh commands in verbose (useful for debugging)")
 	syncCmd.PersistentFlags().BoolVar(&noCliInteraction, "no-interaction", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
@@ -274,6 +355,8 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
+	syncCmd.PersistentFlags().StringVarP(&apiEndpoint, "api", "A", "", "Specify your lagoon api endpoint - required for ssh-portal integration")
+	syncCmd.PersistentFlags().BoolVar(&useSshPortal, "use-ssh-portal", false, "This will use the SSH Portal rather than the (soon to be removed) SSH Service on Lagoon core. Will become default in a future release.")
 	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "f", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
 
 	syncCmd.AddCommand(toFileCmd)

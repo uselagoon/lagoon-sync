@@ -152,7 +152,78 @@ The order of configuration precedence is as follows:
 
 There are some configuration examples in the `examples` directory of this repo.
 
+2021/01/22 11:34:10 (DEBUG) Using config file: /lagoon/.lagoon-sync
+2021/01/22 11:34:10 (DEBUG) Config that will be used for sync:
+ {
+  "Config": {
+    "DbHostname": "$MARIADB_HOST",
+    "DbUsername": "$MARIADB_USERNAME",
+    "DbPassword": "$MARIADB_PASSWORD",
+    "DbPort": "$MARIADB_PORT",
+    "DbDatabase": "$MARIADB_DATABASE",
+    ...
+
+To recap, the configuration files that can be used by default, in order of priority when available are:
+* /lagoon/.lagoon-sync-defaults
+* /lagoon/.lagoon-sync
+* .lagoon.yml
+
+### Custom synchers
+
+It's possible to extend lagoon-sync to define your own sync processes. As lagoon-sync is essentially a 
+script runner that runs commands on target and source systems, as well as transferring data between the two systems,
+it's possible to define commands that generate the transfer resource and consume it on the target.
+
+For instance, if you have [mtk](https://github.com/skpr/mtk) set up on the target machine, it should be possible to
+define a custom syncher that makes use of mtk to generate a sanitized DB dump on the source, and then use mysql to
+import it on the target.
+
+This is done by defining three things:
+* The transfer resource name (what file is going to be synced across the network) - in this case let's call it "/tmp/dump.sql"
+* The command(s) to run on the source
+* The command(s) to run target
+
+```
+lagoon-sync:
+  mtkdump:
+    transfer-resource: "/tmp/dump.sql"
+    source:
+      commands:
+        - "mtk-dump > {{ .transferResource }}"
+    target:
+      commands:
+        - "mysql -h${MARIADB_HOST:-mariadb} -u${MARIADB_USERNAME:-drupal} -p${MARIADB_PASSWORD:-drupal} -P${MARIADB_PORT:-3306} ${MARIADB_DATABASE:-drupal} < {{ .transfer-resource }}"
+```
+
+This can then be called by running the following:
+```
+lagoon-sync sync mtkdump -p <SOURCE_PROJECT> -e <SOURCE_ENVIRONMENT>
+```
+
+### Custom configuration files
+If you don't want your configuration file inside `/lagoon` and want to give it another name then you can define a custom file and tell sync to use that by providing the file path. This can be done with `--config` flag such as:Config files that can be used in order of priority:
+- .lagoon-sync-defaults _(no yaml ext neeeded)_
+- .lagoon-sync _(no yaml ext neeeded)_
+- .lagoon.yml _Main config file - path can be given as an argument with `--config`, default is `.lagoon.yml`_
+å
+```
+$ lagoon-sync sync mariadb -p mysite-com -e dev --config=/app/.lagoon-sync --show-debug
+
+2021/01/22 11:43:50 (DEBUG) Using config file: /app/.lagoon-sync
+```
+
+You can also use an environment variable to set the config sync path with either `LAGOON_SYNC_PATH` or `LAGOON_SYNC_DEFAULTS_PATH`.
+
+```
+$ LAGOON_SYNC_PATH=/app/.lagoon-sync lagoon-sync sync mariadb -p mysite-com -e dev --show-debug
+
+2021/01/22 11:46:42 (DEBUG) LAGOON_SYNC_PATH env var found: /app/.lagoon-sync
+2021/01/22 11:46:42 (DEBUG) Using config file: /app/.lagoon-sync
+```
+
+
 To double check which config file is loaded you can also run the `lagoon-sync config` command.
+
 
 ### Example sync config overrides
 ```

@@ -55,6 +55,7 @@ type Environment struct {
 
 // SyncherConfigRoot is used to unmarshall yaml config details generally
 type SyncherConfigRoot struct {
+	Api           string                              `yaml:"api,omitempty" json:"api,omitempty"`
 	Project       string                              `yaml:"project" json:"project,omitempty"`
 	LagoonSync    map[string]interface{}              `yaml:"lagoon-sync" json:"lagoonSync,omitempty"`
 	Prerequisites []prerequisite.GatheredPrerequisite `yaml:"prerequisites" json:"prerequisites,omitempty"`
@@ -69,6 +70,7 @@ type SSHOptions struct {
 	Port       string `yaml:"port,omitempty" json:"port,omitempty"`
 	Verbose    bool   `yaml:"verbose,omitempty" json:"verbose,omitempty"`
 	PrivateKey string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	SkipAgent  bool
 	RsyncArgs  string `yaml:"rsyncArgs,omitempty" json:"rsyncArgs,omitempty"`
 }
 
@@ -101,6 +103,6 @@ func GenerateRemoteCommand(remoteEnvironment Environment, command string, sshOpt
 		serviceArgument = fmt.Sprintf("service=%v", remoteEnvironment.ServiceName)
 	}
 
-	return fmt.Sprintf("ssh%s -tt -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s '%s'",
+	return fmt.Sprintf("ssh%s -tt -o LogLevel=FATAL -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -p %s %s@%s %s '%s'",
 		sshOptionsStr.String(), sshOptions.Port, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, serviceArgument, command)
 }
