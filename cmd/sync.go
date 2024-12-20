@@ -33,6 +33,7 @@ var dryRun bool
 var verboseSSH bool
 var RsyncArguments string
 var runSyncProcess synchers.RunSyncProcessFunctionType
+var skipSourceRun bool
 var skipSourceCleanup bool
 var skipTargetCleanup bool
 var skipTargetImport bool
@@ -52,8 +53,19 @@ var syncCmd = &cobra.Command{
 }
 
 func syncCommandRun(cmd *cobra.Command, args []string) {
-	SyncerType := args[0]
-	viper.Set("syncer-type", args[0])
+	SyncerType := ""
+	if len(args) > 0 {
+		SyncerType = args[0]
+		viper.Set("syncer-type", args[0])
+	} else {
+		if cmd.Name() == "to-file" || cmd.Name() == "from-file" {
+			// set default as mariadb for now if no arg is given
+			SyncerType = "mariadb"
+		} else {
+			fmt.Println("Error: No SyncerType provided.")
+			return
+		}
+	}
 
 	var configRoot synchers.SyncherConfigRoot
 
@@ -200,8 +212,8 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	}
 
-	// let's update the named transfer resource if it is set
-	if namedTransferResource != "" {
+	// let's update the named transfer resource if it is set & not syncing to/from a file
+	if namedTransferResource != "" && !strings.Contains(cmd.Name(), "-file") {
 		err = lagoonSyncer.SetTransferResource(namedTransferResource)
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
@@ -222,6 +234,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		SyncerType:        SyncerType,
 		DryRun:            dryRun,
 		//SshOptions:           sshOptions,
+		SkipSourceRun:        skipSourceRun,
 		SshOptionWrapper:     sshOptionWrapper,
 		SkipTargetCleanup:    skipTargetCleanup,
 		SkipSourceCleanup:    skipSourceCleanup,
@@ -289,6 +302,39 @@ func confirmPrompt(message string) (bool, error) {
 	return false, err
 }
 
+var toFileCmd = &cobra.Command{
+	Use:   "to-file",
+	Short: "Sync to a file",
+	Long:  "Sync/Dump to a file to produce a resource dump",
+	Run: func(cmd *cobra.Command, args []string) {
+		fileFlag, _ := cmd.Flags().GetString("transfer-resource-name")
+		fmt.Println("You are about to dump to:", fileFlag)
+
+		// set the skipTargetImport and skipTargetCleanup flags to true
+		cmd.Parent().PersistentFlags().Set("skip-target-import", "true")
+		cmd.Parent().PersistentFlags().Set("skip-source-cleanup", "true")
+		cmd.Parent().PersistentFlags().Set("skip-target-cleanup", "true")
+
+		syncCommandRun(cmd, args)
+	},
+}
+
+var fromFileCmd = &cobra.Command{
+	Use:   "from-file",
+	Short: "Sync from a file",
+	Long:  "Sync from a file and perform related actions",
+	Run: func(cmd *cobra.Command, args []string) {
+		fileFlag, _ := cmd.Flags().GetString("transfer-resource-name")
+		fmt.Println("You are about to import from:", fileFlag)
+
+		cmd.Parent().PersistentFlags().Set("skip-source-run", "true")
+		cmd.Parent().PersistentFlags().Set("skip-source-cleanup", "true")
+		cmd.Parent().PersistentFlags().Set("skip-target-cleanup", "true")
+
+		syncCommandRun(cmd, args)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.PersistentFlags().StringVarP(&ProjectName, "project-name", "p", "", "The Lagoon project name of the remote system")
@@ -305,12 +351,17 @@ func init() {
 	syncCmd.PersistentFlags().BoolVarP(&noCliInteraction, "no-interaction", "y", false, "Disallow interaction")
 	syncCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 	syncCmd.PersistentFlags().StringVarP(&RsyncArguments, "rsync-args", "r", "--omit-dir-times --no-perms --no-group --no-owner --chmod=ugo=rwX --recursive --compress", "Pass through arguments to change the behaviour of rsync")
+	syncCmd.PersistentFlags().BoolVar(&skipSourceRun, "skip-source-run", false, "Don't run any ops on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipSourceCleanup, "skip-source-cleanup", false, "Don't clean up any of the files generated on the source")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
-	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
 	syncCmd.PersistentFlags().StringVarP(&apiEndpoint, "api", "A", "", "Specify your lagoon api endpoint - required for ssh-portal integration")
 	syncCmd.PersistentFlags().BoolVar(&useSshPortal, "use-ssh-portal", false, "This will use the SSH Portal rather than the (soon to be removed) SSH Service on Lagoon core. Will become default in a future release.")
+	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "f", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
+
+	syncCmd.AddCommand(toFileCmd)
+	syncCmd.AddCommand(fromFileCmd)
+
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
 	// this should be okay.
