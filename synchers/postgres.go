@@ -21,6 +21,8 @@ type BasePostgresSync struct {
 	OutputDirectory  string
 }
 type PostgresSyncRoot struct {
+	Type                     string `yaml:"type" json:"type"`
+	ServiceName              string `yaml:"serviceName"`
 	Config                   BasePostgresSync
 	LocalOverrides           PostgresSyncLocal `yaml:"local"`
 	TransferId               string
@@ -29,6 +31,11 @@ type PostgresSyncRoot struct {
 
 type PostgresSyncLocal struct {
 	Config BasePostgresSync
+}
+
+// SetDefaults is a public function that is used to set all defaults for this struct
+func (postgresConfig *BasePostgresSync) SetDefaults() {
+	postgresConfig.setDefaults()
 }
 
 func (postgresConfig *BasePostgresSync) setDefaults() {
@@ -63,11 +70,12 @@ func (m PostgresSyncPlugin) GetPluginId() string {
 	return "postgres"
 }
 
-func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
+func (m PostgresSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot, targetService string) (Syncer, error) {
 	postgres := PostgresSyncRoot{}
+	postgres.Type = m.GetPluginId()
 	postgres.Config.setDefaults()
 
-	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
+	configMap := syncerConfigRoot.LagoonSync[targetService]
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if configMap != nil {

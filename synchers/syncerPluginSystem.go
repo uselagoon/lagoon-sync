@@ -18,7 +18,7 @@ var syncerMap = map[string]SyncerPlugin{}
 
 type SyncerPlugin interface {
 	GetPluginId() string
-	UnmarshallYaml(root SyncherConfigRoot) (Syncer, error)
+	UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error)
 }
 
 func RegisterSyncer(plugin SyncerPlugin) {
@@ -26,8 +26,25 @@ func RegisterSyncer(plugin SyncerPlugin) {
 }
 
 func GetSyncerForTypeFromConfigRoot(syncerId string, root SyncherConfigRoot) (Syncer, error) {
+
+	// we may want to first check if there's an explicit type attached to this syncerId
+	SyncerConfig, exists := root.LagoonSync[syncerId]
+	if exists {
+		configTypeStruct := struct {
+			Type string `yaml:"type" json:"type"`
+		}{Type: ""}
+		_ = UnmarshalIntoStruct(SyncerConfig, &configTypeStruct)
+
+		// We've found an alias in the config that implements a "type"
+		if configTypeStruct.Type != "" {
+			return syncerMap[configTypeStruct.Type].UnmarshallYaml(root, syncerId)
+		}
+	}
+
 	if syncerMap[syncerId] == nil {
 		return nil, errors.New(fmt.Sprintf("Syncer of type '%s' not registered", syncerId))
 	}
-	return syncerMap[syncerId].UnmarshallYaml(root)
+
+	return syncerMap[syncerId].UnmarshallYaml(root, syncerId)
+
 }

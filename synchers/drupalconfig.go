@@ -32,11 +32,11 @@ func (m DrupalConfigSyncPlugin) GetPluginId() string {
 	return "drupalconfig"
 }
 
-func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot) (Syncer, error) {
+func (m DrupalConfigSyncPlugin) UnmarshallYaml(syncerConfigRoot SyncherConfigRoot, targetService string) (Syncer, error) {
 	drupalconfig := DrupalconfigSyncRoot{}
 	drupalconfig.Config.OutputDirectory = drupalconfig.GetOutputDirectory()
 
-	configMap := syncerConfigRoot.LagoonSync[m.GetPluginId()]
+	configMap := syncerConfigRoot.LagoonSync[targetService]
 	_ = UnmarshalIntoStruct(configMap, &drupalconfig)
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any

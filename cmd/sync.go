@@ -52,9 +52,17 @@ var syncCmd = &cobra.Command{
 }
 
 func syncCommandRun(cmd *cobra.Command, args []string) {
+
+	// SyncerType can be one of two things
+	// 1. a direct reference to a syncer - i.e. mariadb, postgres, files
+	// 2. a reference to an alias in the configuration file (.lagoon.yml/.lagoon-sync.yml)
+	// 3. a reference to a custom syncer, also defined in the config file.
 	SyncerType := args[0]
+
 	viper.Set("syncer-type", args[0])
 
+	// configRoot will be filled with the configuration information that is passed
+	// to the syncers when they're run.
 	var configRoot synchers.SyncherConfigRoot
 
 	if viper.ConfigFileUsed() == "" {
@@ -112,7 +120,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	// Syncers are registered in their init() functions - so here we attempt to match
 	// the syncer type with the argument passed through to this command
 	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
-	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncher object)
+	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncer object)
 	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
 	if err != nil {
 		// Let's ask the custom syncer if this will work, if so, we fall back on it ...
@@ -142,13 +150,29 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	if configRoot.LagoonSync["ssh"] != nil {
 		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
 	}
+
 	sshHost := SSHHost
-	if sshConfig.Host != "" && SSHHost == "ssh.lagoon.amazeeio.cloud" {
-		sshHost = sshConfig.Host
+	if SSHHost == "ssh.lagoon.amazeeio.cloud" { // we're using the default - lets see if there are other options
+		envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_SSH_HOST")
+		if exists { // we prioritize env data
+			sshHost = envSshHost
+		} else {
+			if sshConfig.Host != "" {
+				sshHost = sshConfig.Host
+			}
+		}
 	}
+
 	sshPort := SSHPort
-	if sshConfig.Port != "" && SSHPort == "32222" {
-		sshPort = sshConfig.Port
+	if SSHPort == "32222" { // we're using the default - lets see if there are other options
+		envSshPort, exists := os.LookupEnv("LAGOON_CONFIG_SSH_PORT")
+		if exists { // we prioritize env data
+			sshPort = envSshPort
+		} else {
+			if sshConfig.Port != "" {
+				sshPort = sshConfig.Port
+			}
+		}
 	}
 
 	sshKey := SSHKey
@@ -238,6 +262,9 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 }
 
+// getServiceName will return the name of the service in which we run the commands themselves. This is typically
+// the cli pod in a project
+// TODO: this needs to be expanded to be dynamic in the future.
 func getServiceName(SyncerType string) string {
 	if SyncerType == "mongodb" {
 		return SyncerType

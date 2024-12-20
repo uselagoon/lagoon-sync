@@ -23,6 +23,8 @@ func (filesConfig *BaseFilesSync) setDefaults() {
 }
 
 type FilesSyncRoot struct {
+	Type           string `yaml:"type" json:"type"`
+	ServiceName    string `yaml:"serviceName"`
 	Config         BaseFilesSync
 	LocalOverrides FilesSyncLocal `yaml:"local"`
 	TransferId     string
@@ -46,12 +48,13 @@ func (m FilesSyncPlugin) GetPluginId() string {
 	return "files"
 }
 
-func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot) (Syncer, error) {
+func (m FilesSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
 	filesroot := FilesSyncRoot{}
+	filesroot.Type = m.GetPluginId()
 	filesroot.Config.setDefaults()
 
 	// Use 'lagoon-sync' yaml as override if env vars are not available
-	configMap := root.LagoonSync[m.GetPluginId()]
+	configMap := root.LagoonSync[targetService]
 
 	// If yaml config is there then unmarshall into struct and override default values if there are any
 	if len(root.LagoonSync) != 0 {
