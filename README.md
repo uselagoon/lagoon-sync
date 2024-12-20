@@ -90,7 +90,7 @@ lagoon-sync:
 and run the syncs with `lagoon-sync sync mydatabase -p mypr...` and `lagoon-sync sync filestorage -p mypr...`
 The nested keys `cli` and `mariadb` are simply names - it's the `type:` key that tells `lagoon-sync` what it's actually syncing.
 
-You can define as many of these syncers as you need - if you have multiple databases, for instance, or, more likely, if you
+You can define as many of these synchers as you need - if you have multiple databases, for instance, or, more likely, if you
 have multiple files/directories you'd like to sync separately.
 
 ## How should I be generating a `.lagoon-sync.yml`?
