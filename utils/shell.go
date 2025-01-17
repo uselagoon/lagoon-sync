@@ -26,7 +26,6 @@ func Shellout(command string) (error, string, string) {
 	if err != nil {
 		return err, "", ""
 	}
-	//err := cmd.Run()
 	ShowSpinner()
 	defer HideSpinner()
 	err = cmd.Wait()
