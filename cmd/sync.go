@@ -135,6 +135,11 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	}
 
 	if !noCliInteraction {
+
+		// We'll set the spinner utility to show
+		utils.SetShowSpinner(true)
+
+		// Ask for confirmation
 		confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
 			ProjectName,
 			SyncerType,

@@ -22,7 +22,14 @@ func Shellout(command string) (error, string, string) {
 	cmd := exec.Command(ShellToUse, "-c", command)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	err := cmd.Run()
+	err := cmd.Start()
+	if err != nil {
+		return err, "", ""
+	}
+	//err := cmd.Run()
+	ShowSpinner()
+	defer HideSpinner()
+	err = cmd.Wait()
 	return err, stdout.String(), stderr.String()
 }
 
@@ -162,7 +169,10 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 		return err, outputBuffer.String()
 	}
 	// Wait for the command to complete
+	ShowSpinner()
+	defer HideSpinner()
 	err = session.Wait()
+
 	if err != nil {
 		return err, outputBuffer.String()
 	}
