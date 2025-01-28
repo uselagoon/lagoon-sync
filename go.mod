@@ -6,6 +6,7 @@ go 1.23
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
+	github.com/briandowns/spinner v1.23.1
 	github.com/compose-spec/compose-go v1.2.7
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/manifoldco/promptui v0.9.0
@@ -16,12 +17,11 @@ require (
 	github.com/uselagoon/machinery v0.0.31
 	github.com/withmandala/go-log v0.1.0
 	golang.org/x/crypto v0.31.0
-	golang.org/x/net v0.32.0
+	golang.org/x/net v0.33.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
-	github.com/briandowns/spinner v1.23.1 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/distribution/distribution/v3 v3.0.0-20210316161203-a01c71e2477e // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
