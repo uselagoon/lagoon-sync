@@ -37,4 +37,4 @@ sboms:
   - id: spdx
     artifacts: binary
     documents:
-    - "${artifact}.spdx.sbom.json"
+    - "${artifact}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.spdx.sbom.json"
