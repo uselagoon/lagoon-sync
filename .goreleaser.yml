@@ -28,3 +28,6 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+# SBOM configuration
+sboms:
+  - artifacts: archive
