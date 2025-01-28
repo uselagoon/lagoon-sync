@@ -1,9 +1,13 @@
 # This is an example goreleaser.yaml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
+
+version: 2
+
 before:
   hooks:
     # download mods to local cache
     - go mod download
+
 builds:
   -
     env:
@@ -30,4 +34,7 @@ changelog:
       - '^test:'
 # SBOM configuration
 sboms:
-  - artifacts: archive
+  - id: spdx
+    artifacts: binary
+    documents:
+    - "${artifact}.spdx.sbom.json"
