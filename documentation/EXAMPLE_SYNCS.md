@@ -32,20 +32,21 @@ Global Flags:
 
 As with all sync commands, if you run into issues you can run `--show-debug` to see extra log information. There is also the `config` command which is useful to see what configuration files are active.
 
-### Mariadb sync from remote source -> local environment
-An example sync between a `mariadb` database from a remote source environment to your local instance may go as follows:
+Note: All these examples mention your "current" environment. This can _either_ be your local development environment _or_ an environment deployed on Lagoon. "Current environment" here simply means "wherever you're running the lagoon-sync binary"
 
-Running `$ lagoon-sync sync mariadb -p amazeelabsv4-com -e dev --dry-run` would dry-run a process that takes a database dump, runs a data transfer and then finally syncs the local database with the latest dump.
+### Mariadb sync from remote source -> current environment
+An example sync between a `mariadb` database from a remote source environment to your current environment may go as follows:
 
-### Mariadb sync from remote source to local file (*Dump only*)
+Running `$ lagoon-sync sync mariadb -p amazeelabsv4-com -e dev --dry-run` would dry-run a process that takes a database dump, runs a data transfer and then finally syncs the current environment's database with the latest dump.
+
+### Mariadb sync from remote source to a file on your current environment (*Dump only*)
 
 It's also possible to simply generate a backup from one of the remote servers by using the options
 `--skip-target-cleanup=true`, which doesn't delete temporary transfer files, and `--skip-target-import=true` which
-skips actually importing the database locally.
+skips actually importing the database into your current environment.
 
-`$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --skip-target-cleanup=true --skip-target-import=true`
+`$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod --skip-target-cleanup=true --skip-target-import=true`
 
 You will then see the transfer-resource name listed in the output.
 
-This command would attempt to sync mariadb databases from `prod` to `dev` environments.
 
