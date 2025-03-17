@@ -37,11 +37,6 @@ An example sync between a `mariadb` database from a remote source environment to
 
 Running `$ lagoon-sync sync mariadb -p amazeelabsv4-com -e dev --dry-run` would dry-run a process that takes a database dump, runs a data transfer and then finally syncs the local database with the latest dump.
 
-### Mariadb sync from remote source -> remote target environment
-To transfer between remote environments you can pass in a target argument such as:
-
-`$ lagoon-sync sync mariadb -p amazeelabsv4-com -e prod -t dev --dry-run`
-
 ### Mariadb sync from remote source to local file (*Dump only*)
 
 It's also possible to simply generate a backup from one of the remote servers by using the options
