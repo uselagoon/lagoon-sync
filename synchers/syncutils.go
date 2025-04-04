@@ -354,7 +354,7 @@ func generateNoOpSyncCommand() SyncCommand {
 	}
 }
 
-func generateSyncCommand(commandString string, substitutions map[string]interface{}) SyncCommand {
+func generateSyncCommand(commandString string, substitutions map[string]string) SyncCommand {
 	return SyncCommand{
 		command:       commandString,
 		substitutions: substitutions,
