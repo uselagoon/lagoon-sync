@@ -1,0 +1,31 @@
+name: OSSF scorecard
+on:
+  push:
+    branches:
+    - main
+permissions: {}
+jobs:
+  ossf-scorecard-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Needed if using Code scanning alerts
+      security-events: write
+      # Needed for GitHub OIDC token if publish_results is true
+      id-token: write
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - name: Run analysis
+      uses: ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde # v2.4.2
+      with:
+        results_file: results.sarif
+        results_format: sarif
+        # Publish the results for public repositories to enable scorecard badges. For more details, see
+        # https://github.com/ossf/scorecard-action#publishing-results.
+        # For private repositories, `publish_results` will automatically be set to `false`, regardless
+        # of the value entered here.
+        publish_results: true
+    - name: Upload SARIF results to code scanning
+      uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+      with:
+        sarif_file: results.sarif
