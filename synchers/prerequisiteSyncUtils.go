@@ -48,7 +48,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 			log.Println(response)
 		}
 	} else {
-		err, output := utils.RemoteShellout(execString, environment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
+		err, output := utils.RemoteShellout(execString, environment.ServiceName, environment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
 		utils.LogDebugInfo(output, nil)
 		if err != nil {
 			utils.LogFatalError("Unable to exec remote command: "+err.Error(), nil)

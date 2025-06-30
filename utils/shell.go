@@ -94,7 +94,7 @@ func isPassphraseMissingError(err error) bool {
 	return ok
 }
 
-func RemoteShellout(command string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string, skipSshAgent bool) (error, string) {
+func RemoteShellout(command string, service string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string, skipSshAgent bool) (error, string) {
 
 	sshAuthSock, present := os.LookupEnv("SSH_AUTH_SOCK")
 	skipAgent := !present || skipSshAgent
@@ -167,7 +167,7 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 	}
 
 	// Start the remote command
-	err = session.Start(command)
+	err = session.Start(fmt.Sprintf("service=%s %s", service, command))
 	if err != nil {
 		return err, outputBuffer.String()
 	}
