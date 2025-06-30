@@ -39,9 +39,8 @@ var skipTargetImport bool
 var localTransferResourceName string
 var namedTransferResource string
 
-var apiEndpoint string
+var APIEndpoint string
 var useSshPortal bool // This is our feature flag for now. With the major version, we change the ssh config details for lagoon-sync files
-const fallbackApi = "https://api.lagoon.amazeeio.cloud/graphql"
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [mariadb|files|mongodb|postgres|etc.]",
@@ -204,13 +203,20 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	if useSshPortal {
 
-		//Let's work out the api endpoint
-		if configRoot.Api != "" && apiEndpoint != "" {
-			apiEndpoint = configRoot.Api
+		apiEndPoint := APIEndpoint
+		if APIEndpoint == "https://api.lagoon.amazeeio.cloud/graphql" { // we're using the default - lets see if there are other options
+			envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_API_HOST")
+			if exists { // we prioritize env data
+				apiEndPoint = envSshHost + "/graphql"
+			} else {
+				if configRoot.Api != "" {
+					apiEndPoint = configRoot.Api
+				}
+			}
 		}
 
 		apiConn := utils.ApiConn{}
-		err := apiConn.Init(apiEndpoint, sshKey, "ssh.main.lagoon-core.test6.amazee.io", "22")
+		err := apiConn.Init(apiEndPoint, sshKey, sshHost, sshPort)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -341,7 +347,7 @@ func init() {
 	syncCmd.PersistentFlags().BoolVar(&skipTargetCleanup, "skip-target-cleanup", false, "Don't clean up any of the files generated on the target")
 	syncCmd.PersistentFlags().BoolVar(&skipTargetImport, "skip-target-import", false, "This will skip the import step on the target, in combination with 'no-target-cleanup' this essentially produces a resource dump")
 	syncCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
-	syncCmd.PersistentFlags().StringVarP(&apiEndpoint, "api", "A", "", "Specify your lagoon api endpoint - required for ssh-portal integration")
+	syncCmd.PersistentFlags().StringVarP(&APIEndpoint, "api", "A", "https://api.lagoon.amazeeio.cloud/graphql", "Specify your lagoon api endpoint - required for ssh-portal integration")
 	syncCmd.PersistentFlags().BoolVar(&useSshPortal, "use-ssh-portal", false, "This will use the SSH Portal rather than the (soon to be removed) SSH Service on Lagoon core. Will become default in a future release.")
 	// By default, we hook up the syncers.RunSyncProcess function to the runSyncProcess variable
 	// by doing this, it lets us easily override it for testing the command - but for most of the time
