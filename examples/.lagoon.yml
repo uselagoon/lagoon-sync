@@ -3,7 +3,14 @@ docker-compose-yaml: docker-compose.yml
 
 project: "lagoon-sync"
 
+# Uncomment to override default Lagoon API endpoint.
+# api: https://api.example.com/graphql
+
 lagoon-sync:
+  # Uncomment to override default Lagoon SSH endpoint.
+  # ssh:
+  #   host: ssh.example.com
+  #   port: "22"
   mariadb:
     config:
       hostname: "$MARIADB_HOST"
