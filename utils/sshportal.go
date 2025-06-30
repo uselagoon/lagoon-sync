@@ -2,6 +2,8 @@ package utils
 
 import (
 	"errors"
+	"fmt"
+
 	lclient "github.com/uselagoon/machinery/api/lagoon/client"
 	"github.com/uselagoon/machinery/api/schema"
 	"github.com/uselagoon/machinery/utils/sshtoken"
@@ -37,11 +39,11 @@ func (r *ApiConn) GetProjectEnvironmentDeployTargets(projectName string) (*[]sch
 	if r.token == "" {
 		return nil, errors.New("ApiConn has not been initialized")
 	}
-	lc := lclient.New(r.graphqlEndpoint, userAgentString, "", &r.token, false)
+	lc := lclient.New(r.graphqlEndpoint, userAgentString, "2.18.0", &r.token, false)
 	environments := []schema.Environment{}
 	err := lc.EnvironmentsByProjectName(context.TODO(), projectName, &environments)
 	if err != nil {
-		return nil, errors.New("ApiConn has not been initialized")
+		return nil, fmt.Errorf("could not get deploy targets: %w", err)
 	}
 
 	return &environments, nil
