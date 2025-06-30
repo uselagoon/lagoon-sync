@@ -265,7 +265,7 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	})
 
 	if err != nil {
-		utils.LogFatalError("There was an error running the sync process", err)
+		utils.LogFatalError("There was an error running the sync process:", err)
 	}
 
 	if !dryRun {

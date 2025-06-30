@@ -156,31 +156,19 @@ func RemoteShellout(command string, service string, remoteUser string, remoteHos
 	}
 	defer session.Close()
 
-	var outputBuffer bytes.Buffer
-
-	// Set up pipes for stdin, stdout, and stderr
-	session.Stdout = &outputBuffer
-	session.Stderr = &outputBuffer
-	//stdin, err := session.StdinPipe()
-	if err != nil {
-		return err, ""
-	}
-
-	// Start the remote command
-	err = session.Start(fmt.Sprintf("service=%s %s", service, command))
-	if err != nil {
-		return err, outputBuffer.String()
-	}
-	// Wait for the command to complete
 	ShowSpinner()
 	defer HideSpinner()
-	err = session.Wait()
 
+	output, err := session.CombinedOutput(fmt.Sprintf("service=%s %s", service, command))
 	if err != nil {
-		return err, outputBuffer.String()
+		if exitErr, ok := err.(*ssh.ExitError); ok {
+			return fmt.Errorf("remote command failed with exit code %d", exitErr.ExitStatus()), string(output)
+		} else {
+			return fmt.Errorf("ssh error: %v", err), string(output)
+		}
 	}
 
-	return nil, outputBuffer.String()
+	return nil, string(output)
 }
 
 func getAuthmethods(skipAgent bool, privateKeyfile string, sshAuthSock string, authMethods []ssh.AuthMethod) []ssh.AuthMethod {
