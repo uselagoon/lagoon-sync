@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 const ShellToUse = "sh"
@@ -67,6 +69,8 @@ func getSSHAuthMethodsFromDirectory(directory string) ([]ssh.AuthMethod, error) 
 			am, err := getAuthMethodFromPrivateKey(path)
 			if err != nil {
 				switch {
+				case strings.Contains(err.Error(), "no key found"):
+					LogDebugInfo(fmt.Sprintf("Not a private key file: %s", path), os.Stdout)
 				case isPassphraseMissingError(err):
 					LogDebugInfo(fmt.Sprintf("Found a passphrase based ssh key: %v", err.Error()), os.Stdout)
 				default:
