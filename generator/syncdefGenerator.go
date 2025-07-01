@@ -4,17 +4,19 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/uselagoon/lagoon-sync/synchers"
 	"log"
 	"strings"
 	"text/template"
+
+	"github.com/uselagoon/lagoon-sync/synchers"
 )
 
 type configTemplateData struct {
 	Mariadb    []synchers.MariadbSyncRoot
 	Filesystem []synchers.FilesSyncRoot
 	Postgres   []synchers.PostgresSyncRoot
-	Ssh        string
+	SshHost    string
+	SshPort    string
 	Api        string
 }
 
@@ -87,23 +89,30 @@ func generateSyncStanza(templateData configTemplateData) (string, error) {
 # or your .lagoon.yml file.
 
 # If your project is on anything except the amazeeio cluster, which are the defaults
-# and you're running lagoon-sync from a local container, you may have to set these variables
-# you can grab this information from running the lagoon cli's "lagoon config list"
-# this will output the ssh endpoints and ports you need.
+# and you're running lagoon-sync from a local container, you will have to configure
+# the SSH and API endpoints. You can grab this information from running the lagoon
+# cli's "lagoon config list" which will output the ssh endpoints and ports you need.
 # Typically, though, this information is also available in the environment variables
-# LAGOON_CONFIG_SSH_HOST and LAGOON_CONFIG_SSH_PORT
+# LAGOON_CONFIG_SSH_HOST and LAGOON_CONFIG_SSH_PORT.
 # 
 # These, for instance, are the amazeeio defaults
-# ssh: ssh.lagoon.amazeeio.cloud:32222
 # api: https://api.lagoon.amazeeio.cloud/graphql
-{{- if ne .Ssh ""}} 
-ssh: {{ .Ssh }}
-{{- end}}
+# ssh:
+#   host: ssh.lagoon.amazeeio.cloud
+#   port: "32222"
+
 {{- if ne .Api ""}}
 api: {{ .Api }}
 {{- end}}
 
 lagoon-sync:
+{{- if ne .SshHost ""}}
+  ssh:
+    host: {{ .SshHost }}
+    {{- if ne .SshPort ""}}
+    port: "{{ .SshPort }}"
+    {{- end}}
+{{- end}}
 {{- range .Mariadb }}
   {{ .ServiceName }}:
     type: {{ .Type }}
