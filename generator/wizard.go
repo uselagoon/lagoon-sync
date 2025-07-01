@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/uselagoon/lagoon-sync/synchers"
 )
@@ -27,14 +28,17 @@ func displayConfigTemplateData(d configTemplateData) {
 			fmt.Println("\t\t" + s.ServiceName + ":" + s.Config.SyncPath)
 		}
 	}
-	if d.Api != "" || d.Ssh != "" {
+	if d.Api != "" || d.SshHost != "" {
 		fmt.Println("\t Cluster details")
 	}
 	if d.Api != "" {
-		fmt.Println("\t\tApi:%v", d.Api)
+		fmt.Printf("\t\tApi:%v\n", d.Api)
 	}
-	if d.Ssh != "" {
-		fmt.Println("\t\tSsh:%v", d.Ssh)
+	if d.SshHost != "" {
+		fmt.Printf("\t\tSSH Host:%v\n", d.SshHost)
+	}
+	if d.SshPort != "" {
+		fmt.Printf("\t\tSSH Port:%v\n", d.SshPort)
 	}
 }
 
@@ -132,7 +136,8 @@ func addClusterDetails(c *configTemplateData) {
 		fmt.Println(err)
 		return
 	}
-	c.Ssh = fmt.Sprintf("%v:%v", answers.SshEndpoint, answers.SshPort)
+	c.SshHost = answers.SshEndpoint
+	c.SshPort = answers.SshPort
 	c.Api = answers.GraphqlEndpoint
 }
 
