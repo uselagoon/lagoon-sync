@@ -68,9 +68,9 @@ func getSSHAuthMethodsFromDirectory(directory string) ([]ssh.AuthMethod, error) 
 			if err != nil {
 				switch {
 				case isPassphraseMissingError(err):
-					LogDebugInfo(fmt.Sprintf("Found a passphrase based ssh key: %v", err.Error()), os.Stdout)
+					LogDebugInfo(fmt.Sprintf("Found a passphrase based ssh key at %s: %v", path, err.Error()), os.Stdout)
 				default:
-					LogWarning(err.Error(), os.Stdout)
+					LogDebugInfo(fmt.Sprintf("Skipping %s: %v", path, err.Error()), os.Stdout)
 				}
 			} else {
 				LogDebugInfo(fmt.Sprintf("Found a valid key at %v - will try auth", path), os.Stdout)
@@ -219,18 +219,18 @@ func getAuthmethods(skipAgent bool, privateKeyfile string, sshAuthSock string, a
 	if privateKeyfile == "" && len(authMethods) == 0 {
 		userPath, err := os.UserHomeDir()
 		if err != nil {
-			LogWarning("No ssh key given and no home directory available", os.Stdout)
+			LogWarning("No ssh key given and no home directory available", nil)
 		} else {
 			userPath = filepath.Join(userPath, ".ssh")
 
 			if _, err := os.Stat(userPath); err == nil {
 				sshAm, err := getSSHAuthMethodsFromDirectory(userPath)
 				if err != nil {
-					LogWarning(err.Error(), os.Stdout)
+					LogWarning(fmt.Sprintf("Error reading SSH keys from %s: %v", userPath, err), nil)
 				}
 				authMethods = append(authMethods, sshAm...)
 			} else {
-				LogWarning("Unable to find .ssh directory in user home", os.Stdout)
+				LogDebugInfo(fmt.Sprintf("Unable to find .ssh directory at %s", userPath), os.Stdout)
 			}
 		}
 	}
