@@ -180,38 +180,9 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 }
 
 func getAuthmethods(skipAgent bool, privateKeyfile string, sshAuthSock string, authMethods []ssh.AuthMethod) []ssh.AuthMethod {
-	if skipAgent != true && privateKeyfile == "" {
-		// Connect to SSH agent to ask for unencrypted private keys
-		if sshAgentConn, err := net.Dial("unix", sshAuthSock); err == nil {
-			sshAgent := agent.NewClient(sshAgentConn)
-			keys, _ := sshAgent.List()
-			if len(keys) > 0 {
-				agentAuthmethods := ssh.PublicKeysCallback(sshAgent.Signers)
-				authMethods = append(authMethods, agentAuthmethods)
-			}
-		}
-	} else {
-		LogDebugInfo("Skipping ssh agent", os.Stdout)
-	}
-
-	if privateKeyfile == "" { //let's try guess it from the OS
-		userPath, err := os.UserHomeDir()
-		if err != nil {
-			LogWarning("No ssh key given and no home directory available", os.Stdout)
-		}
-
-		userPath = filepath.Join(userPath, ".ssh")
-
-		if _, err := os.Stat(userPath); err == nil {
-			sshAm, err := getSSHAuthMethodsFromDirectory(userPath)
-			if err != nil {
-				LogWarning(err.Error(), os.Stdout)
-			}
-			authMethods = append(authMethods, sshAm...)
-		} else {
-			LogWarning("Unable to find .ssh directory in user home", os.Stdout)
-		}
-	} else {
+	// First, try the specified private key file if provided
+	keyFileWorked := false
+	if privateKeyfile != "" {
 		privateKeyFiles := []string{
 			privateKeyfile,
 		}
@@ -220,8 +191,49 @@ func getAuthmethods(skipAgent bool, privateKeyfile string, sshAuthSock string, a
 			am, err := getAuthMethodFromPrivateKey(kf)
 			if err == nil {
 				authMethods = append(authMethods, am)
+				keyFileWorked = true
+			} else {
+				LogDebugInfo(fmt.Sprintf("Unable to use specified key file %s: %v", kf, err), os.Stdout)
 			}
 		}
 	}
+
+	// Try SSH agent as fallback if: agent not skipped AND (no key file specified OR key file failed)
+	if skipAgent != true && (!keyFileWorked || privateKeyfile == "") {
+		// Connect to SSH agent to ask for unencrypted private keys
+		if sshAgentConn, err := net.Dial("unix", sshAuthSock); err == nil {
+			sshAgent := agent.NewClient(sshAgentConn)
+			keys, _ := sshAgent.List()
+			if len(keys) > 0 {
+				LogDebugInfo("Using SSH agent for authentication", os.Stdout)
+				agentAuthmethods := ssh.PublicKeysCallback(sshAgent.Signers)
+				authMethods = append(authMethods, agentAuthmethods)
+			}
+		}
+	} else if skipAgent {
+		LogDebugInfo("Skipping ssh agent", os.Stdout)
+	}
+
+	// If no private key file specified AND agent doesn't have keys, try all keys in ~/.ssh directory
+	// Skip directory scan if agent already has keys to avoid warnings for non-key files
+	if privateKeyfile == "" && len(authMethods) == 0 {
+		userPath, err := os.UserHomeDir()
+		if err != nil {
+			LogWarning("No ssh key given and no home directory available", os.Stdout)
+		} else {
+			userPath = filepath.Join(userPath, ".ssh")
+
+			if _, err := os.Stat(userPath); err == nil {
+				sshAm, err := getSSHAuthMethodsFromDirectory(userPath)
+				if err != nil {
+					LogWarning(err.Error(), os.Stdout)
+				}
+				authMethods = append(authMethods, sshAm...)
+			} else {
+				LogWarning("Unable to find .ssh directory in user home", os.Stdout)
+			}
+		}
+	}
+
 	return authMethods
 }
