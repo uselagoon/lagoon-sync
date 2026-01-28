@@ -143,6 +143,10 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 		return errors.New("unable to find valid auth method for ssh"), ""
 	}
 
+	if client == nil {
+		return errors.New("unable to connect via ssh"), ""
+	}
+
 	defer client.Close()
 
 	// Create a session
