@@ -205,9 +205,9 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 		apiEndPoint := APIEndpoint
 		if APIEndpoint == "https://api.lagoon.amazeeio.cloud/graphql" { // we're using the default - lets see if there are other options
-			envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_API_HOST")
+			envApiHost, exists := os.LookupEnv("LAGOON_CONFIG_API_HOST")
 			if exists { // we prioritize env data
-				apiEndPoint = envSshHost + "/graphql"
+				apiEndPoint = envApiHost + "/graphql"
 			} else {
 				if configRoot.Api != "" {
 					apiEndPoint = configRoot.Api

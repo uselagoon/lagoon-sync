@@ -13,6 +13,7 @@ import (
 // sshportal.go contains the functionality we need for connecting to the ssh portal and grab a list of deploy targets and environments
 
 const userAgentString = "lagoon-sync"
+const minLagoonApiVersion = "2.18.0"
 
 type ApiConn struct {
 	graphqlEndpoint string
@@ -39,7 +40,7 @@ func (r *ApiConn) GetProjectEnvironmentDeployTargets(projectName string) (*[]sch
 	if r.token == "" {
 		return nil, errors.New("ApiConn has not been initialized")
 	}
-	lc := lclient.New(r.graphqlEndpoint, userAgentString, "2.18.0", &r.token, false)
+	lc := lclient.New(r.graphqlEndpoint, userAgentString, minLagoonApiVersion, &r.token, false)
 	environments := []schema.Environment{}
 	err := lc.EnvironmentsByProjectName(context.TODO(), projectName, &environments)
 	if err != nil {
