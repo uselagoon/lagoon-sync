@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 const ShellToUse = "sh"
@@ -67,6 +69,8 @@ func getSSHAuthMethodsFromDirectory(directory string) ([]ssh.AuthMethod, error) 
 			am, err := getAuthMethodFromPrivateKey(path)
 			if err != nil {
 				switch {
+				case strings.Contains(err.Error(), "no key found"):
+					LogDebugInfo(fmt.Sprintf("Not a private key file: %s", path), os.Stdout)
 				case isPassphraseMissingError(err):
 					LogDebugInfo(fmt.Sprintf("Found a passphrase based ssh key: %v", err.Error()), os.Stdout)
 				default:
@@ -90,7 +94,7 @@ func isPassphraseMissingError(err error) bool {
 	return ok
 }
 
-func RemoteShellout(command string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string, skipSshAgent bool) (error, string) {
+func RemoteShellout(command string, service string, remoteUser string, remoteHost string, remotePort string, privateKeyfile string, skipSshAgent bool) (error, string) {
 
 	sshAuthSock, present := os.LookupEnv("SSH_AUTH_SOCK")
 	skipAgent := !present || skipSshAgent
@@ -152,31 +156,19 @@ func RemoteShellout(command string, remoteUser string, remoteHost string, remote
 	}
 	defer session.Close()
 
-	var outputBuffer bytes.Buffer
-
-	// Set up pipes for stdin, stdout, and stderr
-	session.Stdout = &outputBuffer
-	session.Stderr = &outputBuffer
-	//stdin, err := session.StdinPipe()
-	if err != nil {
-		return err, ""
-	}
-
-	// Start the remote command
-	err = session.Start(command)
-	if err != nil {
-		return err, outputBuffer.String()
-	}
-	// Wait for the command to complete
 	ShowSpinner()
 	defer HideSpinner()
-	err = session.Wait()
 
+	output, err := session.CombinedOutput(fmt.Sprintf("service=%s %s", service, command))
 	if err != nil {
-		return err, outputBuffer.String()
+		if exitErr, ok := err.(*ssh.ExitError); ok {
+			return fmt.Errorf("remote command failed with exit code %d", exitErr.ExitStatus()), string(output)
+		} else {
+			return fmt.Errorf("ssh error: %v", err), string(output)
+		}
 	}
 
-	return nil, outputBuffer.String()
+	return nil, string(output)
 }
 
 func getAuthmethods(skipAgent bool, privateKeyfile string, sshAuthSock string, authMethods []ssh.AuthMethod) []ssh.AuthMethod {
