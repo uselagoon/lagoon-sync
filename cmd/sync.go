@@ -60,73 +60,30 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	viper.Set("syncer-type", args[0])
 
-	// configRoot will be filled with the configuration information that is passed
-	// to the syncers when they're run.
-	var configRoot synchers.SyncherConfigRoot
-
+	// Load configuration
+	configRoot, err := loadConfigRoot()
+	if err != nil {
+		utils.LogFatalError(fmt.Sprintf("Failed to load configuration: %v", err), nil)
+	}
 	if viper.ConfigFileUsed() == "" {
 		utils.LogWarning("No configuration has been given/found for syncer: ", SyncerType)
 	}
 
-	if viper.ConfigFileUsed() != "" {
-		lagoonConfigBytestream, err := LoadLagoonConfig(viper.ConfigFileUsed())
-		if err != nil {
-			utils.LogDebugInfo("Couldn't load lagoon config file - ", err.Error())
-		} else {
-			loadedConfigRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-			if err != nil {
-				log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
-			} else {
-				// Update configRoot with loaded
-				configRoot = loadedConfigRoot
-			}
-		}
-	}
-
-	// If no project flag is given, find project from env var.
-	if ProjectName == "" {
-		project, exists := os.LookupEnv("LAGOON_PROJECT")
-		if exists {
-			ProjectName = strings.Replace(project, "_", "-", -1)
-		}
-		if configRoot.Project != "" {
-			ProjectName = configRoot.Project
-		}
-	}
+	// Resolve project name from multiple sources
+	ProjectName = resolveProjectName(ProjectName, configRoot)
 
 	// Set service default to 'cli'
 	if ServiceName == "" {
 		ServiceName = getServiceName(SyncerType)
 	}
 
-	sourceEnvironment := synchers.Environment{
-		ProjectName:     ProjectName,
-		EnvironmentName: sourceEnvironmentName,
-		ServiceName:     ServiceName,
-	}
+	// Build source and target environments
+	sourceEnvironment, targetEnvironment := buildEnvironments(ProjectName, ServiceName, sourceEnvironmentName, targetEnvironmentName)
 
-	// We assume that the target environment is local if it's not passed as an argument
-	if targetEnvironmentName == "" {
-		targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
-	}
-	targetEnvironment := synchers.Environment{
-		ProjectName:     ProjectName,
-		EnvironmentName: targetEnvironmentName,
-		ServiceName:     ServiceName,
-	}
-
-	var lagoonSyncer synchers.Syncer
-	// Syncers are registered in their init() functions - so here we attempt to match
-	// the syncer type with the argument passed through to this command
-	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
-	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncer object)
-	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
+	// Resolve the appropriate syncer
+	lagoonSyncer, err := resolveSyncer(SyncerType, configRoot)
 	if err != nil {
-		// Let's ask the custom syncer if this will work, if so, we fall back on it ...
-		lagoonSyncer, err = synchers.GetCustomSync(configRoot, SyncerType)
-		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
-		}
+		utils.LogFatalError(err.Error(), nil)
 	}
 
 	if ProjectName == "" {
@@ -142,97 +99,20 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
 			ProjectName,
 			SyncerType,
-			sourceEnvironmentName, targetEnvironmentName))
+			sourceEnvironment.EnvironmentName, targetEnvironment.EnvironmentName))
 		utils.SetColour(true)
 		if err != nil || !confirmationResult {
 			utils.LogFatalError("User cancelled sync - exiting", nil)
 		}
 	}
 
-	// SSH Config from file
-	sshConfig := synchers.SSHOptions{}
-	if configRoot.LagoonSync["ssh"] != nil {
-		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
-	}
+	// Build SSH options from config, env vars, and flags
+	sshOptions := buildSSHOptions(configRoot, SSHHost, SSHPort, SSHKey, SSHVerbose, SSHSkipAgent, RsyncArguments)
 
-	sshHost := SSHHost
-	if SSHHost == "ssh.lagoon.amazeeio.cloud" { // we're using the default - lets see if there are other options
-		envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_SSH_HOST")
-		if exists { // we prioritize env data
-			sshHost = envSshHost
-		} else {
-			if sshConfig.Host != "" {
-				sshHost = sshConfig.Host
-			}
-		}
-	}
-
-	sshPort := SSHPort
-	if SSHPort == "32222" { // we're using the default - lets see if there are other options
-		envSshPort, exists := os.LookupEnv("LAGOON_CONFIG_SSH_PORT")
-		if exists { // we prioritize env data
-			sshPort = envSshPort
-		} else {
-			if sshConfig.Port != "" {
-				sshPort = sshConfig.Port
-			}
-		}
-	}
-
-	sshKey := SSHKey
-	if sshConfig.PrivateKey != "" && SSHKey == "" {
-		sshKey = sshConfig.PrivateKey
-	}
-
-	sshVerbose := SSHVerbose
-	if sshConfig.Verbose && !sshVerbose {
-		sshVerbose = sshConfig.Verbose
-	}
-
-	// Here we have the default - let's add it to a wrapper
-	sshOptions := synchers.SSHOptions{
-		Host:       sshHost,
-		PrivateKey: sshKey,
-		Port:       sshPort,
-		Verbose:    sshVerbose,
-		RsyncArgs:  RsyncArguments,
-		SkipAgent:  SSHSkipAgent,
-	}
-
-	sshOptionWrapper := synchers.NewSshOptionWrapper(ProjectName, sshOptions)
-
-	if useSshPortal {
-
-		apiEndPoint := APIEndpoint
-		if APIEndpoint == "https://api.lagoon.amazeeio.cloud/graphql" { // we're using the default - lets see if there are other options
-			envApiHost, exists := os.LookupEnv("LAGOON_CONFIG_API_HOST")
-			if exists { // we prioritize env data
-				apiEndPoint = envApiHost + "/graphql"
-			} else {
-				if configRoot.Api != "" {
-					apiEndPoint = configRoot.Api
-				}
-			}
-		}
-
-		apiConn := utils.ApiConn{}
-		err := apiConn.Init(apiEndPoint, sshKey, sshHost, sshPort)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-
-		defaultSshOption, sshopts, err := getEnvironmentSshDetails(apiConn, ProjectName, sshOptions)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-
-		sshOptionWrapper.SetDefaultSshOptions(defaultSshOption)
-		for envName, option := range sshopts {
-			sshOptionWrapper.AddSsshOptionForEnvironment(envName, option)
-		}
-
+	// Build SSH option wrapper with optional SSH portal integration
+	sshOptionWrapper, err := buildSSHOptionWrapper(ProjectName, sshOptions, configRoot, APIEndpoint, useSshPortal)
+	if err != nil {
+		utils.LogFatalError(fmt.Sprintf("Failed to configure SSH options: %v", err), nil)
 	}
 
 	// let's update the named transfer resource if it is set
@@ -325,6 +205,173 @@ func confirmPrompt(message string) (bool, error) {
 		return true, err
 	}
 	return false, err
+}
+
+// loadConfigRoot loads and unmarshals the lagoon config file if present
+func loadConfigRoot() (synchers.SyncherConfigRoot, error) {
+	var configRoot synchers.SyncherConfigRoot
+
+	if viper.ConfigFileUsed() == "" {
+		return configRoot, nil
+	}
+
+	lagoonConfigBytestream, err := LoadLagoonConfig(viper.ConfigFileUsed())
+	if err != nil {
+		return configRoot, fmt.Errorf("couldn't load lagoon config file: %w", err)
+	}
+
+	loadedConfigRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
+	if err != nil {
+		return configRoot, fmt.Errorf("issue unmarshalling sync configuration from %v: %w", viper.ConfigFileUsed(), err)
+	}
+
+	return loadedConfigRoot, nil
+}
+
+// resolveProjectName determines the project name from flags, env vars, or config
+// Priority: flagValue -> LAGOON_PROJECT env var -> configRoot.Project
+func resolveProjectName(flagValue string, configRoot synchers.SyncherConfigRoot) string {
+	if flagValue != "" {
+		return flagValue
+	}
+
+	project, exists := os.LookupEnv("LAGOON_PROJECT")
+	if exists {
+		return strings.Replace(project, "_", "-", -1)
+	}
+
+	if configRoot.Project != "" {
+		return configRoot.Project
+	}
+
+	return ""
+}
+
+// buildEnvironments creates source and target Environment structs
+func buildEnvironments(projectName, serviceName, sourceEnvName, targetEnvName string) (synchers.Environment, synchers.Environment) {
+	sourceEnvironment := synchers.Environment{
+		ProjectName:     projectName,
+		EnvironmentName: sourceEnvName,
+		ServiceName:     serviceName,
+	}
+
+	// Default target to local if not specified
+	if targetEnvName == "" {
+		targetEnvName = synchers.LOCAL_ENVIRONMENT_NAME
+	}
+
+	targetEnvironment := synchers.Environment{
+		ProjectName:     projectName,
+		EnvironmentName: targetEnvName,
+		ServiceName:     serviceName,
+	}
+
+	return sourceEnvironment, targetEnvironment
+}
+
+// resolveSyncer gets the appropriate syncer from the config, falling back to custom syncer
+func resolveSyncer(syncerType string, configRoot synchers.SyncherConfigRoot) (synchers.Syncer, error) {
+	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(syncerType, configRoot)
+	if err != nil {
+		// Fall back to custom syncer
+		lagoonSyncer, err = synchers.GetCustomSync(configRoot, syncerType)
+		if err != nil {
+			return nil, fmt.Errorf("could not find syncer for type %s: %w", syncerType, err)
+		}
+	}
+	return lagoonSyncer, nil
+}
+
+// buildSSHOptions constructs SSH options from config, env vars, and flags
+// Priority for host/port: flag (if not default) -> env var -> config -> flag default
+func buildSSHOptions(configRoot synchers.SyncherConfigRoot, flagHost, flagPort, flagKey string, flagVerbose, flagSkipAgent bool, rsyncArgs string) synchers.SSHOptions {
+	// Decode SSH config from file if present
+	sshConfig := synchers.SSHOptions{}
+	if configRoot.LagoonSync["ssh"] != nil {
+		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
+	}
+
+	// Resolve SSH host
+	sshHost := flagHost
+	if flagHost == "ssh.lagoon.amazeeio.cloud" { // using default, check for overrides
+		envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_SSH_HOST")
+		if exists {
+			sshHost = envSshHost
+		} else if sshConfig.Host != "" {
+			sshHost = sshConfig.Host
+		}
+	}
+
+	// Resolve SSH port
+	sshPort := flagPort
+	if flagPort == "32222" { // using default, check for overrides
+		envSshPort, exists := os.LookupEnv("LAGOON_CONFIG_SSH_PORT")
+		if exists {
+			sshPort = envSshPort
+		} else if sshConfig.Port != "" {
+			sshPort = sshConfig.Port
+		}
+	}
+
+	// Resolve SSH key (config takes priority if flag is empty)
+	sshKey := flagKey
+	if sshConfig.PrivateKey != "" && flagKey == "" {
+		sshKey = sshConfig.PrivateKey
+	}
+
+	// Resolve verbose flag (config OR flag)
+	sshVerbose := flagVerbose
+	if sshConfig.Verbose && !flagVerbose {
+		sshVerbose = sshConfig.Verbose
+	}
+
+	return synchers.SSHOptions{
+		Host:       sshHost,
+		PrivateKey: sshKey,
+		Port:       sshPort,
+		Verbose:    sshVerbose,
+		RsyncArgs:  rsyncArgs,
+		SkipAgent:  flagSkipAgent,
+	}
+}
+
+// buildSSHOptionWrapper creates and configures an SSH option wrapper, optionally with SSH portal integration
+func buildSSHOptionWrapper(projectName string, baseOptions synchers.SSHOptions, configRoot synchers.SyncherConfigRoot, apiEndpoint string, usePortal bool) (*synchers.SSHOptionWrapper, error) {
+	sshOptionWrapper := synchers.NewSshOptionWrapper(projectName, baseOptions)
+
+	if !usePortal {
+		return sshOptionWrapper, nil
+	}
+
+	// Resolve API endpoint
+	apiEndPoint := apiEndpoint
+	if apiEndpoint == "https://api.lagoon.amazeeio.cloud/graphql" { // using default, check for overrides
+		envApiHost, exists := os.LookupEnv("LAGOON_CONFIG_API_HOST")
+		if exists {
+			apiEndPoint = envApiHost + "/graphql"
+		} else if configRoot.Api != "" {
+			apiEndPoint = configRoot.Api
+		}
+	}
+
+	// Initialize API connection and fetch environment SSH details
+	apiConn := utils.ApiConn{}
+	err := apiConn.Init(apiEndPoint, baseOptions.PrivateKey, baseOptions.Host, baseOptions.Port)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize API connection: %w", err)
+	}
+
+	defaultSshOption, sshopts, err := getEnvironmentSshDetails(apiConn, projectName, baseOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get environment SSH details: %w", err)
+	}
+
+	sshOptionWrapper.SetDefaultSshOptions(defaultSshOption)
+	for envName, option := range sshopts {
+		sshOptionWrapper.AddSsshOptionForEnvironment(envName, option)
+	}
+
+	return sshOptionWrapper, nil
 }
 
 func init() {

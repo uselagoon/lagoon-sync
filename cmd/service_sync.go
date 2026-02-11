@@ -12,6 +12,16 @@ import (
 var dockerComposeFile string
 var sersyncListOnly bool
 
+// We use this to filter the standard service types we can sync.
+var supportedSynchableServicetypes = []string{
+	"mariadb",
+	"mariadb-single",
+	"mariadb-dbaas",
+	"postgres",
+	"postgres-single",
+	"postgres-dbaas",
+}
+
 var serviceCmd = &cobra.Command{
 	Use:   "service-sync",
 	Short: "Automated service based sync tool",
@@ -36,7 +46,7 @@ func servicesCommandRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	runService, err := selectServiceFromList(services, "Select service to use to do the transfer (typically your 'cli' service)", false)
+	runService, err := selectServiceFromList(services, "Select service to use to do the transfer (typically your 'cli' service)", []string{})
 	if err != nil {
 		utils.LogFatalError(err.Error(), nil)
 	}
@@ -61,21 +71,19 @@ func servicesCommandRun(cmd *cobra.Command, args []string) {
 		fmt.Printf("Gonna sync %v \n", selectedVolume)
 
 		// okay, now we can actually invoke the synch
-		
 
 	default:
 		// let's select a DB service to transfer
-		syncService, err := selectServiceFromList(services, "Select service to sync", true)
+		syncService, err := selectServiceFromList(services, "Select service to sync", supportedSynchableServicetypes)
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
 		}
 		fmt.Printf("Gonna sync %v\n", syncService.Name)
-
 	}
 
 }
 
-func selectServiceFromList(services map[string]utils.Service, title string, ignoreCli bool) (utils.Service, error) {
+func selectServiceFromList(services map[string]utils.Service, title string, filterList []string) (utils.Service, error) {
 
 	options := []huh.Option[string]{}
 
@@ -93,6 +101,13 @@ func selectServiceFromList(services map[string]utils.Service, title string, igno
 	for _, name := range names {
 		svc := services[name]
 		opt := huh.NewOption(fmt.Sprintf("%v - %v", name, svc.Type), name)
+
+		if len(filterList) > 0 {
+			if !utils.SliceContains(filterList, svc.Type) {
+				continue
+			}
+		}
+
 		if svc.Type == "cli" {
 			cliOpts = append(cliOpts, opt)
 		} else {
@@ -100,11 +115,8 @@ func selectServiceFromList(services map[string]utils.Service, title string, igno
 			otherOpts = append(otherOpts, opt)
 		}
 	}
-	if ignoreCli {
-		options = otherOpts
-	} else {
-		options = append(cliOpts, otherOpts...)
-	}
+
+	options = append(cliOpts, otherOpts...)
 
 	var selected string
 
