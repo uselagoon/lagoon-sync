@@ -15,6 +15,8 @@ import (
 
 var dockerComposeFile string
 var sersyncListOnly bool
+var allServices bool
+var serviceToRunSync string
 
 // We use this to filter the standard service types we can sync.
 var supportedSynchableServicetypes = []string{
@@ -24,6 +26,14 @@ var supportedSynchableServicetypes = []string{
 	"postgres",
 	"postgres-single",
 	"postgres-dbaas",
+}
+
+// SyncTask represents a single resource (DB or volume) to be synced
+type SyncTask struct {
+	Type       string // "mariadb", "postgres", "files"
+	Service    utils.Service
+	VolumePath string // only populated for files
+	Label      string // human-readable label for display
 }
 
 var serviceCmd = &cobra.Command{
@@ -62,129 +72,301 @@ func servicesCommandRun(cmd *cobra.Command, args []string) {
 	// Resolve project name from multiple sources
 	ProjectName = resolveProjectName(ProjectName, configRoot)
 
-	runService, err := selectServiceFromList(services, "Select service to use to do the transfer (typically your 'cli' service)", []string{})
-	if err != nil {
-		utils.LogFatalError(err.Error(), nil)
+	// Resolve interaction constraints upfront
+	requiresInteraction := serviceToRunSync == "" && !allServices
+	if noCliInteraction && requiresInteraction {
+		utils.LogFatalError("Cannot run non-interactively without --service-name or --all-services", nil)
+	}
+
+	// Resolve the run service
+	var runService utils.Service
+	if serviceToRunSync != "" {
+		var ok bool
+		if runService, ok = services[serviceToRunSync]; !ok {
+			utils.LogFatalError(fmt.Sprintf("Unable to find service '%v' - exiting\n", serviceToRunSync), nil)
+		}
+	} else {
+		runService, err = selectServiceFromList(services, "Select service to use to do the transfer (typically your 'cli' service)", []string{})
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
 	}
 
 	// Build source and target environments
 	sourceEnvironment, targetEnvironment := buildEnvironments(ProjectName, runService.Name, sourceEnvironmentName, targetEnvironmentName)
 
-	sshOptions := buildSSHOptions(configRoot, SSHHost, SSHPort, SSHKey, SSHVerbose, SSHSkipAgent, RsyncArguments)
-	// Build SSH option wrapper with optional SSH portal integration
-	sshOptionWrapper, err := buildSSHOptionWrapper(ProjectName, sshOptions, configRoot, APIEndpoint, useSshPortal)
+	configRootTyped := configRoot
+	sshOptions := buildSSHOptions(configRootTyped, SSHHost, SSHPort, SSHKey, SSHVerbose, SSHSkipAgent, RsyncArguments)
+	sshOptionWrapper, err := buildSSHOptionWrapper(ProjectName, sshOptions, configRootTyped, APIEndpoint, useSshPortal)
 	if err != nil {
 		utils.LogFatalError(fmt.Sprintf("Failed to configure SSH options: %v", err), nil)
 	}
-	_ = sshOptionWrapper
+
 	// Add assertion - we no longer support Remote to Remote syncs
 	if sourceEnvironment.EnvironmentName != synchers.LOCAL_ENVIRONMENT_NAME && targetEnvironment.EnvironmentName != synchers.LOCAL_ENVIRONMENT_NAME {
 		utils.LogFatalError("Remote to Remote transfers are not supported", nil)
 	}
 
+	// Gather tasks: either discover all, or let user pick one interactively
+	var tasks []SyncTask
+	if allServices {
+		tasks, err = discoverSyncTasks(services, runService)
+		if err != nil {
+			utils.LogFatalError(fmt.Sprintf("Failed to discover sync tasks: %v", err), nil)
+		}
+	} else {
+		task, err := gatherSingleTask(services, runService)
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
+		tasks = []SyncTask{task}
+	}
+
+	if len(tasks) == 0 {
+		utils.LogWarning("No sync tasks to run.", nil)
+		return
+	}
+
+	// Execute all tasks through the same path
+	results := executeSyncTasks(tasks, sourceEnvironment, targetEnvironment, sshOptionWrapper)
+
+	// Report results
+	reportSyncResults(results)
+}
+
+// gatherSingleTask uses the interactive menus to build one SyncTask from user selection
+func gatherSingleTask(services map[string]utils.Service, runService utils.Service) (SyncTask, error) {
 	// ask whether the user wants to sync files or databases
 	syncType := "databases"
 	if len(runService.Volumes) > 0 {
+		var err error
 		syncType, err = selectSyncType()
 		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
+			return SyncTask{}, err
 		}
 	}
 
-	// Now we offer the final menu of services
-	var lagoonSyncer synchers.Syncer
 	switch syncType {
-	case ("files"):
-		// let's select the volume to move
+	case "files":
 		selectedVolume, err := selectVolume(runService.Volumes)
 		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
+			return SyncTask{}, err
 		}
-		fmt.Printf("Gonna sync %v \n", selectedVolume)
-
-		// okay, now we can actually invoke the synch
-		lagoonSyncer, err = synchers.NewBaseFilesSyncRootFromService(runService, selectedVolume)
-		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
-		}
-		fmt.Print(lagoonSyncer)
+		return SyncTask{
+			Type:       "files",
+			Service:    runService,
+			VolumePath: selectedVolume,
+			Label:      fmt.Sprintf("%s (Files)", selectedVolume),
+		}, nil
 
 	default:
-		// let's select a DB service to transfer
-		var err error
 		syncService, err := selectServiceFromList(services, "Select service to sync", supportedSynchableServicetypes)
 		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
+			return SyncTask{}, err
 		}
-		fmt.Printf("Gonna sync %v\n", syncService.Name)
 
-		switch {
-		case strings.Contains(syncService.Type, "mariadb"):
-			lagoonSyncer, err = synchers.NewBaseMariaDbSyncRootFromService(syncService)
-			fmt.Print(lagoonSyncer)
-			if err != nil {
-				utils.LogFatalError(err.Error(), nil)
+		serviceType := ""
+		if strings.Contains(syncService.Type, "mariadb") {
+			serviceType = "mariadb"
+		} else if strings.Contains(syncService.Type, "postgres") {
+			serviceType = "postgres"
+		}
+
+		return SyncTask{
+			Type:    serviceType,
+			Service: syncService,
+			Label:   fmt.Sprintf("%s (%s)", syncService.Name, strings.ToUpper(serviceType)),
+		}, nil
+	}
+}
+
+// discoverSyncTasks finds all DB services and volumes to sync
+func discoverSyncTasks(services map[string]utils.Service, runService utils.Service) ([]SyncTask, error) {
+	var tasks []SyncTask
+
+	// Discover database services (from all services matching supported types)
+	for name, svc := range services {
+		// Skip the run service itself
+		if name == runService.Name {
+			continue
+		}
+
+		// Check if this is a supported DB service type
+		if utils.SliceContains(supportedSynchableServicetypes, svc.Type) {
+			serviceType := ""
+			if strings.Contains(svc.Type, "mariadb") {
+				serviceType = "mariadb"
+			} else if strings.Contains(svc.Type, "postgres") {
+				serviceType = "postgres"
 			}
-		case strings.Contains(syncService.Type, "postgresql"):
-			lagoonSyncer, err = synchers.NewBasePostgresSyncRootFromService(syncService)
-			fmt.Print(lagoonSyncer)
-			if err != nil {
-				utils.LogFatalError(err.Error(), nil)
+
+			if serviceType != "" {
+				task := SyncTask{
+					Type:    serviceType,
+					Service: svc,
+					Label:   fmt.Sprintf("%s@%s (%s)", name, name, strings.ToUpper(serviceType)),
+				}
+				tasks = append(tasks, task)
 			}
 		}
 	}
 
-	if !noCliInteraction {
-
-		// We'll set the spinner utility to show
-		utils.SetShowSpinner(true)
-
-		// Ask for confirmation
-		confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
-			ProjectName,
-			"TODO SET SERVICE TYPE",
-			sourceEnvironment.EnvironmentName, targetEnvironment.EnvironmentName))
-		utils.SetColour(true)
-		if err != nil || !confirmationResult {
-			utils.LogFatalError("User cancelled sync - exiting", nil)
+	// Discover file volumes from run service
+	for volName, volPath := range runService.Volumes {
+		task := SyncTask{
+			Type:       "files",
+			Service:    runService,
+			VolumePath: volPath,
+			Label:      fmt.Sprintf("%s → %s (Files)", volName, volPath),
 		}
+		tasks = append(tasks, task)
 	}
 
-	debugPrintSyncArgs(synchers.RunSyncProcessFunctionTypeArguments{
-		SourceEnvironment:    sourceEnvironment,
-		TargetEnvironment:    targetEnvironment,
-		LagoonSyncer:         lagoonSyncer,
-		SyncerType:           SyncerType,
-		DryRun:               dryRun,
-		SshOptionWrapper:     sshOptionWrapper,
-		SkipTargetCleanup:    skipTargetCleanup,
-		SkipSourceCleanup:    skipSourceCleanup,
-		SkipTargetImport:     skipTargetImport,
-		TransferResourceName: namedTransferResource,
+	// Sort tasks for deterministic output (DBs first, then files)
+	sort.Slice(tasks, func(i, j int) bool {
+		// Files last
+		if tasks[i].Type == "files" && tasks[j].Type != "files" {
+			return false
+		}
+		if tasks[i].Type != "files" && tasks[j].Type == "files" {
+			return true
+		}
+		// Otherwise sort by label
+		return tasks[i].Label < tasks[j].Label
 	})
 
-	err = runSyncProcess(synchers.RunSyncProcessFunctionTypeArguments{
-		SourceEnvironment: sourceEnvironment,
-		TargetEnvironment: targetEnvironment,
-		LagoonSyncer:      lagoonSyncer,
-		SyncerType:        SyncerType,
-		DryRun:            dryRun,
-		//SshOptions:           sshOptions,
-		SshOptionWrapper:     sshOptionWrapper,
-		SkipTargetCleanup:    skipTargetCleanup,
-		SkipSourceCleanup:    skipSourceCleanup,
-		SkipTargetImport:     skipTargetImport,
-		TransferResourceName: namedTransferResource,
-	})
+	return tasks, nil
+}
 
-	if err != nil {
-		utils.LogFatalError("There was an error running the sync process:", err)
+// selectSyncTasks presents a multi-select checklist of tasks
+func selectSyncTasks(tasks []SyncTask) ([]SyncTask, error) {
+	options := make([]huh.Option[int], len(tasks))
+	for i, task := range tasks {
+		options[i] = huh.NewOption(task.Label, i)
 	}
 
-	if !dryRun {
-		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
+	var selected []int
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewMultiSelect[int]().
+				Title("Select tasks to sync").
+				Options(options...).
+				Value(&selected),
+		),
+	)
+
+	if err := form.Run(); err != nil {
+		return nil, err
 	}
 
+	var result []SyncTask
+	for _, idx := range selected {
+		result = append(result, tasks[idx])
+	}
+	return result, nil
+}
+
+// SyncResult holds the outcome of a single sync task
+type SyncResult struct {
+	Task     SyncTask
+	Success  bool
+	Error    error
+	Duration string // optional, for future use
+}
+
+// executeSyncTasks runs all sync tasks sequentially
+func executeSyncTasks(tasks []SyncTask, sourceEnv, targetEnv synchers.Environment, sshWrapper *synchers.SSHOptionWrapper) []SyncResult {
+	var results []SyncResult
+
+	for _, task := range tasks {
+		result := SyncResult{Task: task}
+
+		// Create syncher based on task type
+		var syncher synchers.Syncer
+		var err error
+
+		switch task.Type {
+		case "mariadb":
+			syncher, err = synchers.NewBaseMariaDbSyncRootFromService(task.Service)
+		case "postgres":
+			syncher, err = synchers.NewBasePostgresSyncRootFromService(task.Service)
+		case "files":
+			syncher, err = synchers.NewBaseFilesSyncRootFromService(task.Service, task.VolumePath)
+		}
+
+		if err != nil {
+			result.Error = fmt.Errorf("failed to create syncher for %s: %w", task.Label, err)
+			results = append(results, result)
+			continue
+		}
+
+		// Execute sync process
+		syncArgs := synchers.RunSyncProcessFunctionTypeArguments{
+			SourceEnvironment:    sourceEnv,
+			TargetEnvironment:    targetEnv,
+			LagoonSyncer:         syncher,
+			SyncerType:           SyncerType,
+			DryRun:               dryRun,
+			SshOptionWrapper:     sshWrapper,
+			SkipSourceCleanup:    skipSourceCleanup,
+			SkipTargetCleanup:    skipTargetCleanup,
+			SkipTargetImport:     skipTargetImport,
+			TransferResourceName: namedTransferResource,
+		}
+
+		fmt.Printf("\n[SYNCING] %s...\n", task.Label)
+		err = runSyncProcess(syncArgs)
+
+		if err != nil {
+			result.Error = err
+			fmt.Printf("[FAILED] %s: %v\n", task.Label, err)
+		} else {
+			result.Success = true
+			fmt.Printf("[SUCCESS] %s\n", task.Label)
+		}
+
+		results = append(results, result)
+	}
+
+	return results
+}
+
+// reportSyncResults prints the final summary
+func reportSyncResults(results []SyncResult) {
+	fmt.Println("\n==================== SYNC SUMMARY ====================")
+
+	successCount := 0
+	failureCount := 0
+	var failures []SyncResult
+
+	for _, result := range results {
+		if result.Success {
+			successCount++
+			fmt.Printf("✓ %s\n", result.Task.Label)
+		} else {
+			failureCount++
+			fmt.Printf("✗ %s\n", result.Task.Label)
+			failures = append(failures, result)
+		}
+	}
+
+	fmt.Printf("\nTotal: %d succeeded, %d failed\n", successCount, failureCount)
+
+	if failureCount > 0 {
+		fmt.Println("\n--- Failures ---")
+		for _, failure := range failures {
+			fmt.Printf("• %s: %v\n", failure.Task.Label, failure.Error)
+		}
+		fmt.Println("\nNote: Sync process may succeed partially. Review any remaining cleanup needed.")
+	}
+
+	fmt.Println("====================================================\n")
+
+	if failureCount > 0 {
+		log.Fatalf("Sync completed with %d errors", failureCount)
+	} else if !dryRun {
+		log.Printf("✓ All %d syncs completed successfully", successCount)
+	}
 }
 
 func selectServiceFromList(services map[string]utils.Service, title string, filterList []string) (utils.Service, error) {
@@ -378,7 +560,9 @@ func init() {
 	rootCmd.AddCommand(serviceCmd)
 	serviceCmd.Flags().StringVarP(&dockerComposeFile, "docker-compose-file", "f", "", "Path to docker-compose.yml (defaults to docker-compose.yml in current directory)")
 	serviceCmd.Flags().BoolVarP(&sersyncListOnly, "list-only", "l", false, "only display service sync options (default false)")
+	serviceCmd.Flags().BoolVar(&allServices, "all-services", false, "sync all discovered database services and volumes (default false, enables multi-select)")
 	serviceCmd.PersistentFlags().StringVarP(&ProjectName, "project-name", "p", "", "The Lagoon project name of the remote system")
+	serviceCmd.PersistentFlags().StringVarP(&serviceToRunSync, "run-service", "", "", "The service to use to run the transfer (typically cli)")
 	serviceCmd.PersistentFlags().StringVarP(&sourceEnvironmentName, "source-environment-name", "e", "", "The Lagoon environment name of the source system")
 	serviceCmd.MarkPersistentFlagRequired("source-environment-name")
 	serviceCmd.PersistentFlags().StringVarP(&targetEnvironmentName, "target-environment-name", "t", "", "The target environment name (defaults to local)")
@@ -398,4 +582,5 @@ func init() {
 	serviceCmd.PersistentFlags().StringVarP(&namedTransferResource, "transfer-resource-name", "", "", "The name of the temporary file to be used to transfer generated resources (db dumps, etc) - random /tmp file otherwise")
 	serviceCmd.PersistentFlags().StringVarP(&APIEndpoint, "api", "A", "https://api.lagoon.amazeeio.cloud/graphql", "Specify your lagoon api endpoint - required for ssh-portal integration")
 	serviceCmd.PersistentFlags().BoolVar(&useSshPortal, "use-ssh-portal", false, "This will use the SSH Portal rather than the (soon to be removed) SSH Service on Lagoon core. Will become default in a future release.")
+	runSyncProcess = synchers.RunSyncProcess
 }
