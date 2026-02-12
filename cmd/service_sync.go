@@ -78,6 +78,12 @@ func servicesCommandRun(cmd *cobra.Command, args []string) {
 		utils.LogFatalError("Cannot run non-interactively without --service-name or --all-services", nil)
 	}
 
+	if !noCliInteraction {
+		// let's set up the spinners and colors, hooray!
+		utils.SetColour(true)
+		utils.SetShowSpinner(true)
+	}
+
 	// Resolve the run service
 	var runService utils.Service
 	if serviceToRunSync != "" {
@@ -482,68 +488,6 @@ func prettyPrintServiceOutput(services map[string]utils.Service) {
 			}
 		}
 	}
-}
-
-// debugPrintSyncArgs prints a formatted debug output of RunSyncProcessFunctionTypeArguments
-func debugPrintSyncArgs(args synchers.RunSyncProcessFunctionTypeArguments) {
-	fmt.Println("\n==================== SYNC PROCESS DEBUG ====================")
-
-	// Source Environment
-	fmt.Println("\n--- Source Environment ---")
-	fmt.Printf("  Project Name:      %s\n", args.SourceEnvironment.ProjectName)
-	fmt.Printf("  Environment Name:  %s\n", args.SourceEnvironment.EnvironmentName)
-	fmt.Printf("  Service Name:      %s\n", args.SourceEnvironment.ServiceName)
-	fmt.Printf("  OpenShift Project: %s\n", args.SourceEnvironment.GetOpenshiftProjectName())
-	fmt.Printf("  Rsync Available:   %v\n", args.SourceEnvironment.RsyncAvailable)
-	fmt.Printf("  Rsync Path:        %s\n", args.SourceEnvironment.RsyncPath)
-	fmt.Printf("  Rsync Local Path:  %s\n", args.SourceEnvironment.RsyncLocalPath)
-
-	// Target Environment
-	fmt.Println("\n--- Target Environment ---")
-	fmt.Printf("  Project Name:      %s\n", args.TargetEnvironment.ProjectName)
-	fmt.Printf("  Environment Name:  %s\n", args.TargetEnvironment.EnvironmentName)
-	fmt.Printf("  Service Name:      %s\n", args.TargetEnvironment.ServiceName)
-	fmt.Printf("  OpenShift Project: %s\n", args.TargetEnvironment.GetOpenshiftProjectName())
-	fmt.Printf("  Rsync Available:   %v\n", args.TargetEnvironment.RsyncAvailable)
-	fmt.Printf("  Rsync Path:        %s\n", args.TargetEnvironment.RsyncPath)
-	fmt.Printf("  Rsync Local Path:  %s\n", args.TargetEnvironment.RsyncLocalPath)
-
-	// SSH Options
-	if args.SshOptionWrapper != nil {
-		fmt.Println("\n--- SSH Options Wrapper ---")
-		fmt.Printf("  Project Name: %s\n", args.SshOptionWrapper.ProjectName)
-
-		fmt.Println("\n  Default SSH Options:")
-		printSSHOptions(args.SshOptionWrapper.Default, "    ")
-
-		if len(args.SshOptionWrapper.Options) > 0 {
-			fmt.Println("\n  Environment-specific SSH Options:")
-			for envName, opts := range args.SshOptionWrapper.Options {
-				fmt.Printf("    [%s]:\n", envName)
-				printSSHOptions(opts, "      ")
-			}
-		}
-	} else {
-		fmt.Println("\n--- SSH Options Wrapper ---")
-		fmt.Println("  <nil>")
-	}
-
-	// Syncer Info
-	fmt.Println("\n--- Syncer Configuration ---")
-	fmt.Printf("  Syncer Type:           %s\n", args.SyncerType)
-	fmt.Printf("  Dry Run:               %v\n", args.DryRun)
-	fmt.Printf("  Skip Source Cleanup:   %v\n", args.SkipSourceCleanup)
-	fmt.Printf("  Skip Target Cleanup:   %v\n", args.SkipTargetCleanup)
-	fmt.Printf("  Skip Target Import:    %v\n", args.SkipTargetImport)
-	fmt.Printf("  Transfer Resource:     %s\n", args.TransferResourceName)
-
-	if args.LagoonSyncer != nil {
-		fmt.Printf("  Lagoon Syncer:         %T\n", args.LagoonSyncer)
-	} else {
-		fmt.Printf("  Lagoon Syncer:         <nil>\n")
-	}
-
-	fmt.Println("\n============================================================\n")
 }
 
 // printSSHOptions is a helper to format SSH options with indentation
