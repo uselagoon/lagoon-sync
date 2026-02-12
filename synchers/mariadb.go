@@ -44,23 +44,6 @@ func (m *MariadbSyncRoot) setDefaults() {
 	m.ServiceName = mariadbDefaultServiceName
 }
 
-func (m *BaseMariaDbSync) setDefaultsFromServiceDef(serviceDef utils.Service) {
-	// if serviceDef.Type
-	types := map[string]bool{
-		"mariadb-single": true,
-		"mariadb-dbaas":  true,
-		"mariadb":        true,
-	}
-	if _, ok := types[serviceDef.Name]; !ok {
-		panic("totally broken")
-	}
-	m.DbHostname = fmt.Sprintf("%v_HOST", strings.ToUpper(serviceDef.Name)) //TODO maybe there's something that needs to be done to transform the name here?
-	m.DbUsername = fmt.Sprintf("%v_USERNAME", strings.ToUpper(serviceDef.Name))
-	m.DbPassword = fmt.Sprintf("%v_PASSWORD", strings.ToUpper(serviceDef.Name))
-	m.DbPort = fmt.Sprintf("%v_PORT", strings.ToUpper(serviceDef.Name))
-	m.DbDatabase = fmt.Sprintf("%v_DATABASE", strings.ToUpper(serviceDef.Name))
-}
-
 func (mariadbConfig *BaseMariaDbSync) SetDefaults() {
 	if mariadbConfig.DbHostname == "" {
 		mariadbConfig.DbHostname = "${MARIADB_HOST:-mariadb}"
