@@ -1,10 +1,11 @@
 package generator
 
 import (
+	"strings"
+
 	"github.com/compose-spec/compose-go/cli"
 	"github.com/compose-spec/compose-go/loader"
 	"github.com/compose-spec/compose-go/types"
-	"strings"
 )
 
 // docker-compose.go contains all the functionality needed to parse docker compose files for lagoon labels
@@ -28,10 +29,6 @@ func LoadComposeFile(composeFile string) (*types.Project, error) {
 		cli.WithLoadOptions(
 			loader.WithSkipValidation,
 			loader.WithDiscardEnvFiles,
-			func(o *loader.Options) {
-				o.IgnoreNonStringKeyErrors = true
-				o.IgnoreMissingEnvFileCheck = true
-			},
 		),
 	)
 	if err != nil {
