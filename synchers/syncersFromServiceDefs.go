@@ -38,6 +38,8 @@ func NewBaseMariaDbSyncRootFromService(service utils.Service) (Syncer, error) {
 		},
 	}
 
+	retSyncRoot.PrepareSyncer()
+
 	return retSyncRoot, nil
 }
 
@@ -71,6 +73,7 @@ func NewBasePostgresSyncRootFromService(service utils.Service) (Syncer, error) {
 			DbDatabase: fmt.Sprintf("{${%v_DATABASE}", name),
 		},
 	}
+	retSyncRoot.PrepareSyncer()
 
 	return retSyncRoot, nil
 }
@@ -93,6 +96,7 @@ func NewBaseFilesSyncRootFromService(service utils.Service, volumePath string) (
 			SyncPath: volumePath,
 		},
 	}
+	retSyncRoot.PrepareSyncer()
 
 	return retSyncRoot, nil
 }
