@@ -2,7 +2,8 @@ module github.com/uselagoon/lagoon-sync
 
 toolchain go1.24.1
 
-go 1.23
+go 1.23.0
+
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/briandowns/spinner v1.23.1
@@ -13,7 +14,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	github.com/uselagoon/machinery v0.0.31
+	github.com/uselagoon/machinery v0.0.34
 	github.com/withmandala/go-log v0.1.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/net v0.38.0
