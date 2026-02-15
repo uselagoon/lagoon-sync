@@ -1,0 +1,5 @@
+services:
+  web:
+    labels:
+      - invalid yaml structure
+    - missing proper indentation
