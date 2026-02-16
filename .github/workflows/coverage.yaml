@@ -1,0 +1,27 @@
+name: coverage
+on:
+  push:
+    branches:
+    - main
+permissions: {}
+jobs:
+  coverage:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version: stable
+    - name: Calculate coverage
+      run: |
+        go test -v -covermode=atomic -coverprofile=cover.out -coverpkg=./... ./...
+    - name: Generage coverage badge
+      uses: vladopajic/go-test-coverage@7003e902e787e60375e1ce3ae5b85b19313dbff2 # v2.14.3
+      with:
+        profile: cover.out
+        local-prefix: github.com/${{ github.repository }}
+        git-token: ${{ secrets.GITHUB_TOKEN }}
+        # orphan branch for storing badges
+        git-branch: badges
