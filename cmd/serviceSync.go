@@ -55,6 +55,10 @@ func servicesCommandRun(cmd *cobra.Command, args []string) {
 		utils.LogFatalError(fmt.Sprintf("Failed to load docker-compose file: %v", err), nil)
 	}
 
+	if len(services) == 0 {
+		utils.LogFatalError(fmt.Sprintf("No Lagoon services defined in docker compose file: %v", path), nil)
+	}
+
 	if sersyncListOnly {
 		prettyPrintServiceOutput(services)
 		return

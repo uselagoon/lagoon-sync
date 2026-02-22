@@ -100,6 +100,7 @@ func LoadDockerCompose(path string) (map[string]Service, error) {
 	}
 
 	// now we iterate through the services and see if we have any lagoon services
+
 	for serviceName, serviceDef := range compose.Services {
 		compose.Services[serviceName].Name = serviceName
 		compose.Services[serviceName].Volumes = map[string]string{} // let's assign the volumes here so we can fill it.
@@ -122,7 +123,9 @@ func LoadDockerCompose(path string) (map[string]Service, error) {
 	// Convert pointers to values for the return map
 	result := make(map[string]Service)
 	for name, service := range compose.Services {
-		result[name] = *service
+		if service.Type != "" { // we don't want to add services that aren't actually lagoon types
+			result[name] = *service
+		}
 	}
 
 	return result, nil
