@@ -67,10 +67,10 @@ func NewBasePostgresSyncRootFromService(service utils.Service) (Syncer, error) {
 		Type:        PostgresSyncPlugin{}.GetPluginId(),
 		Config: BasePostgresSync{
 			DbHostname: fmt.Sprintf("${%v_HOST}", name),
-			DbUsername: fmt.Sprintf("{${%v_USERNAME}", name),
-			DbPassword: fmt.Sprintf("{${%v_PASSWORD}", name),
-			DbPort:     fmt.Sprintf("{${%v_PORT}", name),
-			DbDatabase: fmt.Sprintf("{${%v_DATABASE}", name),
+			DbUsername: fmt.Sprintf("${%v_USERNAME}", name),
+			DbPassword: fmt.Sprintf("${%v_PASSWORD}", name),
+			DbPort:     fmt.Sprintf("${%v_PORT}", name),
+			DbDatabase: fmt.Sprintf("${%v_DATABASE}", name),
 		},
 	}
 	retSyncRoot.PrepareSyncer()
