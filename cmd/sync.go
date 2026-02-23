@@ -1,15 +1,9 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"log"
-	"os"
-	"strings"
 
-	"github.com/mitchellh/mapstructure"
-
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	synchers "github.com/uselagoon/lagoon-sync/synchers"
@@ -60,73 +54,30 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 
 	viper.Set("syncer-type", args[0])
 
-	// configRoot will be filled with the configuration information that is passed
-	// to the syncers when they're run.
-	var configRoot synchers.SyncherConfigRoot
-
+	// Load configuration
+	configRoot, err := loadConfigRoot()
+	if err != nil {
+		utils.LogFatalError(fmt.Sprintf("Failed to load configuration: %v", err), nil)
+	}
 	if viper.ConfigFileUsed() == "" {
 		utils.LogWarning("No configuration has been given/found for syncer: ", SyncerType)
 	}
 
-	if viper.ConfigFileUsed() != "" {
-		lagoonConfigBytestream, err := LoadLagoonConfig(viper.ConfigFileUsed())
-		if err != nil {
-			utils.LogDebugInfo("Couldn't load lagoon config file - ", err.Error())
-		} else {
-			loadedConfigRoot, err := synchers.UnmarshallLagoonYamlToLagoonSyncStructure(lagoonConfigBytestream)
-			if err != nil {
-				log.Fatalf("There was an issue unmarshalling the sync configuration from %v: %v", viper.ConfigFileUsed(), err)
-			} else {
-				// Update configRoot with loaded
-				configRoot = loadedConfigRoot
-			}
-		}
-	}
-
-	// If no project flag is given, find project from env var.
-	if ProjectName == "" {
-		project, exists := os.LookupEnv("LAGOON_PROJECT")
-		if exists {
-			ProjectName = strings.Replace(project, "_", "-", -1)
-		}
-		if configRoot.Project != "" {
-			ProjectName = configRoot.Project
-		}
-	}
+	// Resolve project name from multiple sources
+	ProjectName = resolveProjectName(ProjectName, configRoot)
 
 	// Set service default to 'cli'
 	if ServiceName == "" {
 		ServiceName = getServiceName(SyncerType)
 	}
 
-	sourceEnvironment := synchers.Environment{
-		ProjectName:     ProjectName,
-		EnvironmentName: sourceEnvironmentName,
-		ServiceName:     ServiceName,
-	}
+	// Build source and target environments
+	sourceEnvironment, targetEnvironment := buildEnvironments(ProjectName, ServiceName, sourceEnvironmentName, targetEnvironmentName)
 
-	// We assume that the target environment is local if it's not passed as an argument
-	if targetEnvironmentName == "" {
-		targetEnvironmentName = synchers.LOCAL_ENVIRONMENT_NAME
-	}
-	targetEnvironment := synchers.Environment{
-		ProjectName:     ProjectName,
-		EnvironmentName: targetEnvironmentName,
-		ServiceName:     ServiceName,
-	}
-
-	var lagoonSyncer synchers.Syncer
-	// Syncers are registered in their init() functions - so here we attempt to match
-	// the syncer type with the argument passed through to this command
-	// (e.g. if we're running `lagoon-sync sync mariadb --...options follow` the function
-	// GetSyncersForTypeFromConfigRoot will return a prepared mariadb syncer object)
-	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(SyncerType, configRoot)
+	// Resolve the appropriate syncer
+	lagoonSyncer, err := resolveSyncer(SyncerType, configRoot)
 	if err != nil {
-		// Let's ask the custom syncer if this will work, if so, we fall back on it ...
-		lagoonSyncer, err = synchers.GetCustomSync(configRoot, SyncerType)
-		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
-		}
+		utils.LogFatalError(err.Error(), nil)
 	}
 
 	if ProjectName == "" {
@@ -142,97 +93,20 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 		confirmationResult, err := confirmPrompt(fmt.Sprintf("Project: %s - you are about to sync %s from %s to %s, is this correct",
 			ProjectName,
 			SyncerType,
-			sourceEnvironmentName, targetEnvironmentName))
+			sourceEnvironment.EnvironmentName, targetEnvironment.EnvironmentName))
 		utils.SetColour(true)
 		if err != nil || !confirmationResult {
 			utils.LogFatalError("User cancelled sync - exiting", nil)
 		}
 	}
 
-	// SSH Config from file
-	sshConfig := synchers.SSHOptions{}
-	if configRoot.LagoonSync["ssh"] != nil {
-		mapstructure.Decode(configRoot.LagoonSync["ssh"], &sshConfig)
-	}
+	// Build SSH options from config, env vars, and flags
+	sshOptions := buildSSHOptions(configRoot, SSHHost, SSHPort, SSHKey, SSHVerbose, SSHSkipAgent, RsyncArguments)
 
-	sshHost := SSHHost
-	if SSHHost == "ssh.lagoon.amazeeio.cloud" { // we're using the default - lets see if there are other options
-		envSshHost, exists := os.LookupEnv("LAGOON_CONFIG_SSH_HOST")
-		if exists { // we prioritize env data
-			sshHost = envSshHost
-		} else {
-			if sshConfig.Host != "" {
-				sshHost = sshConfig.Host
-			}
-		}
-	}
-
-	sshPort := SSHPort
-	if SSHPort == "32222" { // we're using the default - lets see if there are other options
-		envSshPort, exists := os.LookupEnv("LAGOON_CONFIG_SSH_PORT")
-		if exists { // we prioritize env data
-			sshPort = envSshPort
-		} else {
-			if sshConfig.Port != "" {
-				sshPort = sshConfig.Port
-			}
-		}
-	}
-
-	sshKey := SSHKey
-	if sshConfig.PrivateKey != "" && SSHKey == "" {
-		sshKey = sshConfig.PrivateKey
-	}
-
-	sshVerbose := SSHVerbose
-	if sshConfig.Verbose && !sshVerbose {
-		sshVerbose = sshConfig.Verbose
-	}
-
-	// Here we have the default - let's add it to a wrapper
-	sshOptions := synchers.SSHOptions{
-		Host:       sshHost,
-		PrivateKey: sshKey,
-		Port:       sshPort,
-		Verbose:    sshVerbose,
-		RsyncArgs:  RsyncArguments,
-		SkipAgent:  SSHSkipAgent,
-	}
-
-	sshOptionWrapper := synchers.NewSshOptionWrapper(ProjectName, sshOptions)
-
-	if useSshPortal {
-
-		apiEndPoint := APIEndpoint
-		if APIEndpoint == "https://api.lagoon.amazeeio.cloud/graphql" { // we're using the default - lets see if there are other options
-			envApiHost, exists := os.LookupEnv("LAGOON_CONFIG_API_HOST")
-			if exists { // we prioritize env data
-				apiEndPoint = envApiHost + "/graphql"
-			} else {
-				if configRoot.Api != "" {
-					apiEndPoint = configRoot.Api
-				}
-			}
-		}
-
-		apiConn := utils.ApiConn{}
-		err := apiConn.Init(apiEndPoint, sshKey, sshHost, sshPort)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-
-		defaultSshOption, sshopts, err := getEnvironmentSshDetails(apiConn, ProjectName, sshOptions)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-
-		sshOptionWrapper.SetDefaultSshOptions(defaultSshOption)
-		for envName, option := range sshopts {
-			sshOptionWrapper.AddSsshOptionForEnvironment(envName, option)
-		}
-
+	// Build SSH option wrapper with optional SSH portal integration
+	sshOptionWrapper, err := buildSSHOptionWrapper(ProjectName, sshOptions, configRoot, APIEndpoint, useSshPortal)
+	if err != nil {
+		utils.LogFatalError(fmt.Sprintf("Failed to configure SSH options: %v", err), nil)
 	}
 
 	// let's update the named transfer resource if it is set
@@ -271,60 +145,6 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	if !dryRun {
 		log.Printf("\n------\nSuccessful sync of %s from %s to %s\n------", SyncerType, sourceEnvironment.GetOpenshiftProjectName(), targetEnvironment.GetOpenshiftProjectName())
 	}
-}
-
-// getServiceName will return the name of the service in which we run the commands themselves. This is typically
-// the cli pod in a project
-// TODO: this needs to be expanded to be dynamic in the future.
-func getServiceName(SyncerType string) string {
-	if SyncerType == "mongodb" {
-		return SyncerType
-	}
-	return "cli"
-}
-
-func getEnvironmentSshDetails(conn utils.ApiConn, projectName string, defaultSshOptions synchers.SSHOptions) (synchers.SSHOptions, map[string]synchers.SSHOptions, error) {
-	environments, err := conn.GetProjectEnvironmentDeployTargets(projectName)
-	retMap := map[string]synchers.SSHOptions{}
-
-	if err != nil {
-		return synchers.SSHOptions{}, retMap, err
-	}
-
-	var defaultOptions synchers.SSHOptions
-	defaultSet := false
-
-	for _, environment := range *environments {
-		retMap[environment.Name] = synchers.SSHOptions{
-			Host:       environment.DeployTarget.SSHHost,
-			Port:       environment.DeployTarget.SSHPort,
-			Verbose:    defaultSshOptions.Verbose,
-			PrivateKey: "",
-			SkipAgent:  defaultSshOptions.SkipAgent,
-			RsyncArgs:  defaultSshOptions.RsyncArgs,
-		}
-
-		if environment.EnvironmentType == "production" {
-			defaultOptions = retMap[environment.Name]
-			defaultSet = true
-		}
-	}
-	if defaultSet == false {
-		return synchers.SSHOptions{}, retMap, errors.New("COULD NOT FIND DEFAULT OPTION SET")
-	}
-	return defaultOptions, retMap, nil
-}
-
-func confirmPrompt(message string) (bool, error) {
-	prompt := promptui.Prompt{
-		Label:     message,
-		IsConfirm: true,
-	}
-	result, err := prompt.Run()
-	if result == "y" {
-		return true, err
-	}
-	return false, err
 }
 
 func init() {

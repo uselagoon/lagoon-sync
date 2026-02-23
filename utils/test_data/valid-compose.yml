@@ -1,0 +1,7 @@
+services:
+  web:
+    labels:
+      lagoon.type: nginx-php
+  db:
+    labels:
+      lagoon.type: mariadb

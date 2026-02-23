@@ -3,9 +3,10 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/uselagoon/lagoon-sync/synchers"
-	"testing"
 )
 
 func Test_syncCommandRun(t *testing.T) {
@@ -72,6 +73,8 @@ func Test_syncCommandRun(t *testing.T) {
 			runSyncProcess = tt.runSyncProcess
 			cfgFile = tt.lagoonYmlFile
 			noCliInteraction = true
+			// Initialize viper with the config file
+			processConfig(cfgFile)
 			syncCommandRun(tt.args.cmd, tt.args.args)
 		})
 	}

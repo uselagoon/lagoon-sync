@@ -1,0 +1,7 @@
+services:
+  app:
+    labels:
+      lagoon.type: php-cli
+      lagoon.persistent: /app/files
+      lagoon.volumes.config.path: /app/config
+      lagoon.volumes.data.path: /app/data
