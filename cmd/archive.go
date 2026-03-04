@@ -14,6 +14,8 @@ import (
 	// "github.com/uselagoon/lagoon-sync/utils"
 )
 
+var archiveOutFile string
+
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
 	Short: "Archive resources from an environment",
@@ -59,6 +61,12 @@ or other resources from a specified environment.`,
 		}
 		defer os.RemoveAll(dirname)
 
+		archive, err := utils.InitArchive(archiveOutFile)
+
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
+		}
+
 		for _, task := range tasks {
 			// fmt.Println(task)
 			switch task.Type {
@@ -73,7 +81,24 @@ or other resources from a specified environment.`,
 				s.SetTransferResource(filepath.Join(dirname, "mysql.sql.gz"))
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
+				archive.AddItem("mariadb", s.GetTransferResource(environment).Name, nil)
+			case "postgres":
+				s, err := synchers.NewBasePostgresSyncRootFromService(task.Service)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+
+				s.SetTransferResource(filepath.Join(dirname, "postgres.sql.gz"))
+				// We can simply run the source command directly.
+				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
+				archive.AddItem("postgres", s.GetTransferResource(environment).Name, nil)
 			}
+		}
+
+		err = archive.WriteArchive()
+
+		if err != nil {
+			utils.LogFatalError(err.Error(), nil)
 		}
 
 		// gonna just set up one of these suckers for testing
@@ -99,4 +124,5 @@ or other resources from a specified environment.`,
 func init() {
 	rootCmd.AddCommand(archiveCmd)
 	archiveCmd.Flags().StringVarP(&dockerComposeFile, "docker-compose-file", "f", "", "Path to docker-compose.yml (defaults to docker-compose.yml in current directory)")
+	archiveCmd.Flags().StringVarP(&archiveOutFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
 }
