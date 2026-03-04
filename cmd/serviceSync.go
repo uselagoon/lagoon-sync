@@ -45,18 +45,10 @@ var serviceCmd = &cobra.Command{
 
 func servicesCommandRun(cmd *cobra.Command, args []string) {
 	// Default to docker-compose.yml in current directory if not specified
-	path := dockerComposeFile
-	if path == "" {
-		path = "docker-compose.yml"
-	}
+	services, err := utils.GetServices(dockerComposeFile)
 
-	services, err := utils.LoadDockerCompose(path)
 	if err != nil {
-		utils.LogFatalError(fmt.Sprintf("Failed to load docker-compose file: %v", err), nil)
-	}
-
-	if len(services) == 0 {
-		utils.LogFatalError(fmt.Sprintf("No Lagoon services defined in docker compose file: %v", path), nil)
+		utils.LogFatalError(err.Error(), nil)
 	}
 
 	if sersyncListOnly {

@@ -37,6 +37,7 @@ type RunSyncProcessFunctionTypeArguments struct {
 	SkipSourceCleanup    bool
 	SkipTargetCleanup    bool
 	SkipTargetImport     bool
+	LocalArchiveOnly     bool //we now allow this syncher to only run the archive only locally - if this is set, we simply run the first step
 	TransferResourceName string
 }
 
@@ -49,14 +50,8 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return err
 	}
 
-	//TODO: this can come out.
-	args.SourceEnvironment, err = RunPrerequisiteCommand(args.SourceEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptionWrapper)
 	sourceRsyncPath := "rsync" //args.SourceEnvironment.RsyncPath
 	args.SourceEnvironment.RsyncPath = "rsync"
-	if err != nil {
-		_ = PrerequisiteCleanUp(args.SourceEnvironment, sourceRsyncPath, args.DryRun, args.SshOptionWrapper)
-		return err
-	}
 
 	err = SyncRunSourceCommand(args.SourceEnvironment, args.LagoonSyncer, args.DryRun, args.SshOptionWrapper)
 	if err != nil {
@@ -64,7 +59,10 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return err
 	}
 
-	args.TargetEnvironment, err = RunPrerequisiteCommand(args.TargetEnvironment, args.LagoonSyncer, args.SyncerType, args.DryRun, args.SshOptionWrapper)
+	if args.LocalArchiveOnly == true {
+		return nil // we're done her
+	}
+
 	targetRsyncPath := args.TargetEnvironment.RsyncPath
 	if err != nil {
 		_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptionWrapper)
@@ -109,8 +107,6 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 
 	utils.LogProcessStep("Beginning export on source environment", remoteEnvironment.EnvironmentName)
 
-	sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(remoteEnvironment.EnvironmentName)
-
 	remoteCommands := syncer.GetRemoteCommand(remoteEnvironment)
 	for _, remoteCommand := range remoteCommands {
 		if remoteCommand.NoOp {
@@ -140,6 +136,7 @@ func SyncRunSourceCommand(remoteEnvironment Environment, syncer Syncer, dryRun b
 				}
 				utils.LogDebugInfo(outstring, nil)
 			} else {
+				sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(remoteEnvironment.EnvironmentName)
 				err, output := utils.RemoteShellout(execString, remoteEnvironment.ServiceName, remoteEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
 				if err != nil {
 					utils.LogError(output, nil)
