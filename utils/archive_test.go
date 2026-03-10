@@ -2,6 +2,7 @@ package utils
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 	"os"
@@ -420,6 +421,265 @@ func readFileFromTarGz(t *testing.T, archivePath, fileName string) []byte {
 			}
 			return content
 		}
+	}
+}
+
+const extractTestDir = "test_data/extract_test/"
+
+func TestExtractManifest(t *testing.T) {
+	tests := []struct {
+		name        string
+		archivePath string
+		wantErr     bool
+		wantFn      func(t *testing.T, a *Archive)
+	}{
+		{
+			name:        "extracts manifest from valid archive",
+			archivePath: extractTestDir + "archive.tar.gz",
+			wantErr:     false,
+			wantFn: func(t *testing.T, a *Archive) {
+				if a.ArchiveFilename != "/tmp/out.tar.gz" {
+					t.Errorf("ArchiveFilename = %q, want %q", a.ArchiveFilename, "/tmp/out.tar.gz")
+				}
+				if len(a.Items) != 2 {
+					t.Fatalf("Items count = %d, want 2", len(a.Items))
+				}
+				if a.Items[0].Syncher != "mariadb" || a.Items[0].Filename != "977857177/mysql.sql.gz" {
+					t.Errorf("Items[0] = %+v", a.Items[0])
+				}
+				if a.Items[1].Syncher != "files" || a.Items[1].Filename != "/app/storage" {
+					t.Errorf("Items[1] = %+v", a.Items[1])
+				}
+			},
+		},
+		{
+			name:        "returns error for non-existent file",
+			archivePath: extractTestDir + "idontexist.tar.gz",
+			wantErr:     true,
+		},
+		{
+			name:        "returns error for file that is not a gzip",
+			archivePath: extractTestDir + "manifest.yml",
+			wantErr:     true,
+		},
+		{
+			name:        "returns error when archive has no manifest.yml",
+			archivePath: buildTarGzWithoutManifest(t),
+			wantErr:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ExtractManifest(tt.archivePath)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ExtractManifest() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if tt.wantFn != nil {
+				tt.wantFn(t, got)
+			}
+		})
+	}
+}
+
+// buildTarGzWithoutManifest creates a temporary .tar.gz that contains a
+// single non-manifest file and returns its path.
+func buildTarGzWithoutManifest(t *testing.T) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "no-manifest.tar.gz")
+
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("buildTarGzWithoutManifest: create: %v", err)
+	}
+	defer f.Close()
+
+	gw := gzip.NewWriter(f)
+	defer gw.Close()
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	content := []byte("not a manifest")
+	if err := tw.WriteHeader(&tar.Header{
+		Name: "somefile.txt",
+		Size: int64(len(content)),
+		Mode: 0600,
+	}); err != nil {
+		t.Fatalf("buildTarGzWithoutManifest: write header: %v", err)
+	}
+	if _, err := io.Copy(tw, bytes.NewReader(content)); err != nil {
+		t.Fatalf("buildTarGzWithoutManifest: write body: %v", err)
+	}
+	return path
+}
+
+// buildTestArchive creates a .tar.gz with a known set of files and returns its path.
+//
+//	dir/
+//	  file-a.txt  ("content-a")
+//	  subdir/
+//	    file-b.txt  ("content-b")
+//	other.txt  ("other")
+func buildTestArchive(t *testing.T) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "test.tar.gz")
+
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("buildTestArchive: create: %v", err)
+	}
+	defer f.Close()
+
+	gw := gzip.NewWriter(f)
+	defer gw.Close()
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	addEntry := func(name string, content []byte, typeflag byte) {
+		t.Helper()
+		hdr := &tar.Header{
+			Name:     name,
+			Typeflag: typeflag,
+			Mode:     0644,
+			Size:     int64(len(content)),
+		}
+		if typeflag == tar.TypeDir {
+			hdr.Mode = 0755
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatalf("buildTestArchive: header %q: %v", name, err)
+		}
+		if len(content) > 0 {
+			if _, err := tw.Write(content); err != nil {
+				t.Fatalf("buildTestArchive: body %q: %v", name, err)
+			}
+		}
+	}
+
+	addEntry("dir/", nil, tar.TypeDir)
+	addEntry("dir/file-a.txt", []byte("content-a"), tar.TypeReg)
+	addEntry("dir/subdir/", nil, tar.TypeDir)
+	addEntry("dir/subdir/file-b.txt", []byte("content-b"), tar.TypeReg)
+	addEntry("other.txt", []byte("other"), tar.TypeReg)
+
+	return path
+}
+
+func TestExtractFromArchive(t *testing.T) {
+	archive := buildTestArchive(t)
+
+	tests := []struct {
+		name        string
+		matchPrefix string
+		wantFiles   map[string]string // relative path -> expected content
+		wantErr     bool
+	}{
+		{
+			name:        "extract everything",
+			matchPrefix: "",
+			wantFiles: map[string]string{
+				"dir/file-a.txt":        "content-a",
+				"dir/subdir/file-b.txt": "content-b",
+				"other.txt":             "other",
+			},
+		},
+		{
+			name:        "extract single file by exact prefix",
+			matchPrefix: "other.txt",
+			wantFiles: map[string]string{
+				"other.txt": "other",
+			},
+		},
+		{
+			name:        "extract folder by prefix",
+			matchPrefix: "dir/",
+			wantFiles: map[string]string{
+				"dir/file-a.txt":        "content-a",
+				"dir/subdir/file-b.txt": "content-b",
+			},
+		},
+		{
+			name:        "prefix that matches nothing extracts nothing",
+			matchPrefix: "nonexistent/",
+			wantFiles:   map[string]string{},
+		},
+		{
+			name:        "non-existent archive returns error",
+			matchPrefix: "",
+			wantErr:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dest := t.TempDir()
+
+			archivePath := archive
+			if tt.wantErr {
+				archivePath = dest + "/idontexist.tar.gz"
+			}
+
+			err := ExtractFromArchive(archivePath, tt.matchPrefix, dest)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ExtractFromArchive() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+
+			for relPath, wantContent := range tt.wantFiles {
+				fullPath := filepath.Join(dest, relPath)
+				got, err := os.ReadFile(fullPath)
+				if err != nil {
+					t.Errorf("expected extracted file %q not found: %v", relPath, err)
+					continue
+				}
+				if string(got) != wantContent {
+					t.Errorf("file %q content = %q, want %q", relPath, string(got), wantContent)
+				}
+			}
+		})
+	}
+}
+
+func TestExtractFromArchive_PathTraversal(t *testing.T) {
+	tmpDir := t.TempDir()
+	archivePath := filepath.Join(tmpDir, "evil.tar.gz")
+
+	f, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	gw := gzip.NewWriter(f)
+	defer gw.Close()
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	content := []byte("evil")
+	_ = tw.WriteHeader(&tar.Header{
+		Name: "../../etc/passwd",
+		Size: int64(len(content)),
+		Mode: 0600,
+	})
+	_, _ = tw.Write(content)
+	tw.Close()
+	gw.Close()
+	f.Close()
+
+	dest := t.TempDir()
+	if err := ExtractFromArchive(archivePath, "", dest); err == nil {
+		t.Error("ExtractFromArchive() expected path traversal error, got nil")
 	}
 }
 

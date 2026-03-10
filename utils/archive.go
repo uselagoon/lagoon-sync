@@ -2,6 +2,7 @@ package utils
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -38,6 +39,116 @@ func InitArchive(filename string) (*Archive, error) {
 	return &Archive{
 		ArchiveFilename: filename,
 	}, nil
+}
+
+func ExtractManifest(archiveFileName string) (*Archive, error) {
+	file, err := os.Open(archiveFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	gzr, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if header.Typeflag == tar.TypeReg && header.Name == "manifest.yml" {
+			var buf bytes.Buffer
+			if _, err := io.Copy(&buf, tr); err != nil {
+				return nil, fmt.Errorf("failed to copy file content: %w", err)
+			}
+			// else, we potentially have found out manifest - let's pull it out
+			archiveManifest := Archive{}
+			err = yaml.Unmarshal(buf.Bytes(), &archiveManifest)
+			if err != nil {
+				return nil, err
+			}
+
+			return &archiveManifest, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Manifest not found in archive")
+}
+
+// ExtractFromArchive extracts entries from a .tar.gz archive whose names match
+// matchPrefix into targetPath. Pass matchPrefix="" to extract everything.
+//
+// Security: archive entry paths are sanitised before writing — leading slashes
+// and ".." components are stripped to prevent path traversal (zip-slip).
+func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
+	file, err := os.Open(archiveFileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	gzr, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		if matchPrefix != "" && !strings.HasPrefix(header.Name, matchPrefix) {
+			continue
+		}
+
+		// Strip leading slashes and resolve ".." before joining onto targetPath.
+		cleanName := filepath.Clean(filepath.FromSlash(header.Name))
+		cleanName = strings.TrimLeft(cleanName, string(os.PathSeparator))
+		if strings.HasPrefix(cleanName, "..") {
+			return fmt.Errorf("archive entry %q would escape target directory", header.Name)
+		}
+		safeName := filepath.Join(targetPath, cleanName)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(safeName, os.FileMode(header.Mode&0777)); err != nil {
+				return fmt.Errorf("creating directory %q: %w", safeName, err)
+			}
+
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(safeName), 0750); err != nil {
+				return fmt.Errorf("creating parent dirs for %q: %w", safeName, err)
+			}
+			out, err := os.OpenFile(safeName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode&0777))
+			if err != nil {
+				return fmt.Errorf("creating file %q: %w", safeName, err)
+			}
+			if _, err := io.Copy(out, tr); err != nil {
+				out.Close()
+				return fmt.Errorf("extracting %q: %w", safeName, err)
+			}
+			out.Close()
+		}
+	}
+
+	return nil
 }
 
 func (a *Archive) AddItem(syncher, fileName string, data map[string]string) error {
@@ -140,7 +251,9 @@ func writeToTar(tarWriter *tar.Writer, fn string) error {
 			return err
 		}
 		for _, f := range files {
+			fmt.Println("Writing " + f)
 			if err := writeToTar(tarWriter, f); err != nil {
+				fmt.Println("Failed")
 				return err
 			}
 		}
@@ -152,6 +265,8 @@ func writeToTar(tarWriter *tar.Writer, fn string) error {
 		return err
 	}
 
+	// Use PAX format: no name-length limit (USTAR caps at 255 bytes total).
+	header.Format = tar.FormatPAX
 	header.Name = fn
 
 	err = tarWriter.WriteHeader(header)
@@ -159,9 +274,14 @@ func writeToTar(tarWriter *tar.Writer, fn string) error {
 		return err
 	}
 
-	_, err = io.Copy(tarWriter, file)
+	// LimitReader caps the copy at exactly header.Size bytes.
+	// If the file is still being appended to (e.g. a live log), io.Copy
+	// would write more bytes than the header declared and corrupt the archive.
+	// LimitReader gives us a consistent point-in-time snapshot with zero
+	// buffering — we stream directly from source to tar writer.
+	_, err = io.Copy(tarWriter, io.LimitReader(file, info.Size()))
 
-	return err // will be nil or not depending on io.Copy's success
+	return err
 
 }
 

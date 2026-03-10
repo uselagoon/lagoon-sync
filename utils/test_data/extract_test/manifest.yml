@@ -1,0 +1,6 @@
+archivefilename: /tmp/out.tar.gz
+items:
+- syncher: mariadb
+  filename: 977857177/mysql.sql.gz
+- syncher: files
+  filename: /app/storage

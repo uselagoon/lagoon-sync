@@ -14,7 +14,7 @@ import (
 	// "github.com/uselagoon/lagoon-sync/utils"
 )
 
-var archiveOutFile string
+var archiveFile string
 
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
@@ -45,8 +45,6 @@ or other resources from a specified environment.`,
 			utils.LogFatalError(err.Error(), nil)
 		}
 
-		// outputdir := "/tmp/" // for now.
-
 		// This will _only_ run locally - and so we set up the environments thusly
 		environment := synchers.Environment{
 			ProjectName:     "",
@@ -61,7 +59,7 @@ or other resources from a specified environment.`,
 		}
 		defer os.RemoveAll(dirname)
 
-		archive, err := utils.InitArchive(archiveOutFile)
+		archive, err := utils.InitArchive(archiveFile)
 
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
@@ -102,31 +100,62 @@ or other resources from a specified environment.`,
 		err = archive.WriteArchive()
 
 		if err != nil {
+			// utils.LogFatalError(err.Error(), nil)
+			fmt.Println(err.Error())
+		}
+	},
+}
+
+var extractCmd = &cobra.Command{
+	Use:   "extract",
+	Short: "Extracts archive resources from an environment",
+	Long: `Extracts archive resources from a Lagoon environment.
+
+This command allows you to extract archives of databases, files, 
+or other resources from a specified environment.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if archiveFile == "" {
+			utils.LogFatalError("--archive-input is required as an argument", nil)
+		}
+
+		// let's pull the manifest out of this thing.
+		manifest, err := utils.ExtractManifest(archiveFile)
+
+		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
 		}
 
-		// gonna just set up one of these suckers for testing
+		// we'll set up a temp dir for extraction / working
+		tmpdir, err := os.MkdirTemp(os.TempDir(), "lagoon-sync-extract-*")
 
-		// archive, err := utils.InitArchive("/tmp/test.tar.gz")
+		if err != nil {
+			utils.LogFatalError("Unable to create a temporary directory", nil)
+		}
 
-		// if err != nil {
-		// 	os.Exit(1)
-		// }
+		defer os.RemoveAll(tmpdir)
 
-		// archive.AddItem("files", "/tmp/file1.txt", map[string]string{})
-		// archive.AddItem("files", "/tmp/file2.txt", map[string]string{})
-		// err = archive.WriteArchive()
+		for _, item := range manifest.Items {
+			switch item.Syncher {
+			case "mariadb":
+				// we extract the file into a temp location, then do a restore
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+				archiveName := filepath.Join(tmpdir, item.Filename)
 
-		// if err != nil {
-		// 	fmt.Print(err.Error())
-		// 	os.Exit(1)
-		// }
+				// now we go ahead and do the restore side of the synhcer
+
+			}
+		}
 
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(archiveCmd)
+	rootCmd.AddCommand(extractCmd)
 	archiveCmd.Flags().StringVarP(&dockerComposeFile, "docker-compose-file", "f", "", "Path to docker-compose.yml (defaults to docker-compose.yml in current directory)")
-	archiveCmd.Flags().StringVarP(&archiveOutFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
+	archiveCmd.Flags().StringVarP(&archiveFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
+	extractCmd.Flags().StringVarP(&archiveFile, "archive-input", "", "", "Name of input archive")
 }
