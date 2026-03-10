@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -171,6 +172,17 @@ func TestArchive_WriteArchive(t *testing.T) {
 			wantErr:   false,
 		},
 		{
+			name: "writes multiple files and a folder",
+			files: []string{
+				testDataDir + "database.sql",
+				testDataDir + "pg_dump.sql",
+				testDataDir + "db1.sql",
+				testDataDir + "folder_to_archive",
+			},
+			wantFiles: 4,
+			wantErr:   false,
+		},
+		{
 			name:      "writes empty archive with manifest only",
 			files:     []string{},
 			wantFiles: 0,
@@ -224,8 +236,14 @@ func TestArchive_WriteArchive(t *testing.T) {
 				t.Errorf("WriteArchive() expected manifest.yml as first entry, got %v", filesInArchive)
 			}
 
-			// Verify each expected item file is in the archive
+			// Verify each expected item file is in the archive.
+			// Directories are expanded on write, so skip them here — the
+			// wantFiles count already validates the correct number of entries.
 			for _, expectedFile := range tt.files {
+				info, err := os.Stat(expectedFile)
+				if err == nil && info.IsDir() {
+					continue
+				}
 				found := false
 				for _, archiveFile := range filesInArchive {
 					if archiveFile == expectedFile {
@@ -402,5 +420,52 @@ func readFileFromTarGz(t *testing.T, archivePath, fileName string) []byte {
 			}
 			return content
 		}
+	}
+}
+
+func TestUnwindFolder(t *testing.T) {
+	tests := []struct {
+		name       string
+		folderName string
+		wantFiles  []string
+		wantErr    bool
+	}{
+		{
+			name:       "single file returns itself",
+			folderName: testDataDir + "database.sql",
+			wantFiles:  []string{testDataDir + "database.sql"},
+			wantErr:    false,
+		},
+		{
+			name:       "non-existent path returns error",
+			folderName: testDataDir + "idontexist",
+			wantFiles:  []string{},
+			wantErr:    true,
+		},
+		{
+			name:       "folder with files returns all files",
+			folderName: testDataDir + "folder_to_archive",
+			wantFiles:  []string{testDataDir + "folder_to_archive/test1.txt"},
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := unwindFolder(tt.folderName)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("unwindFolder() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			if !slices.Equal(tt.wantFiles, got) {
+				t.Errorf("unwindFolder() = %v, want %v", got, tt.wantFiles)
+			}
+		})
 	}
 }

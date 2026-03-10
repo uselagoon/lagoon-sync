@@ -63,6 +63,7 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 		return nil // we're done her
 	}
 
+	args.TargetEnvironment.RsyncPath = "rsync"
 	targetRsyncPath := args.TargetEnvironment.RsyncPath
 	if err != nil {
 		_ = PrerequisiteCleanUp(args.TargetEnvironment, targetRsyncPath, args.DryRun, args.SshOptionWrapper)

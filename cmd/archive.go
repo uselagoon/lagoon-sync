@@ -92,7 +92,11 @@ or other resources from a specified environment.`,
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
 				archive.AddItem("postgres", s.GetTransferResource(environment).Name, nil)
+			case "files":
+				// this should be the simplest, we just add it to the archive
+				archive.AddItem("files", task.VolumePath, nil)
 			}
+
 		}
 
 		err = archive.WriteArchive()

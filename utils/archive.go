@@ -5,13 +5,14 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
 )
-
 
 const TarGzExtension = ".tar.gz"
 
@@ -123,11 +124,27 @@ func writeToTar(tarWriter *tar.Writer, fn string) error {
 	if err != nil {
 		return err
 	}
+
 	defer file.Close()
+
+	// we need to ensure that this isn't we recurse
 
 	info, err := file.Stat()
 	if err != nil {
 		return err
+	}
+
+	if info.IsDir() {
+		files, err := unwindFolder(fn)
+		if err != nil {
+			return err
+		}
+		for _, f := range files {
+			if err := writeToTar(tarWriter, f); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
 	header, err := tar.FileInfoHeader(info, info.Name())
@@ -146,4 +163,24 @@ func writeToTar(tarWriter *tar.Writer, fn string) error {
 
 	return err // will be nil or not depending on io.Copy's success
 
+}
+
+// unwindFolder takes a file or directory path and returns a flat list of all
+// contained file paths. Directories are walked recursively; empty directories
+// are silently skipped.
+func unwindFolder(folderName string) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
 }
