@@ -12,10 +12,10 @@ import (
 	"github.com/spf13/cobra"
 	synchers "github.com/uselagoon/lagoon-sync/synchers"
 	"github.com/uselagoon/lagoon-sync/utils"
-	// "github.com/uselagoon/lagoon-sync/utils"
 )
 
 var archiveFile string
+var extractionRoot string
 
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
@@ -187,7 +187,39 @@ or other resources from a specified environment.`,
 				}
 
 				s.TransferResourceOverride = filepath.Join("/tmp", s.TransferResourceOverride)
-				err = synchers.SyncRunTargetCommand(environment, &s, false, nil)
+				err = synchers.SyncRunTargetCommand(environment, &s, dryRun, nil)
+			case "postgres":
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+
+				var s synchers.PostgresSyncRoot
+				var data string
+				var ok bool
+				if data, ok = item.Data["syncher"]; ok != true {
+					utils.LogFatalError(fmt.Sprintf("Unable to find syncher for postgres service"), nil)
+				}
+
+				err = json.Unmarshal([]byte(data), &s)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, "/tmp")
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+
+				s.TransferResourceOverride = filepath.Join("/tmp", s.TransferResourceOverride)
+				err = synchers.SyncRunTargetCommand(environment, &s, dryRun, nil)
+			case "files":
+
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, extractionRoot)
+
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 			}
 		}
 
@@ -200,4 +232,6 @@ func init() {
 	archiveCmd.Flags().StringVarP(&dockerComposeFile, "docker-compose-file", "f", "", "Path to docker-compose.yml (defaults to docker-compose.yml in current directory)")
 	archiveCmd.Flags().StringVarP(&archiveFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
 	extractCmd.Flags().StringVarP(&archiveFile, "archive-input", "", "", "Name of input archive")
+	extractCmd.Flags().StringVarP(&extractionRoot, "extraction-root", "", "/", "Root path for file extraction")
+	extractCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 }

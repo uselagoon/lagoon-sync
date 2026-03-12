@@ -99,6 +99,7 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
 
 	gzr, err := gzip.NewReader(file)
 	if err != nil {
+		fmt.Println("a")
 		return err
 	}
 	defer gzr.Close()
@@ -111,6 +112,7 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
 			break
 		}
 		if err != nil {
+			fmt.Println("b")
 			return err
 		}
 
