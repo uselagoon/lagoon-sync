@@ -266,8 +266,6 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 
 	utils.LogProcessStep("Beginning import on target environment", targetEnvironment.EnvironmentName)
 
-	sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(targetEnvironment.EnvironmentName)
-
 	targetCommands := syncer.GetLocalCommand(targetEnvironment)
 
 	for _, targetCommand := range targetCommands {
@@ -295,6 +293,7 @@ func SyncRunTargetCommand(targetEnvironment Environment, syncer Syncer, dryRun b
 				}
 				utils.LogDebugInfo(outstring, nil)
 			} else {
+				sshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(targetEnvironment.EnvironmentName)
 				err, output := utils.RemoteShellout(execString, targetEnvironment.ServiceName, targetEnvironment.GetOpenshiftProjectName(), sshOptions.Host, sshOptions.Port, sshOptions.PrivateKey, sshOptions.SkipAgent)
 				if err != nil {
 					utils.LogError(output, nil)

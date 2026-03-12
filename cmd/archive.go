@@ -4,6 +4,7 @@ import (
 	// "fmt"
 	// "os"
 
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -79,7 +80,14 @@ or other resources from a specified environment.`,
 				s.SetTransferResource(filepath.Join(dirname, "mysql.sql.gz"))
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
-				archive.AddItem("mariadb", s.GetTransferResource(environment).Name, nil)
+				//we'll save the syncher detail for reloading on the other side
+				syncherJson, err := json.Marshal(s)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+				archive.AddItem("mariadb", s.GetTransferResource(environment).Name, map[string]string{
+					"syncher": string(syncherJson),
+				})
 			case "postgres":
 				s, err := synchers.NewBasePostgresSyncRootFromService(task.Service)
 				if err != nil {
@@ -89,7 +97,14 @@ or other resources from a specified environment.`,
 				s.SetTransferResource(filepath.Join(dirname, "postgres.sql.gz"))
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
-				archive.AddItem("postgres", s.GetTransferResource(environment).Name, nil)
+				//we'll save the syncher detail for reloading on the other side
+				syncherJson, err := json.Marshal(s)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+				archive.AddItem("postgres", s.GetTransferResource(environment).Name, map[string]string{
+					"syncher": string(syncherJson),
+				})
 			case "files":
 				// this should be the simplest, we just add it to the archive
 				archive.AddItem("files", task.VolumePath, nil)
@@ -134,6 +149,12 @@ or other resources from a specified environment.`,
 
 		defer os.RemoveAll(tmpdir)
 
+		environment := synchers.Environment{
+			ProjectName:     "",
+			EnvironmentName: synchers.LOCAL_ENVIRONMENT_NAME,
+			ServiceName:     "",
+		}
+
 		for _, item := range manifest.Items {
 			switch item.Syncher {
 			case "mariadb":
@@ -142,10 +163,31 @@ or other resources from a specified environment.`,
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-				archiveName := filepath.Join(tmpdir, item.Filename)
+				_ = filepath.Join(tmpdir, item.Filename)
 
+				var s synchers.MariadbSyncRoot
+				var data string
+				var ok bool
+				// grab the syncher data from the manifest
+				if data, ok = item.Data["syncher"]; ok != true {
+					utils.LogFatalError(fmt.Sprintf("Unable to find syncher for mariadb service"), nil)
+				}
+
+				err = json.Unmarshal([]byte(data), &s)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 				// now we go ahead and do the restore side of the synhcer
+				// fmt.Println(s)
 
+				// let's pull the file from the archive
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, "/tmp")
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
+
+				s.TransferResourceOverride = filepath.Join("/tmp", s.TransferResourceOverride)
+				err = synchers.SyncRunTargetCommand(environment, &s, false, nil)
 			}
 		}
 
