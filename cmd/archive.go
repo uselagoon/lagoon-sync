@@ -80,6 +80,9 @@ or other resources from a specified environment.`,
 				s.SetTransferResource(filepath.Join(dirname, "mysql.sql.gz"))
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 				//we'll save the syncher detail for reloading on the other side
 				syncherJson, err := json.Marshal(s)
 				if err != nil {
@@ -97,6 +100,9 @@ or other resources from a specified environment.`,
 				s.SetTransferResource(filepath.Join(dirname, "postgres.sql.gz"))
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 				//we'll save the syncher detail for reloading on the other side
 				syncherJson, err := json.Marshal(s)
 				if err != nil {
