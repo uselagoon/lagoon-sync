@@ -54,7 +54,7 @@ or other resources from a specified environment.`,
 		}
 
 		// okay - we got here, we may need a temporary directory
-		dirname, err := os.MkdirTemp("./", "")
+		dirname, err := os.MkdirTemp(os.TempDir(), "lagoon-sync-archive-*")
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
 		}
@@ -77,7 +77,8 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				s.SetTransferResource(filepath.Join(dirname, "mysql.sql.gz"))
+				transferResourceName := fmt.Sprintf("mysql-%v.sql.gz", task.Service.Name)
+				s.SetTransferResource(filepath.Join(dirname, transferResourceName))
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
 				if err != nil {
@@ -97,7 +98,8 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				s.SetTransferResource(filepath.Join(dirname, "postgres.sql.gz"))
+				transferResourceName := fmt.Sprintf("postgres-%v.sql.gz", task.Service.Name)
+				s.SetTransferResource(filepath.Join(dirname, transferResourceName))
 				// We can simply run the source command directly.
 				err = synchers.SyncRunSourceCommand(environment, s, false, nil)
 				if err != nil {
@@ -187,12 +189,12 @@ or other resources from a specified environment.`,
 				// fmt.Println(s)
 
 				// let's pull the file from the archive
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, "/tmp")
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				s.TransferResourceOverride = filepath.Join("/tmp", s.TransferResourceOverride)
+				s.TransferResourceOverride = filepath.Join(tmpdir, s.TransferResourceOverride)
 				err = synchers.SyncRunTargetCommand(environment, &s, dryRun, nil)
 			case "postgres":
 				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
@@ -212,12 +214,12 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, "/tmp")
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				s.TransferResourceOverride = filepath.Join("/tmp", s.TransferResourceOverride)
+				s.TransferResourceOverride = filepath.Join(tmpdir, s.TransferResourceOverride)
 				err = synchers.SyncRunTargetCommand(environment, &s, dryRun, nil)
 			case "files":
 
