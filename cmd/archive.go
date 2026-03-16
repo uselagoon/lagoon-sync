@@ -165,30 +165,20 @@ or other resources from a specified environment.`,
 
 		for _, item := range manifest.Items {
 			switch item.Syncher {
-			case "mariadb":
-				// we extract the file into a temp location, then do a restore
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
-				if err != nil {
-					utils.LogFatalError(err.Error(), nil)
-				}
-				_ = filepath.Join(tmpdir, item.Filename)
-
+				case "mariadb":
 				var s synchers.MariadbSyncRoot
 				var data string
 				var ok bool
 				// grab the syncher data from the manifest
 				if data, ok = item.Data["syncher"]; ok != true {
-					utils.LogFatalError(fmt.Sprintf("Unable to find syncher for mariadb service"), nil)
+					utils.LogFatalError("Unable to find syncher for mariadb service", nil)
 				}
 
 				err = json.Unmarshal([]byte(data), &s)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-				// now we go ahead and do the restore side of the synhcer
-				// fmt.Println(s)
 
-				// let's pull the file from the archive
 				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
@@ -199,17 +189,12 @@ or other resources from a specified environment.`,
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-			case "postgres":
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
-				if err != nil {
-					utils.LogFatalError(err.Error(), nil)
-				}
-
+				case "postgres":
 				var s synchers.PostgresSyncRoot
 				var data string
 				var ok bool
 				if data, ok = item.Data["syncher"]; ok != true {
-					utils.LogFatalError(fmt.Sprintf("Unable to find syncher for postgres service"), nil)
+					utils.LogFatalError("Unable to find syncher for postgres service", nil)
 				}
 
 				err = json.Unmarshal([]byte(data), &s)
