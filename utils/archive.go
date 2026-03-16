@@ -101,7 +101,6 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
 
 	gzr, err := gzip.NewReader(file)
 	if err != nil {
-		fmt.Println("a")
 		return err
 	}
 	defer gzr.Close()
@@ -114,7 +113,6 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
 			break
 		}
 		if err != nil {
-			fmt.Println("b")
 			return err
 		}
 
@@ -132,11 +130,13 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
+			LogProcessStep("Extracting directory "+safeName, nil)
 			if err := os.MkdirAll(safeName, os.FileMode(header.Mode&0777)); err != nil {
 				return fmt.Errorf("creating directory %q: %w", safeName, err)
 			}
 
 		case tar.TypeReg:
+			LogProcessStep("Extracting "+safeName, nil)
 			if err := os.MkdirAll(filepath.Dir(safeName), 0750); err != nil {
 				return fmt.Errorf("creating parent dirs for %q: %w", safeName, err)
 			}
