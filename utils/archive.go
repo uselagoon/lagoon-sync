@@ -20,6 +20,7 @@ const TarGzExtension = ".tar.gz"
 type Archive struct {
 	ArchiveFilename string        `yaml:"archivefilename"` // Used primarily internally for creating the archive.
 	Items           []ArchiveItem `yaml:"items"`
+	Version         string        `yaml:"version,omitempty"`
 }
 
 type ArchiveItem struct {
@@ -30,7 +31,7 @@ type ArchiveItem struct {
 
 // At this point we assume the synchers will have been
 
-func InitArchive(filename string) (*Archive, error) {
+func InitArchive(filename, version string) (*Archive, error) {
 
 	if !strings.HasSuffix(filename, TarGzExtension) {
 		return nil, fmt.Errorf("Archive filename does not end with .tar.gz")
@@ -38,6 +39,7 @@ func InitArchive(filename string) (*Archive, error) {
 
 	return &Archive{
 		ArchiveFilename: filename,
+		Version:         version,
 	}, nil
 }
 

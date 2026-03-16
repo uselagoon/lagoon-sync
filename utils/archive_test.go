@@ -50,7 +50,7 @@ func TestInitArchive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			archive, err := InitArchive(tt.filename)
+			archive, err := InitArchive(tt.filename, "testversion")
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("InitArchive() error = %v, wantErr %v", err, tt.wantErr)
@@ -119,7 +119,7 @@ func TestArchive_AddItem(t *testing.T) {
 			tmpDir := t.TempDir()
 			archivePath := filepath.Join(tmpDir, "test.tar.gz")
 
-			archive, err := InitArchive(archivePath)
+			archive, err := InitArchive(archivePath, "testversion")
 			if err != nil {
 				t.Fatalf("InitArchive() unexpected error: %v", err)
 			}
@@ -196,7 +196,7 @@ func TestArchive_WriteArchive(t *testing.T) {
 			tmpDir := t.TempDir()
 			archivePath := filepath.Join(tmpDir, "output.tar.gz")
 
-			archive, err := InitArchive(archivePath)
+			archive, err := InitArchive(archivePath, "testversion")
 			if err != nil {
 				t.Fatalf("InitArchive() error: %v", err)
 			}
@@ -264,7 +264,7 @@ func TestArchive_WriteArchive_VerifyContents(t *testing.T) {
 	tmpDir := t.TempDir()
 	archivePath := filepath.Join(tmpDir, "verify-contents.tar.gz")
 
-	archive, err := InitArchive(archivePath)
+	archive, err := InitArchive(archivePath, "testversion")
 	if err != nil {
 		t.Fatalf("InitArchive() error: %v", err)
 	}
@@ -299,7 +299,7 @@ func TestArchive_WriteArchive_ManifestContent(t *testing.T) {
 	tmpDir := t.TempDir()
 	archivePath := filepath.Join(tmpDir, "manifest-check.tar.gz")
 
-	archive, err := InitArchive(archivePath)
+	archive, err := InitArchive(archivePath, "testversion")
 	if err != nil {
 		t.Fatalf("InitArchive() error: %v", err)
 	}

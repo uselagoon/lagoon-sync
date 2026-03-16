@@ -60,7 +60,7 @@ or other resources from a specified environment.`,
 		}
 		defer os.RemoveAll(dirname)
 
-		archive, err := utils.InitArchive(archiveFile)
+		archive, err := utils.InitArchive(archiveFile, rootCmd.Version)
 
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
@@ -196,6 +196,9 @@ or other resources from a specified environment.`,
 
 				s.TransferResourceOverride = filepath.Join(tmpdir, s.TransferResourceOverride)
 				err = synchers.SyncRunTargetCommand(environment, &s, dryRun, nil)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 			case "postgres":
 				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
 				if err != nil {
@@ -221,6 +224,9 @@ or other resources from a specified environment.`,
 
 				s.TransferResourceOverride = filepath.Join(tmpdir, s.TransferResourceOverride)
 				err = synchers.SyncRunTargetCommand(environment, &s, dryRun, nil)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 			case "files":
 
 				err = utils.ExtractFromArchive(archiveFile, item.Filename, extractionRoot)
