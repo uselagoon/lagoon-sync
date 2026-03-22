@@ -16,6 +16,7 @@ import (
 
 var archiveFile string
 var extractionRoot string
+var overrideVolumes []string
 
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
@@ -66,8 +67,15 @@ or other resources from a specified environment.`,
 			utils.LogFatalError(err.Error(), nil)
 		}
 
+		areVolumesOverridden := false
+		if len(overrideVolumes) > 0 {
+			areVolumesOverridden = true
+			for _, volumePath := range overrideVolumes {
+				archive.AddItem("files", volumePath, nil)
+			}
+		}
+
 		for _, task := range tasks {
-			// fmt.Println(task)
 			switch task.Type {
 			case "mariadb":
 				// let's do the dump here and then
@@ -115,7 +123,9 @@ or other resources from a specified environment.`,
 				})
 			case "files":
 				// this should be the simplest, we just add it to the archive
-				archive.AddItem("files", task.VolumePath, nil)
+				if !areVolumesOverridden {
+					archive.AddItem("files", task.VolumePath, nil)
+				}
 			}
 
 		}
@@ -165,7 +175,7 @@ or other resources from a specified environment.`,
 
 		for _, item := range manifest.Items {
 			switch item.Syncher {
-				case "mariadb":
+			case "mariadb":
 				var s synchers.MariadbSyncRoot
 				var data string
 				var ok bool
@@ -189,7 +199,7 @@ or other resources from a specified environment.`,
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-				case "postgres":
+			case "postgres":
 				var s synchers.PostgresSyncRoot
 				var data string
 				var ok bool
@@ -230,6 +240,7 @@ func init() {
 	rootCmd.AddCommand(extractCmd)
 	archiveCmd.Flags().StringVarP(&dockerComposeFile, "docker-compose-file", "f", "", "Path to docker-compose.yml (defaults to docker-compose.yml in current directory)")
 	archiveCmd.Flags().StringVarP(&archiveFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
+	archiveCmd.Flags().StringArrayVar(&overrideVolumes, "override-volume", []string{}, "Override volume paths (repeatable)")
 	extractCmd.Flags().StringVarP(&archiveFile, "archive-input", "", "", "Name of input archive")
 	extractCmd.Flags().StringVarP(&extractionRoot, "extraction-root", "", "/", "Root path for file extraction")
 	extractCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
