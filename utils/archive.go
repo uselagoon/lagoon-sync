@@ -85,12 +85,38 @@ func ExtractManifest(archiveFileName string) (*Archive, error) {
 	return nil, fmt.Errorf("Manifest not found in archive")
 }
 
+// safeExtractPath resolves the destination path for an archive entry within
+// base, ensuring the result does not escape base (zip-slip protection).
+// Absolute entry names are made relative by stripping the leading separator.
+func safeExtractPath(base, entryName string) (string, error) {
+	clean := filepath.Clean(filepath.FromSlash(entryName))
+	if clean == "" || clean == "." {
+		return "", fmt.Errorf("empty entry name")
+	}
+	// Make relative so that absolute archive paths land inside base.
+	relative := strings.TrimPrefix(clean, string(os.PathSeparator))
+	if relative == "" {
+		return "", fmt.Errorf("entry %q has no path components after normalisation", entryName)
+	}
+	dest := filepath.Join(base, relative)
+	rel, err := filepath.Rel(base, dest)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return "", fmt.Errorf("entry %q would escape target directory", entryName)
+	}
+	return dest, nil
+}
+
 // ExtractFromArchive extracts entries from a .tar.gz archive whose names match
 // matchPrefix into targetPath. Pass matchPrefix="" to extract everything.
 //
-// Security: archive entry paths are sanitised before writing — leading slashes
-// and ".." components are stripped to prevent path traversal (zip-slip).
+// When ignoreAbsPath is false, entries with absolute paths are rejected.
+// When ignoreAbsPath is true, absolute entry paths are normalised — the leading
+// separator is stripped and the entry is extracted relative to targetPath.
 func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreAbsPath bool) error {
+	if targetPath == "" {
+		return fmt.Errorf("Cannot have an empty extraction directory")
+	}
+
 	file, err := os.Open(archiveFileName)
 	if err != nil {
 		return err
@@ -123,32 +149,12 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreA
 			continue
 		}
 
-		// Sanitize the entry name against path traversal (zip-slip).
-		cleanName := filepath.Clean(filepath.FromSlash(header.Name))
-
-		// Reject empty names (Clean("") == ".").
-		if cleanName == "" || cleanName == "." {
-			return fmt.Errorf("archive entry %q has an empty name", header.Name)
-		}
-		// Reject absolute paths (handles both Unix '/' and Windows 'C:\' forms).
-		if (filepath.IsAbs(cleanName) && targetPath == "") && !ignoreAbsPath {
-			return fmt.Errorf("archive entry %q has an absolute path and no targetPath set", header.Name)
-		}
-		// Reject any path whose components include "..".
-		for _, component := range strings.Split(cleanName, string(os.PathSeparator)) {
-			if component == ".." {
-				return fmt.Errorf("archive entry %q would escape target directory", header.Name)
-			}
+		if !ignoreAbsPath && filepath.IsAbs(filepath.FromSlash(header.Name)) {
+			return fmt.Errorf("archive entry %q has an absolute path", header.Name)
 		}
 
-		safeName := filepath.Join(targetPath, cleanName)
-
-		// Final containment check: verify the resolved destination is inside absTarget.
-		absSafe, err := filepath.Abs(safeName)
+		safeName, err := safeExtractPath(absTarget, header.Name)
 		if err != nil {
-			return fmt.Errorf("resolving path for archive entry %q: %w", header.Name, err)
-		}
-		if absSafe != absTarget && !strings.HasPrefix(absSafe, absTarget+string(os.PathSeparator)) {
 			return fmt.Errorf("archive entry %q would escape target directory", header.Name)
 		}
 
