@@ -189,7 +189,9 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
+				// We'll want to remove the leading `/` from this
+
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir, false)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -212,7 +214,7 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir)
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir, false)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -224,7 +226,7 @@ or other resources from a specified environment.`,
 				}
 			case "files":
 
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, extractionRoot)
+				err = utils.ExtractFromArchive(archiveFile, item.Filename, extractionRoot, true)
 
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
@@ -242,6 +244,6 @@ func init() {
 	archiveCmd.Flags().StringVarP(&archiveFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
 	archiveCmd.Flags().StringArrayVar(&overrideVolumes, "override-volume", []string{}, "Override volume paths (repeatable)")
 	extractCmd.Flags().StringVarP(&archiveFile, "archive-input", "", "", "Name of input archive")
-	extractCmd.Flags().StringVarP(&extractionRoot, "extraction-root", "", "/", "Root path for file extraction")
+	extractCmd.Flags().StringVarP(&extractionRoot, "extraction-root", "", "", "Root path for file extraction")
 	extractCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 }

@@ -92,7 +92,7 @@ func ExtractManifest(archiveFileName string) (*Archive, error) {
 //
 // Security: archive entry paths are sanitised before writing — leading slashes
 // and ".." components are stripped to prevent path traversal (zip-slip).
-func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
+func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreAbsPath bool) error {
 	file, err := os.Open(archiveFileName)
 	if err != nil {
 		return err
@@ -107,6 +107,11 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
 
 	tr := tar.NewReader(gzr)
 
+	absTarget, err := filepath.Abs(targetPath)
+	if err != nil {
+		return fmt.Errorf("resolving target path %q: %w", targetPath, err)
+	}
+
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -120,13 +125,34 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string) error {
 			continue
 		}
 
-		// Strip leading slashes and resolve ".." before joining onto targetPath.
+		// Sanitize the entry name against path traversal (zip-slip).
 		cleanName := filepath.Clean(filepath.FromSlash(header.Name))
-		cleanName = strings.TrimLeft(cleanName, string(os.PathSeparator))
-		if strings.HasPrefix(cleanName, "..") {
+
+		// Reject empty names (Clean("") == ".").
+		if cleanName == "" || cleanName == "." {
+			return fmt.Errorf("archive entry %q has an empty name", header.Name)
+		}
+		// Reject absolute paths (handles both Unix '/' and Windows 'C:\' forms).
+		if (filepath.IsAbs(cleanName) && targetPath == "") && !ignoreAbsPath {
+			return fmt.Errorf("archive entry %q has an absolute path and no targetPath set", header.Name)
+		}
+		// Reject any path whose components include "..".
+		for _, component := range strings.Split(cleanName, string(os.PathSeparator)) {
+			if component == ".." {
+				return fmt.Errorf("archive entry %q would escape target directory", header.Name)
+			}
+		}
+
+		safeName := filepath.Join(targetPath, cleanName)
+
+		// Final containment check: verify the resolved destination is inside absTarget.
+		absSafe, err := filepath.Abs(safeName)
+		if err != nil {
+			return fmt.Errorf("resolving path for archive entry %q: %w", header.Name, err)
+		}
+		if absSafe != absTarget && !strings.HasPrefix(absSafe, absTarget+string(os.PathSeparator)) {
 			return fmt.Errorf("archive entry %q would escape target directory", header.Name)
 		}
-		safeName := filepath.Join(targetPath, cleanName)
 
 		switch header.Typeflag {
 		case tar.TypeDir:
