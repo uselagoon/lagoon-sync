@@ -76,7 +76,7 @@ type Build struct {
 	Dockerfile string `yaml:"dockerfile"`
 }
 
-// getServices attempts to generate a list of services from a docker-compose file
+// GetServices attempts to generate a list of services from a docker-compose file
 func GetServices(dockerComposeFilePath string) (map[string]Service, error) {
 
 	// TODO: here we'll also integrate pulling services from the service API once complete
