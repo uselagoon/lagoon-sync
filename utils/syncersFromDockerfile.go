@@ -88,11 +88,11 @@ func GetServices(dockerComposeFilePath string) (map[string]Service, error) {
 
 	services, err := LoadDockerCompose(path)
 	if err != nil {
-		return services, fmt.Errorf(fmt.Sprintf("Failed to load docker-compose file: %v", err))
+		return services, fmt.Errorf("Failed to load docker-compose file: %v", err)
 	}
 
 	if len(services) == 0 {
-		return services, fmt.Errorf(fmt.Sprintf("No Lagoon services defined in docker compose file: %v", path))
+		return services, fmt.Errorf("No Lagoon services defined in docker compose file: %v", path)
 	}
 
 	return services, nil
