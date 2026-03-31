@@ -71,7 +71,10 @@ or other resources from a specified environment.`,
 		if len(overrideVolumes) > 0 {
 			areVolumesOverridden = true
 			for _, volumePath := range overrideVolumes {
-				archive.AddItem("files", volumePath, nil)
+				err = archive.AddItem("files", volumePath, nil)
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 			}
 		}
 
@@ -97,9 +100,12 @@ or other resources from a specified environment.`,
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-				archive.AddItem("mariadb", s.GetTransferResource(environment).Name, map[string]string{
+				err = archive.AddItem("mariadb", s.GetTransferResource(environment).Name, map[string]string{
 					"syncher": string(syncherJson),
 				})
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 			case "postgres":
 				s, err := synchers.NewBasePostgresSyncRootFromService(task.Service)
 				if err != nil {
@@ -118,13 +124,19 @@ or other resources from a specified environment.`,
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-				archive.AddItem("postgres", s.GetTransferResource(environment).Name, map[string]string{
+				err = archive.AddItem("postgres", s.GetTransferResource(environment).Name, map[string]string{
 					"syncher": string(syncherJson),
 				})
+				if err != nil {
+					utils.LogFatalError(err.Error(), nil)
+				}
 			case "files":
 				// this should be the simplest, we just add it to the archive
 				if !areVolumesOverridden {
-					archive.AddItem("files", task.VolumePath, nil)
+					err = archive.AddItem("files", task.VolumePath, nil)
+					if err != nil {
+						utils.LogFatalError(err.Error(), nil)
+					}
 				}
 			}
 
