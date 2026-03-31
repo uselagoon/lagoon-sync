@@ -29,8 +29,6 @@ type ArchiveItem struct {
 	Data     map[string]string `yaml:"data,omitempty"` // any data we need to pass to the syncer
 }
 
-// At this point we assume the synchers will have been
-
 func InitArchive(filename, version string) (*Archive, error) {
 
 	if !strings.HasSuffix(filename, TarGzExtension) {
@@ -281,10 +279,8 @@ func writeToTar(tarWriter *tar.Writer, fn string) error {
 			return err
 		}
 		for _, f := range files {
-			fmt.Println("Writing " + f)
 			if err := writeToTar(tarWriter, f); err != nil {
-				fmt.Println("Failed")
-				return err
+				return fmt.Errorf("writing %s to tar: %w", f, err)
 			}
 		}
 		return nil
