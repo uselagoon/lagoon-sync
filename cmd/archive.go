@@ -145,8 +145,7 @@ or other resources from a specified environment.`,
 		err = archive.WriteArchive()
 
 		if err != nil {
-			// utils.LogFatalError(err.Error(), nil)
-			fmt.Println(err.Error())
+			utils.LogFatalError(err.Error(), nil)
 		}
 	},
 }
