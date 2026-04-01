@@ -14,7 +14,7 @@ import (
 	"github.com/uselagoon/lagoon-sync/utils"
 )
 
-var archiveFile string
+var archiveFile, archiveInputFile string
 var extractionRoot string
 var overrideVolumes []string
 
@@ -25,7 +25,7 @@ var archiveCmd = &cobra.Command{
 
 This command allows you to create archives of databases, files, 
 or other resources from a specified environment.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		const serviceName = "cli"
 
@@ -147,6 +147,8 @@ or other resources from a specified environment.`,
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
 		}
+
+		return nil
 	},
 }
 
@@ -157,13 +159,14 @@ var extractCmd = &cobra.Command{
 
 This command allows you to extract archives of databases, files, 
 or other resources from a specified environment.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if archiveFile == "" {
-			utils.LogFatalError("--archive-input is required as an argument", nil)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if archiveInputFile == "" {
+			cmd.Help()
+			return fmt.Errorf("--archive-input is required")
 		}
 
 		// let's pull the manifest out of this thing.
-		manifest, err := utils.ExtractManifest(archiveFile)
+		manifest, err := utils.ExtractManifest(archiveInputFile)
 
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
@@ -202,7 +205,7 @@ or other resources from a specified environment.`,
 
 				// We'll want to remove the leading `/` from this
 
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -225,7 +228,7 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, tmpdir, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -237,7 +240,7 @@ or other resources from a specified environment.`,
 				}
 			case "files":
 
-				err = utils.ExtractFromArchive(archiveFile, item.Filename, extractionRoot, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, extractionRoot, true)
 
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
@@ -245,6 +248,7 @@ or other resources from a specified environment.`,
 			}
 		}
 
+		return nil
 	},
 }
 
@@ -254,7 +258,7 @@ func init() {
 	archiveCmd.Flags().StringVarP(&dockerComposeFile, "docker-compose-file", "f", "", "Path to docker-compose.yml (defaults to docker-compose.yml in current directory)")
 	archiveCmd.Flags().StringVarP(&archiveFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
 	archiveCmd.Flags().StringArrayVar(&overrideVolumes, "override-volume", []string{}, "Override volume paths (repeatable)")
-	extractCmd.Flags().StringVarP(&archiveFile, "archive-input", "", "", "Name of input archive")
+	extractCmd.Flags().StringVarP(&archiveInputFile, "archive-input", "", "", "Name of input archive")
 	extractCmd.Flags().StringVarP(&extractionRoot, "extraction-root", "", "/", "Root path for file extraction")
 	extractCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
 }
