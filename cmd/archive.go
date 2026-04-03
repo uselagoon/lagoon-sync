@@ -17,6 +17,7 @@ import (
 var archiveFile, archiveInputFile string
 var extractionRoot string
 var overrideVolumes []string
+var useServiceApi bool
 
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
@@ -25,13 +26,24 @@ var archiveCmd = &cobra.Command{
 
 This command allows you to create archives of databases, files, 
 or other resources from a specified environment.`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("Running archive")
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		const serviceName = "cli"
 
-		services, err := utils.GetServices(dockerComposeFile)
-		if err != nil {
-			utils.LogFatalError(err.Error(), nil)
+		var services map[string]utils.Service
+
+		if useServiceApi && true == false {
+
+		} else {
+			serviceMap, err := utils.GetServices(dockerComposeFile)
+			if err != nil {
+				utils.LogFatalError(err.Error(), nil)
+			}
+			services = serviceMap
 		}
 
 		if len(services) == 0 {
@@ -252,13 +264,41 @@ or other resources from a specified environment.`,
 	},
 }
 
+func preRunSetSSHDetailsFromEnvars(cmd *cobra.Command, args []string) {
+	if v, exists := os.LookupEnv("LAGOON_CONFIG_API_HOST"); exists {
+		fmt.Print("Setting endpoint to " + APIEndpoint)
+		APIEndpoint = v + "/graphql"
+		fmt.Print("Setting endpoint to " + APIEndpoint)
+	}
+	if v, exists := os.LookupEnv("LAGOON_CONFIG_SSH_HOST"); exists {
+		SSHHost = v
+	}
+	if v, exists := os.LookupEnv("LAGOON_CONFIG_SSH_PORT"); exists {
+		SSHPort = v
+	}
+}
+
 func init() {
 	rootCmd.AddCommand(archiveCmd)
 	rootCmd.AddCommand(extractCmd)
+
+	// Add flags for archive
 	archiveCmd.Flags().StringVarP(&dockerComposeFile, "docker-compose-file", "f", "", "Path to docker-compose.yml (defaults to docker-compose.yml in current directory)")
 	archiveCmd.Flags().StringVarP(&archiveFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
+	archiveCmd.Flags().BoolVar(&useServiceApi, "use-service-api", false, "Use the Lagoon service API for lookups")
 	archiveCmd.Flags().StringArrayVar(&overrideVolumes, "override-volume", []string{}, "Override volume paths (repeatable)")
+	archiveCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
+	archiveCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port, defaults to '32222'")
+	archiveCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	archiveCmd.PersistentFlags().StringVarP(&APIEndpoint, "api", "A", "https://api.lagoon.amazeeio.cloud/graphql", "Specify your lagoon api endpoint - required for ssh-portal integration")
+
+	// Add flags for extract
 	extractCmd.Flags().StringVarP(&archiveInputFile, "archive-input", "", "", "Name of input archive")
+	extractCmd.Flags().BoolVar(&useServiceApi, "use-service-api", false, "Use the Lagoon service API for lookups")
 	extractCmd.Flags().StringVarP(&extractionRoot, "extraction-root", "", "/", "Root path for file extraction")
 	extractCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Don't run the commands, just preview what will be run")
+	extractCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
+	extractCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port, defaults to '32222'")
+	extractCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
+	extractCmd.PersistentFlags().StringVarP(&APIEndpoint, "api", "A", "https://api.lagoon.amazeeio.cloud/graphql", "Specify your lagoon api endpoint - required for ssh-portal integration")
 }

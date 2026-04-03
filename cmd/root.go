@@ -44,7 +44,9 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		return initConfig()
+	}
 	rootCmd.SetVersionTemplate(Version())
 
 	// Here you will define your flags and configuration settings.
@@ -60,12 +62,8 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func initConfig() {
-	err := processConfig(cfgFile)
-	if err != nil {
-		utils.LogFatalError("Unable to read in config file", err)
-		os.Exit(1)
-	}
+func initConfig() error {
+	return processConfig(cfgFile)
 }
 
 func processConfig(cfgFile string) error {
