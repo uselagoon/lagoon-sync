@@ -22,6 +22,7 @@ See this document for a brief tutorial on getting started with `lagoon-sync`. Ot
 * [More details about custom configurations](./documentation/CONFIG.md)
 * [Lagoon-sync usage examples](./documentation/EXAMPLE_SYNCS.md)
 * [Writing custom synchers](./documentation/CUSTOM.md)
+* [Archiving and restoring environments](./documentation/ARCHIVE.md)
 * [Contributing](./documentation/CONTRIBUTING.md)
 * [Odds and ends](./documentation/MISC.md)
 
