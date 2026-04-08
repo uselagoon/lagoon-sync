@@ -30,11 +30,11 @@ func NewBaseMariaDbSyncRootFromService(service utils.Service) (Syncer, error) {
 		ServiceName: service.Name,
 		Type:        MariadbSyncPlugin{}.GetPluginId(),
 		Config: BaseMariaDbSync{
-			DbHostname: fmt.Sprintf("${%v_HOST}", name),
-			DbUsername: fmt.Sprintf("${%v_USERNAME}", name),
-			DbPassword: fmt.Sprintf("${%v_PASSWORD}", name),
-			DbPort:     fmt.Sprintf("${%v_PORT}", name),
-			DbDatabase: fmt.Sprintf("${%v_DATABASE}", name),
+			DbHostname: fmt.Sprintf("${%v_HOST:-mariadb}", name),
+			DbUsername: fmt.Sprintf("${%v_USERNAME:-drupal}", name),
+			DbPassword: fmt.Sprintf("${%v_PASSWORD:-drupal}", name),
+			DbPort:     fmt.Sprintf("${%v_PORT:-3306}", name),
+			DbDatabase: fmt.Sprintf("${%v_DATABASE:-drupal}", name),
 		},
 	}
 
@@ -66,11 +66,11 @@ func NewBasePostgresSyncRootFromService(service utils.Service) (Syncer, error) {
 		ServiceName: service.Name,
 		Type:        PostgresSyncPlugin{}.GetPluginId(),
 		Config: BasePostgresSync{
-			DbHostname: fmt.Sprintf("${%v_HOST}", name),
-			DbUsername: fmt.Sprintf("${%v_USERNAME}", name),
-			DbPassword: fmt.Sprintf("${%v_PASSWORD}", name),
-			DbPort:     fmt.Sprintf("${%v_PORT}", name),
-			DbDatabase: fmt.Sprintf("${%v_DATABASE}", name),
+			DbHostname: fmt.Sprintf("${%v_HOST:-postgres}", name),
+			DbUsername: fmt.Sprintf("${%v_USERNAME:-drupal}", name),
+			DbPassword: fmt.Sprintf("${%v_PASSWORD:-drupal}", name),
+			DbPort:     fmt.Sprintf("${%v_PORT:-5432}", name),
+			DbDatabase: fmt.Sprintf("${%v_DATABASE:-drupal}", name),
 		},
 	}
 	retSyncRoot.PrepareSyncer()
