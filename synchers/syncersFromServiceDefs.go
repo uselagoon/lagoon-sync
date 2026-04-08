@@ -31,10 +31,10 @@ func NewBaseMariaDbSyncRootFromService(service utils.Service) (Syncer, error) {
 		Type:        MariadbSyncPlugin{}.GetPluginId(),
 		Config: BaseMariaDbSync{
 			DbHostname: fmt.Sprintf("${%v_HOST:-mariadb}", name),
-			DbUsername: fmt.Sprintf("${%v_USERNAME:-drupal}", name),
-			DbPassword: fmt.Sprintf("${%v_PASSWORD:-drupal}", name),
+			DbUsername: fmt.Sprintf("${%v_USERNAME:-lagoon}", name),
+			DbPassword: fmt.Sprintf("${%v_PASSWORD:-lagoon}", name),
 			DbPort:     fmt.Sprintf("${%v_PORT:-3306}", name),
-			DbDatabase: fmt.Sprintf("${%v_DATABASE:-drupal}", name),
+			DbDatabase: fmt.Sprintf("${%v_DATABASE:-lagoon}", name),
 		},
 	}
 
@@ -67,10 +67,10 @@ func NewBasePostgresSyncRootFromService(service utils.Service) (Syncer, error) {
 		Type:        PostgresSyncPlugin{}.GetPluginId(),
 		Config: BasePostgresSync{
 			DbHostname: fmt.Sprintf("${%v_HOST:-postgres}", name),
-			DbUsername: fmt.Sprintf("${%v_USERNAME:-drupal}", name),
-			DbPassword: fmt.Sprintf("${%v_PASSWORD:-drupal}", name),
+			DbUsername: fmt.Sprintf("${%v_USERNAME:-lagoon}", name),
+			DbPassword: fmt.Sprintf("${%v_PASSWORD:-lagoon}", name),
 			DbPort:     fmt.Sprintf("${%v_PORT:-5432}", name),
-			DbDatabase: fmt.Sprintf("${%v_DATABASE:-drupal}", name),
+			DbDatabase: fmt.Sprintf("${%v_DATABASE:-lagoon}", name),
 		},
 	}
 	retSyncRoot.PrepareSyncer()
