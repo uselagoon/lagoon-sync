@@ -250,7 +250,27 @@ func (a *Archive) WriteArchive() error {
 	// now we iterate over the files and add 'em to the archive
 
 	for _, file := range a.Items {
+		f, err := os.Open(file.Filename)
+		if err != nil {
+			return err
+		}
 
+		defer f.Close()
+
+		info, err := f.Stat()
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("****", info.Name())
+		if info.IsDir() {
+			if file.Filename == "php" {
+				continue
+			}
+		}
+		if file.Filename == ".lagoon-rootless-migration-complete" {
+			continue
+		}
 		err = writeToTar(tw, file.Filename)
 
 		if err != nil {
@@ -279,6 +299,15 @@ func writeToTar(tarWriter *tar.Writer, fn string) error {
 		return err
 	}
 
+	fmt.Println("****", info.Name())
+	if info.IsDir() {
+		if info.Name() == "php" {
+			return nil
+		}
+	}
+	if info.Name() == ".lagoon-rootless-migration-complete" {
+		return nil
+	}
 	if info.IsDir() {
 		files, err := unwindFolder(fn)
 		if err != nil {
