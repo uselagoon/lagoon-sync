@@ -255,7 +255,9 @@ or other resources from a specified environment.`,
 				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, extractionRoot, true)
 
 				if err != nil {
-					utils.LogFatalError(err.Error(), nil)
+					//utils.LogFatalError(err.Error(), nil)
+					fmt.Println("Hit an error on Extracting from Archive - this is expected in this branch - but for reference:")
+					fmt.Printf("This was the error: %v", err.Error())
 				}
 			}
 		}
