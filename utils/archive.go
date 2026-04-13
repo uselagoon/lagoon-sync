@@ -161,8 +161,23 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreA
 		switch header.Typeflag {
 		case tar.TypeDir:
 			LogProcessStep("Extracting directory "+safeName, nil)
-			if err := os.MkdirAll(safeName, os.FileMode(header.Mode&0777)); err != nil {
-				return fmt.Errorf("creating directory %q: %w", safeName, err)
+			if info, statErr := os.Stat(safeName); statErr == nil {
+				// path already exists — ensure it's a directory and writable
+				if !info.IsDir() {
+					return fmt.Errorf("archive entry %q: path exists but is not a directory", safeName)
+				}
+				tmp, err := os.CreateTemp(safeName, ".write-check-*")
+				if err != nil {
+					return fmt.Errorf("directory %q is not writable: %w", safeName, err)
+				}
+				tmp.Close()
+				os.Remove(tmp.Name())
+			} else if os.IsNotExist(statErr) {
+				if err := os.MkdirAll(safeName, os.FileMode(header.Mode&0777)); err != nil {
+					return fmt.Errorf("creating directory %q: %w", safeName, err)
+				}
+			} else {
+				return fmt.Errorf("checking directory %q: %w", safeName, statErr)
 			}
 
 		case tar.TypeReg:
