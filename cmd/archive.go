@@ -19,6 +19,12 @@ var extractionRoot string
 var overrideVolumes []string
 var useServiceApi bool
 
+// fileExtractionIgnoreList holds file/directory names (matched against
+// ExtractError.Name) that are acceptable to skip during file extraction.
+var fileExtractionIgnoreList = []string{
+	".lagoon-rootless-migration-complete",
+}
+
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
 	Short: "Archive resources from an environment",
@@ -217,7 +223,7 @@ or other resources from a specified environment.`,
 
 				// We'll want to remove the leading `/` from this
 
-				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true, nil)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -240,7 +246,7 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true, nil)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -252,7 +258,7 @@ or other resources from a specified environment.`,
 				}
 			case "files":
 
-				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, extractionRoot, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, extractionRoot, true, fileExtractionIgnoreList)
 
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)

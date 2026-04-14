@@ -628,7 +628,7 @@ func TestExtractFromArchive(t *testing.T) {
 				archivePath = dest + "/idontexist.tar.gz"
 			}
 
-			err := ExtractFromArchive(archivePath, tt.matchPrefix, dest, false)
+			err := ExtractFromArchive(archivePath, tt.matchPrefix, dest, false, []string{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ExtractFromArchive() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -678,7 +678,7 @@ func TestExtractFromArchive_PathTraversal(t *testing.T) {
 	f.Close()
 
 	dest := t.TempDir()
-	if err := ExtractFromArchive(archivePath, "", dest, false); err == nil {
+	if err := ExtractFromArchive(archivePath, "", dest, false, []string{}); err == nil {
 		t.Error("ExtractFromArchive() expected path traversal error, got nil")
 	}
 }

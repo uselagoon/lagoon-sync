@@ -85,6 +85,21 @@ func ExtractManifest(archiveFileName string) (*Archive, error) {
 	return nil, fmt.Errorf("Manifest not found in archive")
 }
 
+// ExtractError is returned by ExtractFromArchive when an individual archive
+// entry cannot be extracted. EntryType is the tar type flag (e.g. tar.TypeReg,
+// tar.TypeDir) and Name is the resolved destination path.
+type ExtractError struct {
+	EntryType byte
+	Name      string
+	Err       error
+}
+
+func (e *ExtractError) Error() string {
+	return fmt.Sprintf("extract entry (type %d) %q: %v", e.EntryType, e.Name, e.Err)
+}
+
+func (e *ExtractError) Unwrap() error { return e.Err }
+
 // safeExtractPath resolves the destination path for an archive entry within
 // base, ensuring the result does not escape base (zip-slip protection).
 // Absolute entry names are made relative by stripping the leading separator.
@@ -112,7 +127,7 @@ func safeExtractPath(base, entryName string) (string, error) {
 // When ignoreAbsPath is false, entries with absolute paths are rejected.
 // When ignoreAbsPath is true, absolute entry paths are normalised — the leading
 // separator is stripped and the entry is extracted relative to targetPath.
-func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreAbsPath bool) error {
+func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreAbsPath bool, ignoreFileErrorList []string) error {
 	if targetPath == "" {
 		return fmt.Errorf("Cannot have an empty extraction directory")
 	}
@@ -158,31 +173,70 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreA
 			return fmt.Errorf("archive entry %q would escape target directory", header.Name)
 		}
 
+		var entryErr *ExtractError
 		switch header.Typeflag {
 		case tar.TypeDir:
 			LogProcessStep("Extracting directory "+safeName, nil)
-			if err := os.MkdirAll(safeName, os.FileMode(header.Mode&0777)); err != nil {
-				return fmt.Errorf("creating directory %q: %w", safeName, err)
+			if info, statErr := os.Stat(safeName); statErr == nil {
+				// path already exists — ensure it's a directory and writable
+				if !info.IsDir() {
+					entryErr = &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("path exists but is not a directory")}
+					break
+				}
+				tmp, createErr := os.CreateTemp(safeName, ".write-check-*")
+				if createErr != nil {
+					entryErr = &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("directory is not writable: %w", createErr)}
+					break
+				}
+				tmp.Close()
+				os.Remove(tmp.Name())
+			} else if os.IsNotExist(statErr) {
+				if mkdirErr := os.MkdirAll(safeName, os.FileMode(header.Mode&0777)); mkdirErr != nil {
+					entryErr = &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("creating directory: %w", mkdirErr)}
+				}
+			} else {
+				entryErr = &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("stat failed: %w", statErr)}
 			}
 
 		case tar.TypeReg:
 			LogProcessStep("Extracting "+safeName, nil)
-			if err := os.MkdirAll(filepath.Dir(safeName), 0750); err != nil {
-				return fmt.Errorf("creating parent dirs for %q: %w", safeName, err)
+			if mkdirErr := os.MkdirAll(filepath.Dir(safeName), 0750); mkdirErr != nil {
+				entryErr = &ExtractError{EntryType: tar.TypeReg, Name: safeName, Err: fmt.Errorf("creating parent dirs: %w", mkdirErr)}
+				break
 			}
-			out, err := os.OpenFile(safeName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode&0777))
-			if err != nil {
-				return fmt.Errorf("creating file %q: %w", safeName, err)
+			out, openErr := os.OpenFile(safeName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode&0777))
+			if openErr != nil {
+				entryErr = &ExtractError{EntryType: tar.TypeReg, Name: safeName, Err: fmt.Errorf("creating file: %w", openErr)}
+				break
 			}
-			if _, err := io.Copy(out, tr); err != nil {
+			if _, copyErr := io.Copy(out, tr); copyErr != nil {
 				out.Close()
-				return fmt.Errorf("extracting %q: %w", safeName, err)
+				entryErr = &ExtractError{EntryType: tar.TypeReg, Name: safeName, Err: fmt.Errorf("writing file contents: %w", copyErr)}
+				break
 			}
 			out.Close()
+		}
+		if entryErr != nil {
+			if isIgnoredFile(safeName, ignoreFileErrorList) {
+				LogProcessStep(fmt.Sprintf("Skipping ignored entry %q: %v", safeName, entryErr.Err), nil)
+				continue
+			}
+			return entryErr
 		}
 	}
 
 	return nil
+}
+
+// isIgnoredFile reports whether the base name of path matches any entry in list.
+func isIgnoredFile(path string, list []string) bool {
+	base := filepath.Base(path)
+	for _, ignored := range list {
+		if base == ignored {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Archive) AddItem(syncher, fileName string, data map[string]string) error {
