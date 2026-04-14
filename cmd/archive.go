@@ -5,6 +5,7 @@ import (
 	// "os"
 
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,6 +19,12 @@ var archiveFile, archiveInputFile string
 var extractionRoot string
 var overrideVolumes []string
 var useServiceApi bool
+
+// fileExtractionIgnoreList holds file/directory names (matched against
+// ExtractError.Name) that are acceptable to skip during file extraction.
+var fileExtractionIgnoreList = []string{
+	".lagoon-rootless-migration-complete",
+}
 
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
@@ -255,6 +262,20 @@ or other resources from a specified environment.`,
 				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, extractionRoot, true)
 
 				if err != nil {
+					var extractErr *utils.ExtractError
+					if errors.As(err, &extractErr) {
+						ignored := false
+						for _, name := range fileExtractionIgnoreList {
+							if filepath.Base(extractErr.Name) == name {
+								ignored = true
+								break
+							}
+						}
+						if ignored {
+							utils.LogProcessStep(fmt.Sprintf("Skipping ignored file extraction error for %q: %v", extractErr.Name, extractErr.Err), nil)
+							break
+						}
+					}
 					utils.LogFatalError(err.Error(), nil)
 				}
 			}

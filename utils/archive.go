@@ -85,6 +85,21 @@ func ExtractManifest(archiveFileName string) (*Archive, error) {
 	return nil, fmt.Errorf("Manifest not found in archive")
 }
 
+// ExtractError is returned by ExtractFromArchive when an individual archive
+// entry cannot be extracted. EntryType is the tar type flag (e.g. tar.TypeReg,
+// tar.TypeDir) and Name is the resolved destination path.
+type ExtractError struct {
+	EntryType byte
+	Name      string
+	Err       error
+}
+
+func (e *ExtractError) Error() string {
+	return fmt.Sprintf("extract entry (type %d) %q: %v", e.EntryType, e.Name, e.Err)
+}
+
+func (e *ExtractError) Unwrap() error { return e.Err }
+
 // safeExtractPath resolves the destination path for an archive entry within
 // base, ensuring the result does not escape base (zip-slip protection).
 // Absolute entry names are made relative by stripping the leading separator.
@@ -164,34 +179,34 @@ func ExtractFromArchive(archiveFileName, matchPrefix, targetPath string, ignoreA
 			if info, statErr := os.Stat(safeName); statErr == nil {
 				// path already exists — ensure it's a directory and writable
 				if !info.IsDir() {
-					return fmt.Errorf("archive entry %q: path exists but is not a directory", safeName)
+					return &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("path exists but is not a directory")}
 				}
 				tmp, err := os.CreateTemp(safeName, ".write-check-*")
 				if err != nil {
-					return fmt.Errorf("directory %q is not writable: %w", safeName, err)
+					return &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("directory is not writable: %w", err)}
 				}
 				tmp.Close()
 				os.Remove(tmp.Name())
 			} else if os.IsNotExist(statErr) {
 				if err := os.MkdirAll(safeName, os.FileMode(header.Mode&0777)); err != nil {
-					return fmt.Errorf("creating directory %q: %w", safeName, err)
+					return &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("creating directory: %w", err)}
 				}
 			} else {
-				return fmt.Errorf("checking directory %q: %w", safeName, statErr)
+				return &ExtractError{EntryType: tar.TypeDir, Name: safeName, Err: fmt.Errorf("stat failed: %w", statErr)}
 			}
 
 		case tar.TypeReg:
 			LogProcessStep("Extracting "+safeName, nil)
 			if err := os.MkdirAll(filepath.Dir(safeName), 0750); err != nil {
-				return fmt.Errorf("creating parent dirs for %q: %w", safeName, err)
+				return &ExtractError{EntryType: tar.TypeReg, Name: safeName, Err: fmt.Errorf("creating parent dirs: %w", err)}
 			}
 			out, err := os.OpenFile(safeName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode&0777))
 			if err != nil {
-				return fmt.Errorf("creating file %q: %w", safeName, err)
+				return &ExtractError{EntryType: tar.TypeReg, Name: safeName, Err: fmt.Errorf("creating file: %w", err)}
 			}
 			if _, err := io.Copy(out, tr); err != nil {
 				out.Close()
-				return fmt.Errorf("extracting %q: %w", safeName, err)
+				return &ExtractError{EntryType: tar.TypeReg, Name: safeName, Err: fmt.Errorf("writing file contents: %w", err)}
 			}
 			out.Close()
 		}
