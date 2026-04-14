@@ -5,7 +5,6 @@ import (
 	// "os"
 
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -224,7 +223,7 @@ or other resources from a specified environment.`,
 
 				// We'll want to remove the leading `/` from this
 
-				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true, nil)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -247,7 +246,7 @@ or other resources from a specified environment.`,
 					utils.LogFatalError(err.Error(), nil)
 				}
 
-				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, tmpdir, true, nil)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
@@ -259,23 +258,9 @@ or other resources from a specified environment.`,
 				}
 			case "files":
 
-				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, extractionRoot, true)
+				err = utils.ExtractFromArchive(archiveInputFile, item.Filename, extractionRoot, true, fileExtractionIgnoreList)
 
 				if err != nil {
-					var extractErr *utils.ExtractError
-					if errors.As(err, &extractErr) {
-						ignored := false
-						for _, name := range fileExtractionIgnoreList {
-							if filepath.Base(extractErr.Name) == name {
-								ignored = true
-								break
-							}
-						}
-						if ignored {
-							utils.LogProcessStep(fmt.Sprintf("Skipping ignored file extraction error for %q: %v", extractErr.Name, extractErr.Err), nil)
-							break
-						}
-					}
 					utils.LogFatalError(err.Error(), nil)
 				}
 			}
