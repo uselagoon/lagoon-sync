@@ -149,7 +149,7 @@ func (m *PostgresSyncRoot) GetLocalCommand(environment Environment) []SyncComman
 	l := m.getEffectiveLocalDetails()
 	transferResource := m.GetTransferResource(environment)
 	return []SyncCommand{{
-		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_restore -O -c -x -w -h%s -d%s -p%s -U%s %s", l.DbPassword, l.DbHostname, l.DbDatabase, l.DbPort, l.DbUsername, transferResource.Name),
+		command: fmt.Sprintf("PGPASSWORD=\"%s\" pg_restore -O -c --if-exists -x -w -h%s -d%s -p%s -U%s %s", l.DbPassword, l.DbHostname, l.DbDatabase, l.DbPort, l.DbUsername, transferResource.Name),
 	},
 	}
 }
