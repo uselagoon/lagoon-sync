@@ -60,7 +60,7 @@ func RunSyncProcess(args RunSyncProcessFunctionTypeArguments) error {
 	}
 
 	if args.LocalArchiveOnly == true {
-		return nil // we're done her
+		return nil // we're done here
 	}
 
 	args.TargetEnvironment.RsyncPath = "rsync"

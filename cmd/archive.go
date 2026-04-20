@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	// "fmt"
-	// "os"
-
 	"encoding/json"
 	"fmt"
 	"os"
@@ -33,6 +30,10 @@ var archiveCmd = &cobra.Command{
 This command allows you to create archives of databases, files, 
 or other resources from a specified environment.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// NOTE - we run PersistenPreRunE here to explicitly override the
+		// config run. Since we don't use or need any of it, it parcularly
+		// on archive we don't want it to force the creation of a lagoon.yml
+		// file.
 		fmt.Println("Running archive")
 		return nil
 	},
@@ -42,8 +43,9 @@ or other resources from a specified environment.`,
 
 		var services map[string]utils.Service
 
-		if useServiceApi && true == false {
-
+		if useServiceApi {
+			// TODO: implement service API path
+			return fmt.Errorf("--use-service-api is not yet implemented")
 		} else {
 			serviceMap, err := utils.GetServices(dockerComposeFile)
 			if err != nil {
@@ -181,6 +183,11 @@ or other resources from a specified environment.`,
 		if archiveInputFile == "" {
 			cmd.Help()
 			return fmt.Errorf("--archive-input is required")
+		}
+
+		if useServiceApi {
+			// TODO: implement service API path
+			return fmt.Errorf("--use-service-api is not yet implemented")
 		}
 
 		// let's pull the manifest out of this thing.

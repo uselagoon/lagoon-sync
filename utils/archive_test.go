@@ -710,6 +710,38 @@ func TestUnwindFolder(t *testing.T) {
 		},
 	}
 
+	// Additional cases that require dynamic filesystem setup are run separately
+	// so we can call t.TempDir() per-test without closure awkwardness.
+	t.Run("empty subdirectory is skipped, only files are returned", func(t *testing.T) {
+		root := t.TempDir()
+		emptySubdir := filepath.Join(root, "emptydir")
+		if err := os.MkdirAll(emptySubdir, 0755); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+		wantFile := filepath.Join(root, "file.txt")
+		if err := os.WriteFile(wantFile, []byte("data"), 0644); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+		got, err := unwindFolder(root)
+		if err != nil {
+			t.Fatalf("unwindFolder() unexpected error: %v", err)
+		}
+		if !slices.Equal([]string{wantFile}, got) {
+			t.Errorf("unwindFolder() = %v, want %v", got, []string{wantFile})
+		}
+	})
+
+	t.Run("purely empty folder returns no files", func(t *testing.T) {
+		root := t.TempDir()
+		got, err := unwindFolder(root)
+		if err != nil {
+			t.Fatalf("unwindFolder() unexpected error: %v", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("unwindFolder() = %v, want empty slice", got)
+		}
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := unwindFolder(tt.folderName)

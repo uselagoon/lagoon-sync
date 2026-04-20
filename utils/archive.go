@@ -313,6 +313,14 @@ func (a *Archive) WriteArchive() error {
 
 	}
 
+	// We need to explicitly check the close these and check the
+	// output to ensure everything is properly closed.
+	if err := tw.Close(); err != nil {
+		return fmt.Errorf("closing tar writer: %w", err)
+	}
+	if err := gw.Close(); err != nil {
+		return fmt.Errorf("closing gzip writer: %w", err)
+	}
 	return nil
 
 }
