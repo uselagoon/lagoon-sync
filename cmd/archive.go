@@ -179,6 +179,14 @@ var extractCmd = &cobra.Command{
 
 This command allows you to extract archives of databases, files, 
 or other resources from a specified environment.`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// NOTE - we run PersistenPreRunE here to explicitly override the
+		// config run. Since we don't use or need any of it, it parcularly
+		// on archive we don't want it to force the creation of a lagoon.yml
+		// file.
+		fmt.Println("Running extract")
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if archiveInputFile == "" {
 			cmd.Help()
