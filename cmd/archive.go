@@ -39,8 +39,6 @@ or other resources from a specified environment.`,
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		const serviceName = "cli"
-
 		var services map[string]utils.Service
 
 		if useServiceApi {
@@ -60,8 +58,21 @@ or other resources from a specified environment.`,
 
 		// let's begin by doing the mariadb and postgres services only
 		// so a nice simple case
+		skipVolumeAutodiscovery := len(overrideVolumes) > 0
+		runService := utils.Service{
+			Name:    "",
+			Volumes: map[string]string{},
+		}
 
-		tasks, err := discoverSyncTasks(services, services[serviceName])
+		if !skipVolumeAutodiscovery { // we're actually not going to look at the defined items anyways, so skip
+			rs, ok := services[ServiceName]
+			if !ok {
+				utils.LogFatalError(fmt.Sprintf("Unable to locate run service in dockerfile: %v", ServiceName), nil)
+			}
+			runService = rs
+		}
+
+		tasks, err := discoverSyncTasks(services, runService, skipVolumeAutodiscovery, false)
 
 		if err != nil {
 			utils.LogFatalError(err.Error(), nil)
@@ -71,7 +82,7 @@ or other resources from a specified environment.`,
 		environment := synchers.Environment{
 			ProjectName:     "",
 			EnvironmentName: synchers.LOCAL_ENVIRONMENT_NAME,
-			ServiceName:     serviceName,
+			ServiceName:     ServiceName,
 		}
 
 		// okay - we got here, we may need a temporary directory
@@ -308,6 +319,7 @@ func init() {
 	archiveCmd.Flags().StringVarP(&archiveFile, "archive-output", "", "archive.tar.gz", "Name of output archive")
 	archiveCmd.Flags().BoolVar(&useServiceApi, "use-service-api", false, "Use the Lagoon service API for lookups")
 	archiveCmd.Flags().StringArrayVar(&overrideVolumes, "override-volume", []string{}, "Override volume paths (repeatable)")
+	archiveCmd.Flags().StringVarP(&ServiceName, "service-name", "s", "cli", "The service name to run archive commands in (default is 'cli')")
 	archiveCmd.PersistentFlags().StringVarP(&SSHHost, "ssh-host", "H", "ssh.lagoon.amazeeio.cloud", "Specify your lagoon ssh host, defaults to 'ssh.lagoon.amazeeio.cloud'")
 	archiveCmd.PersistentFlags().StringVarP(&SSHPort, "ssh-port", "P", "32222", "Specify your ssh port, defaults to '32222'")
 	archiveCmd.PersistentFlags().StringVarP(&SSHKey, "ssh-key", "i", "", "Specify path to a specific SSH key to use for authentication")
