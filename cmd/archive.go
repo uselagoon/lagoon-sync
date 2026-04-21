@@ -31,7 +31,7 @@ This command allows you to create archives of databases, files,
 or other resources from a specified environment.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// NOTE - we run PersistenPreRunE here to explicitly override the
-		// config run. Since we don't use or need any of it, it parcularly
+		// config run. Since we don't use or need any of it, it partcularly
 		// on archive we don't want it to force the creation of a lagoon.yml
 		// file.
 		fmt.Println("Running archive")
