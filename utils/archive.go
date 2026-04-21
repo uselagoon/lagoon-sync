@@ -275,9 +275,7 @@ func (a *Archive) WriteArchive() error {
 	defer out.Close() // TODO: do we remove the file if something goes wrong?
 
 	gw := gzip.NewWriter(out)
-	defer gw.Close()
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
 
 	// now we create a manifest file
 
