@@ -45,18 +45,10 @@ var serviceCmd = &cobra.Command{
 
 func servicesCommandRun(cmd *cobra.Command, args []string) {
 	// Default to docker-compose.yml in current directory if not specified
-	path := dockerComposeFile
-	if path == "" {
-		path = "docker-compose.yml"
-	}
+	services, err := utils.GetServices(dockerComposeFile)
 
-	services, err := utils.LoadDockerCompose(path)
 	if err != nil {
-		utils.LogFatalError(fmt.Sprintf("Failed to load docker-compose file: %v", err), nil)
-	}
-
-	if len(services) == 0 {
-		utils.LogFatalError(fmt.Sprintf("No Lagoon services defined in docker compose file: %v", path), nil)
+		utils.LogFatalError(err.Error(), nil)
 	}
 
 	if sersyncListOnly {
@@ -120,7 +112,7 @@ func servicesCommandRun(cmd *cobra.Command, args []string) {
 	// Gather tasks: either discover all, or let user pick one interactively
 	var tasks []SyncTask
 	if allServices {
-		tasks, err = discoverSyncTasks(services, runService)
+		tasks, err = discoverSyncTasks(services, runService, false, false)
 		if err != nil {
 			utils.LogFatalError(fmt.Sprintf("Failed to discover sync tasks: %v", err), nil)
 		}
@@ -191,47 +183,50 @@ func gatherSingleTask(services map[string]utils.Service, runService utils.Servic
 }
 
 // discoverSyncTasks finds all DB services and volumes to sync
-func discoverSyncTasks(services map[string]utils.Service, runService utils.Service) ([]SyncTask, error) {
+func discoverSyncTasks(services map[string]utils.Service, runService utils.Service, skipVolumes, skipDBs bool) ([]SyncTask, error) {
 	var tasks []SyncTask
 
 	// Discover database services (from all services matching supported types)
-	for name, svc := range services {
-		// Skip the run service itself
-		if name == runService.Name {
-			continue
-		}
-
-		// Check if this is a supported DB service type
-		if utils.SliceContains(supportedSynchableServicetypes, svc.Type) {
-			serviceType := ""
-			if strings.Contains(svc.Type, "mariadb") {
-				serviceType = "mariadb"
-			} else if strings.Contains(svc.Type, "postgres") {
-				serviceType = "postgres"
+	if !skipDBs {
+		for name, svc := range services {
+			// Skip the run service itself
+			if name == runService.Name {
+				continue
 			}
 
-			if serviceType != "" {
-				task := SyncTask{
-					Type:    serviceType,
-					Service: svc,
-					Label:   fmt.Sprintf("%s@%s (%s)", name, name, strings.ToUpper(serviceType)),
+			// Check if this is a supported DB service type
+			if utils.SliceContains(supportedSynchableServicetypes, svc.Type) {
+				serviceType := ""
+				if strings.Contains(svc.Type, "mariadb") {
+					serviceType = "mariadb"
+				} else if strings.Contains(svc.Type, "postgres") {
+					serviceType = "postgres"
 				}
-				tasks = append(tasks, task)
+
+				if serviceType != "" {
+					task := SyncTask{
+						Type:    serviceType,
+						Service: svc,
+						Label:   fmt.Sprintf("%s@%s (%s)", name, name, strings.ToUpper(serviceType)),
+					}
+					tasks = append(tasks, task)
+				}
 			}
 		}
 	}
 
 	// Discover file volumes from run service
-	for volName, volPath := range runService.Volumes {
-		task := SyncTask{
-			Type:       "files",
-			Service:    runService,
-			VolumePath: volPath,
-			Label:      fmt.Sprintf("%s → %s (Files)", volName, volPath),
+	if !skipVolumes {
+		for volName, volPath := range runService.Volumes {
+			task := SyncTask{
+				Type:       "files",
+				Service:    runService,
+				VolumePath: volPath,
+				Label:      fmt.Sprintf("%s → %s (Files)", volName, volPath),
+			}
+			tasks = append(tasks, task)
 		}
-		tasks = append(tasks, task)
 	}
-
 	// Sort tasks for deterministic output (DBs first, then files)
 	sort.Slice(tasks, func(i, j int) bool {
 		// Files last

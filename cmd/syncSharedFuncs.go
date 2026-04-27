@@ -198,7 +198,7 @@ func buildSSHOptions(configRoot synchers.SyncherConfigRoot, flagHost, flagPort, 
 
 // buildSSHOptionWrapper creates and configures an SSH option wrapper, optionally with SSH portal integration
 func buildSSHOptionWrapper(projectName string, baseOptions synchers.SSHOptions, configRoot synchers.SyncherConfigRoot, apiEndpoint string, usePortal bool) (*synchers.SSHOptionWrapper, error) {
-	sshOptionWrapper := synchers.NewSshOptionWrapper(projectName, baseOptions)
+	sshOptionWrapper := synchers.NewSshOptionWrapper(projectName, baseOptions) 
 
 	if !usePortal {
 		return sshOptionWrapper, nil

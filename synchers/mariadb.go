@@ -238,6 +238,7 @@ func (m *MariadbSyncRoot) GetTransferResource(environment Environment) SyncerTra
 	if m.TransferResourceOverride != "" {
 		resourceName = m.TransferResourceOverride
 	}
+	
 	return SyncerTransferResource{
 		Name:        resourceName,
 		IsDirectory: false}

@@ -76,6 +76,28 @@ type Build struct {
 	Dockerfile string `yaml:"dockerfile"`
 }
 
+// GetServices attempts to generate a list of services from a docker-compose file
+func GetServices(dockerComposeFilePath string) (map[string]Service, error) {
+
+	// TODO: here we'll also integrate pulling services from the service API once complete
+
+	path := dockerComposeFilePath
+	if path == "" {
+		path = "docker-compose.yml"
+	}
+
+	services, err := LoadDockerCompose(path)
+	if err != nil {
+		return services, fmt.Errorf("Failed to load docker-compose file: %v", err)
+	}
+
+	if len(services) == 0 {
+		return services, fmt.Errorf("No Lagoon services defined in docker compose file: %v", path)
+	}
+
+	return services, nil
+}
+
 func LoadDockerCompose(path string) (map[string]Service, error) {
 	// Check if file exists
 	_, err := os.Stat(path)
