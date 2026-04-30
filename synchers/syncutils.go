@@ -17,12 +17,12 @@ var shellToUse = "sh"
 var debug = viper.Get("show-debug")
 
 // UnmarshallLagoonYamlToLagoonSyncStructure will take a bytestream and return a fully parsed lagoon sync config structure
-func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncherConfigRoot, error) {
-	lagoonConfig := SyncherConfigRoot{}
+func UnmarshallLagoonYamlToLagoonSyncStructure(data []byte) (SyncerConfigRoot, error) {
+	lagoonConfig := SyncerConfigRoot{}
 	err := yaml.Unmarshal(data, &lagoonConfig)
 
 	if err != nil && debug == false {
-		return SyncherConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
+		return SyncerConfigRoot{}, errors.New("Unable to parse lagoon config yaml setup")
 	}
 	return lagoonConfig, nil
 }

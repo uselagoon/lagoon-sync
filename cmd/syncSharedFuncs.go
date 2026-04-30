@@ -69,8 +69,8 @@ func confirmPrompt(message string) (bool, error) {
 }
 
 // loadConfigRoot loads and unmarshals the lagoon config file if present
-func loadConfigRoot() (synchers.SyncherConfigRoot, error) {
-	var configRoot synchers.SyncherConfigRoot
+func loadConfigRoot() (synchers.SyncerConfigRoot, error) {
+	var configRoot synchers.SyncerConfigRoot
 
 	if viper.ConfigFileUsed() == "" {
 		return configRoot, nil
@@ -91,7 +91,7 @@ func loadConfigRoot() (synchers.SyncherConfigRoot, error) {
 
 // resolveProjectName determines the project name from flags, env vars, or config
 // Priority: flagValue -> LAGOON_PROJECT env var -> configRoot.Project
-func resolveProjectName(flagValue string, configRoot synchers.SyncherConfigRoot) string {
+func resolveProjectName(flagValue string, configRoot synchers.SyncerConfigRoot) string {
 	if flagValue != "" {
 		return flagValue
 	}
@@ -131,7 +131,7 @@ func buildEnvironments(projectName, serviceName, sourceEnvName, targetEnvName st
 }
 
 // resolveSyncer gets the appropriate syncer from the config, falling back to custom syncer
-func resolveSyncer(syncerType string, configRoot synchers.SyncherConfigRoot) (synchers.Syncer, error) {
+func resolveSyncer(syncerType string, configRoot synchers.SyncerConfigRoot) (synchers.Syncer, error) {
 	lagoonSyncer, err := synchers.GetSyncerForTypeFromConfigRoot(syncerType, configRoot)
 	if err != nil {
 		// Fall back to custom syncer
@@ -145,7 +145,7 @@ func resolveSyncer(syncerType string, configRoot synchers.SyncherConfigRoot) (sy
 
 // buildSSHOptions constructs SSH options from config, env vars, and flags
 // Priority for host/port: flag (if not default) -> env var -> config -> flag default
-func buildSSHOptions(configRoot synchers.SyncherConfigRoot, flagHost, flagPort, flagKey string, flagVerbose, flagSkipAgent bool, rsyncArgs string) synchers.SSHOptions {
+func buildSSHOptions(configRoot synchers.SyncerConfigRoot, flagHost, flagPort, flagKey string, flagVerbose, flagSkipAgent bool, rsyncArgs string) synchers.SSHOptions {
 	// Decode SSH config from file if present
 	sshConfig := synchers.SSHOptions{}
 	if configRoot.LagoonSync["ssh"] != nil {
@@ -197,7 +197,7 @@ func buildSSHOptions(configRoot synchers.SyncherConfigRoot, flagHost, flagPort, 
 }
 
 // buildSSHOptionWrapper creates and configures an SSH option wrapper, optionally with SSH portal integration
-func buildSSHOptionWrapper(projectName string, baseOptions synchers.SSHOptions, configRoot synchers.SyncherConfigRoot, apiEndpoint string, usePortal bool) (*synchers.SSHOptionWrapper, error) {
+func buildSSHOptionWrapper(projectName string, baseOptions synchers.SSHOptions, configRoot synchers.SyncerConfigRoot, apiEndpoint string, usePortal bool) (*synchers.SSHOptionWrapper, error) {
 	sshOptionWrapper := synchers.NewSshOptionWrapper(projectName, baseOptions) 
 
 	if !usePortal {

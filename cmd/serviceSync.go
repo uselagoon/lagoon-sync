@@ -286,21 +286,21 @@ func executeSyncTasks(tasks []SyncTask, sourceEnv, targetEnv synchers.Environmen
 	for _, task := range tasks {
 		result := SyncResult{Task: task}
 
-		// Create syncher based on task type
-		var syncher synchers.Syncer
+		// Create syncer based on task type
+		var syncer synchers.Syncer
 		var err error
 
 		switch task.Type {
 		case "mariadb":
-			syncher, err = synchers.NewBaseMariaDbSyncRootFromService(task.Service)
+			syncer, err = synchers.NewBaseMariaDbSyncRootFromService(task.Service)
 		case "postgres":
-			syncher, err = synchers.NewBasePostgresSyncRootFromService(task.Service)
+			syncer, err = synchers.NewBasePostgresSyncRootFromService(task.Service)
 		case "files":
-			syncher, err = synchers.NewBaseFilesSyncRootFromService(task.Service, task.VolumePath)
+			syncer, err = synchers.NewBaseFilesSyncRootFromService(task.Service, task.VolumePath)
 		}
 
 		if err != nil {
-			result.Error = fmt.Errorf("failed to create syncher for %s: %w", task.Label, err)
+			result.Error = fmt.Errorf("failed to create syncer for %s: %w", task.Label, err)
 			results = append(results, result)
 			continue
 		}
@@ -309,7 +309,7 @@ func executeSyncTasks(tasks []SyncTask, sourceEnv, targetEnv synchers.Environmen
 		syncArgs := synchers.RunSyncProcessFunctionTypeArguments{
 			SourceEnvironment:    sourceEnv,
 			TargetEnvironment:    targetEnv,
-			LagoonSyncer:         syncher,
+			LagoonSyncer:         syncer,
 			SyncerType:           SyncerType,
 			DryRun:               dryRun,
 			SshOptionWrapper:     sshWrapper,

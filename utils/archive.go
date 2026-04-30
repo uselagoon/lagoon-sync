@@ -24,9 +24,30 @@ type Archive struct {
 }
 
 type ArchiveItem struct {
-	Syncher  string            `yaml:"syncher"`        // which syncher we need to use to pull/push the data
+	Syncer   string            `yaml:"syncer"`         // which syncer we need to use to pull/push the data
 	Filename string            `yaml:"filename"`       // the resulting file
 	Data     map[string]string `yaml:"data,omitempty"` // any data we need to pass to the syncer
+}
+
+// UnmarshalYAML provides backwards compatibility for archives that used the
+// old "syncher" key spelling. New archives are written with "syncer".
+func (a *ArchiveItem) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	raw := struct {
+		Syncer   string            `yaml:"syncer"`
+		Syncher  string            `yaml:"syncher"` // legacy spelling
+		Filename string            `yaml:"filename"`
+		Data     map[string]string `yaml:"data,omitempty"`
+	}{}
+	if err := unmarshal(&raw); err != nil {
+		return err
+	}
+	a.Filename = raw.Filename
+	a.Data = raw.Data
+	a.Syncer = raw.Syncer
+	if a.Syncer == "" {
+		a.Syncer = raw.Syncher
+	}
+	return nil
 }
 
 func InitArchive(filename, version string) (*Archive, error) {
@@ -239,7 +260,7 @@ func isIgnoredFile(path string, list []string) bool {
 	return false
 }
 
-func (a *Archive) AddItem(syncher, fileName string, data map[string]string) error {
+func (a *Archive) AddItem(syncer, fileName string, data map[string]string) error {
 
 	// first we check this item actually exists
 	_, err := os.Stat(fileName)
@@ -249,7 +270,7 @@ func (a *Archive) AddItem(syncher, fileName string, data map[string]string) erro
 	}
 
 	newItem := ArchiveItem{
-		Syncher:  syncher,
+		Syncer:   syncer,
 		Filename: fileName,
 		Data:     data,
 	}

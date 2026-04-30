@@ -18,14 +18,14 @@ var syncerMap = map[string]SyncerPlugin{}
 
 type SyncerPlugin interface {
 	GetPluginId() string
-	UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error)
+	UnmarshallYaml(root SyncerConfigRoot, targetService string) (Syncer, error)
 }
 
 func RegisterSyncer(plugin SyncerPlugin) {
 	syncerMap[plugin.GetPluginId()] = plugin
 }
 
-func GetSyncerForTypeFromConfigRoot(syncerId string, root SyncherConfigRoot) (Syncer, error) {
+func GetSyncerForTypeFromConfigRoot(syncerId string, root SyncerConfigRoot) (Syncer, error) {
 
 	// we may want to first check if there's an explicit type attached to this syncerId
 	SyncerConfig, exists := root.LagoonSync[syncerId]

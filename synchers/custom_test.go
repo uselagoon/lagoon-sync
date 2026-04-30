@@ -10,7 +10,7 @@ func TestCustomSyncPlugin_UnmarshallYaml(t *testing.T) {
 		isConfigEmpty bool
 	}
 	type args struct {
-		root SyncherConfigRoot
+		root SyncerConfigRoot
 	}
 	tests := []struct {
 		name    string
@@ -23,7 +23,7 @@ func TestCustomSyncPlugin_UnmarshallYaml(t *testing.T) {
 			name:   "simple unmarshalling",
 			fields: fields{isConfigEmpty: false},
 			args: args{
-				root: SyncherConfigRoot{
+				root: SyncerConfigRoot{
 					Project: "",
 					LagoonSync: map[string]interface{}{
 						"custom": CustomSyncRoot{
@@ -61,7 +61,7 @@ func TestCustomSyncPlugin_UnmarshallYaml(t *testing.T) {
 
 func TestGetCustomSync(t *testing.T) {
 	type args struct {
-		configRoot SyncherConfigRoot
+		configRoot SyncerConfigRoot
 		syncerName string
 	}
 	tests := []struct {
@@ -75,7 +75,7 @@ func TestGetCustomSync(t *testing.T) {
 			//fields: fields{isConfigEmpty: false},
 			args: args{
 				syncerName: "customroot",
-				configRoot: SyncherConfigRoot{
+				configRoot: SyncerConfigRoot{
 					Project: "",
 					LagoonSync: map[string]interface{}{
 						"customroot": CustomSyncRoot{
@@ -98,7 +98,7 @@ func TestGetCustomSync(t *testing.T) {
 			//fields: fields{isConfigEmpty: false},
 			args: args{
 				syncerName: "customroot",
-				configRoot: SyncherConfigRoot{
+				configRoot: SyncerConfigRoot{
 					Project: "",
 					LagoonSync: map[string]interface{}{
 						"customroot": CustomSyncRoot{
@@ -122,7 +122,7 @@ func TestGetCustomSync(t *testing.T) {
 			wantErr: true,
 			args: args{
 				syncerName: "customroot",
-				configRoot: SyncherConfigRoot{
+				configRoot: SyncerConfigRoot{
 					Project: "",
 					LagoonSync: map[string]interface{}{
 						"customroot": CustomSyncRoot{

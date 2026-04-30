@@ -49,7 +49,7 @@ func (m CustomSyncPlugin) GetPluginId() string {
 	return "custom"
 }
 
-func GetCustomSync(configRoot SyncherConfigRoot, syncerName string) (Syncer, error) {
+func GetCustomSync(configRoot SyncerConfigRoot, syncerName string) (Syncer, error) {
 
 	m := CustomSyncPlugin{
 		CustomRoot: syncerName,
@@ -63,7 +63,7 @@ func GetCustomSync(configRoot SyncherConfigRoot, syncerName string) (Syncer, err
 	return ret, nil
 }
 
-func (m CustomSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
+func (m CustomSyncPlugin) UnmarshallYaml(root SyncerConfigRoot, targetService string) (Syncer, error) {
 	custom := CustomSyncRoot{}
 	custom.Type = m.GetPluginId()
 	// Use 'environment-defaults' if present

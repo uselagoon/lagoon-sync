@@ -8,7 +8,7 @@ import (
 func TestGetSyncerForTypeFromConfigRoot(t *testing.T) {
 	type args struct {
 		syncerId string
-		root     SyncherConfigRoot
+		root     SyncerConfigRoot
 	}
 	type syncerDef struct {
 		Type string
@@ -23,7 +23,7 @@ func TestGetSyncerForTypeFromConfigRoot(t *testing.T) {
 			name: "Basic loading of mariadb",
 			args: args{
 				syncerId: "mariadb",
-				root:     SyncherConfigRoot{},
+				root:     SyncerConfigRoot{},
 			},
 			wantSyncerType: reflect.TypeOf(MariadbSyncPlugin{}),
 			wantErr:        false,
@@ -32,7 +32,7 @@ func TestGetSyncerForTypeFromConfigRoot(t *testing.T) {
 			name: "Basic loading of aliased filesystem",
 			args: args{
 				syncerId: "logs",
-				root: SyncherConfigRoot{
+				root: SyncerConfigRoot{
 					Api:     "",
 					Project: "",
 					LagoonSync: map[string]interface{}{

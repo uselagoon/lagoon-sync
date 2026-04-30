@@ -56,7 +56,7 @@ func (m MongoDbSyncPlugin) GetPluginId() string {
 	return "mongodb"
 }
 
-func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
+func (m MongoDbSyncPlugin) UnmarshallYaml(root SyncerConfigRoot, targetService string) (Syncer, error) {
 	mongodb := MongoDbSyncRoot{}
 	mongodb.Type = m.GetPluginId()
 	mongodb.Config.setDefaults()

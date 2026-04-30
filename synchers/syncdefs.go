@@ -53,8 +53,8 @@ type Environment struct {
 	RsyncLocalPath  string `yaml:"rsyncLocalPath"`
 }
 
-// SyncherConfigRoot is used to unmarshall yaml config details generally
-type SyncherConfigRoot struct {
+// SyncerConfigRoot is used to unmarshall yaml config details generally
+type SyncerConfigRoot struct {
 	Api           string                              `yaml:"api,omitempty" json:"api,omitempty"`
 	Project       string                              `yaml:"project" json:"project,omitempty"`
 	LagoonSync    map[string]interface{}              `yaml:"lagoon-sync" json:"lagoonSync,omitempty"`

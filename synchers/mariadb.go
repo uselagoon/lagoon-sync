@@ -76,7 +76,7 @@ func (m MariadbSyncPlugin) GetPluginId() string {
 	return "mariadb"
 }
 
-func (m MariadbSyncPlugin) UnmarshallYaml(root SyncherConfigRoot, targetService string) (Syncer, error) {
+func (m MariadbSyncPlugin) UnmarshallYaml(root SyncerConfigRoot, targetService string) (Syncer, error) {
 	mariadb := MariadbSyncRoot{}
 	mariadb.setDefaults()
 	mariadb.Config.SetDefaults()

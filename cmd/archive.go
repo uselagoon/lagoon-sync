@@ -126,13 +126,13 @@ or other resources from a specified environment.`,
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-				//we'll save the syncher detail for reloading on the other side
-				syncherJson, err := json.Marshal(s)
+				//we'll save the syncer detail for reloading on the other side
+				syncerJson, err := json.Marshal(s)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
 				err = archive.AddItem("mariadb", s.GetTransferResource(environment).Name, map[string]string{
-					"syncher": string(syncherJson),
+					"syncer": string(syncerJson),
 				})
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
@@ -150,13 +150,13 @@ or other resources from a specified environment.`,
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
-				//we'll save the syncher detail for reloading on the other side
-				syncherJson, err := json.Marshal(s)
+				//we'll save the syncer detail for reloading on the other side
+				syncerJson, err := json.Marshal(s)
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
 				}
 				err = archive.AddItem("postgres", s.GetTransferResource(environment).Name, map[string]string{
-					"syncher": string(syncherJson),
+					"syncer": string(syncerJson),
 				})
 				if err != nil {
 					utils.LogFatalError(err.Error(), nil)
@@ -232,14 +232,16 @@ or other resources from a specified environment.`,
 		}
 
 		for _, item := range manifest.Items {
-			switch item.Syncher {
+			switch item.Syncer {
 			case "mariadb":
 				var s synchers.MariadbSyncRoot
 				var data string
 				var ok bool
-				// grab the syncher data from the manifest
-				if data, ok = item.Data["syncher"]; ok != true {
-					utils.LogFatalError("Unable to find syncher for mariadb service", nil)
+				// grab the syncer data from the manifest
+				if data, ok = item.Data["syncer"]; !ok {
+					if data, ok = item.Data["syncher"]; !ok {
+						utils.LogFatalError("Unable to find syncer data for mariadb service", nil)
+					}
 				}
 
 				err = json.Unmarshal([]byte(data), &s)
@@ -263,8 +265,10 @@ or other resources from a specified environment.`,
 				var s synchers.PostgresSyncRoot
 				var data string
 				var ok bool
-				if data, ok = item.Data["syncher"]; ok != true {
-					utils.LogFatalError("Unable to find syncher for postgres service", nil)
+				if data, ok = item.Data["syncer"]; !ok {
+					if data, ok = item.Data["syncher"]; !ok {
+						utils.LogFatalError("Unable to find syncer data for postgres service", nil)
+					}
 				}
 
 				err = json.Unmarshal([]byte(data), &s)

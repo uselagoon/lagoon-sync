@@ -74,7 +74,7 @@ func TestInitArchive(t *testing.T) {
 func TestArchive_AddItem(t *testing.T) {
 	tests := []struct {
 		name     string
-		syncher  string
+		syncer   string
 		filename string
 		data     map[string]string
 		wantLen  int
@@ -82,7 +82,7 @@ func TestArchive_AddItem(t *testing.T) {
 	}{
 		{
 			name:     "Fail test - file does not exist",
-			syncher:  "mariadb",
+			syncer:   "mariadb",
 			filename: testDataDir + "idontexist.sql",
 			data:     map[string]string{"host": "localhost", "port": "3306"},
 			wantLen:  0,
@@ -90,7 +90,7 @@ func TestArchive_AddItem(t *testing.T) {
 		},
 		{
 			name:     "adds item with all fields",
-			syncher:  "mariadb",
+			syncer:   "mariadb",
 			filename: testDataDir + "database.sql",
 			data:     map[string]string{"host": "localhost", "port": "3306"},
 			wantLen:  1,
@@ -98,7 +98,7 @@ func TestArchive_AddItem(t *testing.T) {
 		},
 		{
 			name:     "adds item with nil data",
-			syncher:  "files",
+			syncer:   "files",
 			filename: testDataDir + "files.tar.gz",
 			data:     nil,
 			wantLen:  1,
@@ -106,7 +106,7 @@ func TestArchive_AddItem(t *testing.T) {
 		},
 		{
 			name:     "adds item with empty data",
-			syncher:  "postgres",
+			syncer:   "postgres",
 			filename: testDataDir + "pg_dump.sql",
 			data:     map[string]string{},
 			wantLen:  1,
@@ -124,7 +124,7 @@ func TestArchive_AddItem(t *testing.T) {
 				t.Fatalf("InitArchive() unexpected error: %v", err)
 			}
 
-			err = archive.AddItem(tt.syncher, tt.filename, tt.data)
+			err = archive.AddItem(tt.syncer, tt.filename, tt.data)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AddItem() error = %v, wantErr %v", err, tt.wantErr)
@@ -138,8 +138,8 @@ func TestArchive_AddItem(t *testing.T) {
 
 			if tt.wantLen > 0 {
 				item := archive.Items[0]
-				if item.Syncher != tt.syncher {
-					t.Errorf("AddItem() Syncher = %v, want %v", item.Syncher, tt.syncher)
+				if item.Syncer != tt.syncer {
+					t.Errorf("AddItem() Syncer = %v, want %v", item.Syncer, tt.syncer)
 				}
 				if item.Filename != tt.filename {
 					t.Errorf("AddItem() Filename = %v, want %v", item.Filename, tt.filename)
@@ -305,7 +305,7 @@ func TestArchive_WriteArchive_ManifestContent(t *testing.T) {
 	}
 
 	testFiles := []struct {
-		syncher  string
+		syncer   string
 		filename string
 		data     map[string]string
 	}{
@@ -314,7 +314,7 @@ func TestArchive_WriteArchive_ManifestContent(t *testing.T) {
 	}
 
 	for _, tf := range testFiles {
-		err = archive.AddItem(tf.syncher, tf.filename, tf.data)
+		err = archive.AddItem(tf.syncer, tf.filename, tf.data)
 		if err != nil {
 			t.Fatalf("AddItem() error: %v", err)
 		}
@@ -345,8 +345,8 @@ func TestArchive_WriteArchive_ManifestContent(t *testing.T) {
 
 	for i, tf := range testFiles {
 		item := manifest.Items[i]
-		if item.Syncher != tf.syncher {
-			t.Errorf("Manifest item[%d].Syncher = %v, want %v", i, item.Syncher, tf.syncher)
+		if item.Syncer != tf.syncer {
+			t.Errorf("Manifest item[%d].Syncer = %v, want %v", i, item.Syncer, tf.syncer)
 		}
 		if item.Filename != tf.filename {
 			t.Errorf("Manifest item[%d].Filename = %v, want %v", i, item.Filename, tf.filename)
@@ -444,10 +444,10 @@ func TestExtractManifest(t *testing.T) {
 				if len(a.Items) != 2 {
 					t.Fatalf("Items count = %d, want 2", len(a.Items))
 				}
-				if a.Items[0].Syncher != "mariadb" || a.Items[0].Filename != "977857177/mysql.sql.gz" {
+				if a.Items[0].Syncer != "mariadb" || a.Items[0].Filename != "977857177/mysql.sql.gz" {
 					t.Errorf("Items[0] = %+v", a.Items[0])
 				}
-				if a.Items[1].Syncher != "files" || a.Items[1].Filename != "/app/storage" {
+				if a.Items[1].Syncer != "files" || a.Items[1].Filename != "/app/storage" {
 					t.Errorf("Items[1] = %+v", a.Items[1])
 				}
 			},
