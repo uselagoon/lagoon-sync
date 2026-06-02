@@ -41,7 +41,7 @@ func RunPrerequisiteCommand(environment Environment, syncer Syncer, syncerType s
 	if environment.EnvironmentName == LOCAL_ENVIRONMENT_NAME {
 		err, response, errstring := utils.Shellout(execString)
 		if err != nil {
-			log.Printf(errstring)
+			log.Printf("%s", errstring)
 			return environment, err
 		}
 		if response != "" && debug == false {

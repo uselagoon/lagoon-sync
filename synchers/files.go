@@ -118,7 +118,7 @@ func (m *FilesSyncRoot) GetTransferResource(environment Environment) SyncerTrans
 		config = m.getEffectiveLocalDetails()
 	}
 	return SyncerTransferResource{
-		Name:             fmt.Sprintf(config.SyncPath),
+		Name:             config.SyncPath,
 		IsDirectory:      true,
 		SkipCleanup:      true,
 		ExcludeResources: m.Config.Exclude,
