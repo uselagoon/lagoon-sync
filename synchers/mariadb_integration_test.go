@@ -40,29 +40,8 @@ func startLagoonMariaDB(ctx context.Context, t *testing.T) testcontainers.Contai
 	return container
 }
 
-// execInContainer runs a shell command inside the container, logs its output, and
-// fails the test if the exit code is non-zero.
-func execInContainer(ctx context.Context, t *testing.T, container testcontainers.Container, cmd string) {
-	t.Helper()
-	t.Logf("exec: %s", cmd)
-	exitCode, output, err := container.Exec(ctx, []string{"bash", "-c", cmd})
-	if err != nil {
-		t.Fatalf("container.Exec() error: %v\ncmd: %s", err, cmd)
-	}
-	var sb strings.Builder
-	if _, copyErr := io.Copy(&sb, output); copyErr != nil {
-		t.Logf("warning: could not read exec output: %v", copyErr)
-	}
-	if sb.Len() > 0 {
-		t.Logf("output:\n%s", sb.String())
-	}
-	if exitCode != 0 {
-		t.Fatalf("command exited with code %d\ncmd: %s\noutput: %s", exitCode, cmd, sb.String())
-	}
-}
-
-// execInContainerOutput is like execInContainer but returns stdout/stderr as a string
-// instead of failing on non-zero exit — useful for queries where you want to inspect output.
+// execInContainerOutput runs a shell command inside the container and returns its
+// exit code and combined output. The caller decides how to handle non-zero exits.
 func execInContainerOutput(ctx context.Context, t *testing.T, container testcontainers.Container, cmd string) (int, string) {
 	t.Helper()
 	exitCode, output, err := container.Exec(ctx, []string{"bash", "-c", cmd})
@@ -114,7 +93,10 @@ func TestMariadbSyncer_GetRemoteCommand_Integration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("command[%d] GetCommand() error: %v", i, err)
 		}
-		execInContainer(ctx, t, container, cmdStr)
+		t.Logf("executing command[%d]: %s", i, cmdStr)
+		if exitCode, output := execInContainerOutput(ctx, t, container, cmdStr); exitCode != 0 {
+			t.Fatalf("command[%d] exited with code %d\noutput: %s", i, exitCode, output)
+		}
 	}
 
 	transferResource := syncer.GetTransferResource(sourceEnv)
@@ -159,7 +141,9 @@ func TestMariadbSyncer_GetLocalCommand_Integration(t *testing.T) {
 	if err := container.CopyToContainer(ctx, fixtureBytes, stagingPath, 0o644); err != nil {
 		t.Fatalf("failed to copy fixture into container: %v", err)
 	}
-	execInContainer(ctx, t, container, fmt.Sprintf("cp %s %s", stagingPath, containerDumpPath))
+	if exitCode, output := execInContainerOutput(ctx, t, container, fmt.Sprintf("cp %s %s", stagingPath, containerDumpPath)); exitCode != 0 {
+		t.Fatalf("failed to cp fixture to target path (exit %d): %s", exitCode, output)
+	}
 	t.Logf("copied %s into container at %s (%d bytes)", fixtureFile, containerDumpPath, len(fixtureBytes))
 
 	syncer := &MariadbSyncRoot{
@@ -196,7 +180,10 @@ func TestMariadbSyncer_GetLocalCommand_Integration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("command[%d] GetCommand() error: %v", i, err)
 		}
-		execInContainer(ctx, t, container, cmdStr)
+		t.Logf("executing command[%d]: %s", i, cmdStr)
+		if exitCode, output := execInContainerOutput(ctx, t, container, cmdStr); exitCode != 0 {
+			t.Fatalf("command[%d] exited with code %d\noutput: %s", i, exitCode, output)
+		}
 	}
 
 	// Assert the Umami `node` table has at least one row.
