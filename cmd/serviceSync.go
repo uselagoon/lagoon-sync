@@ -365,7 +365,7 @@ func reportSyncResults(results []SyncResult) {
 		fmt.Println("\nNote: Sync process may succeed partially. Review any remaining cleanup needed.")
 	}
 
-	fmt.Println("====================================================\n")
+	fmt.Println("====================================================")
 
 	if failureCount > 0 {
 		log.Fatalf("Sync completed with %d errors", failureCount)

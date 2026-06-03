@@ -117,7 +117,7 @@ func PrintConfigOut() []byte {
 	}
 	configUnmarshalled, err := json.MarshalIndent(config, "", " ")
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("%v\n", err.Error())
 	}
 
 	return configUnmarshalled

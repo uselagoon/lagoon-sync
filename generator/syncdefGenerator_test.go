@@ -1,10 +1,11 @@
 package generator
 
 import (
-	"github.com/uselagoon/lagoon-sync/synchers"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/uselagoon/lagoon-sync/synchers"
 )
 
 func TestGenerateMariadbSyncRootFromService(t *testing.T) {
@@ -23,6 +24,7 @@ func TestGenerateMariadbSyncRootFromService(t *testing.T) {
 				ServiceName: "mariadb",
 				ServiceType: "mariadb",
 				Labels:      nil,
+				image: "uselagoon/mariadb-drupal",
 			}},
 			want: synchers.MariadbSyncRoot{
 				Type:        synchers.MariadbSyncPlugin{}.GetPluginId(),
@@ -42,16 +44,17 @@ func TestGenerateMariadbSyncRootFromService(t *testing.T) {
 				ServiceName: "db",
 				ServiceType: "mariadb",
 				Labels:      nil,
+				image:       "somecustom/image",
 			}},
 			want: synchers.MariadbSyncRoot{
 				Type:        synchers.MariadbSyncPlugin{}.GetPluginId(),
 				ServiceName: "db",
 				Config: synchers.BaseMariaDbSync{
-					DbHostname: "${DB_HOST:-mariadb}",
-					DbUsername: "${DB_USERNAME:-drupal}",
-					DbPassword: "${DB_PASSWORD:-drupal}",
+					DbHostname: "${DB_HOST:-db}",
+					DbUsername: "${DB_USERNAME}",
+					DbPassword: "${DB_PASSWORD}",
 					DbPort:     "${DB_PORT:-3306}",
-					DbDatabase: "${DB_DATABASE:-drupal}",
+					DbDatabase: "${DB_DATABASE}",
 				},
 			},
 		},

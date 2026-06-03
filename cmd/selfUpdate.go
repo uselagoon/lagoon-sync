@@ -139,7 +139,7 @@ func doUpdate(url string) error {
 	}
 
 	if resp.StatusCode != 200 {
-		fmt.Printf(resp.Status)
+		fmt.Println(resp.Status)
 		os.Exit(2)
 	}
 	defer resp.Body.Close()
@@ -192,7 +192,7 @@ func doUpdate(url string) error {
 		panic(err)
 	}
 	if sigFileResp.StatusCode != 200 {
-		fmt.Printf(sigFileResp.Status)
+		fmt.Println(sigFileResp.Status)
 		os.Exit(2)
 	}
 	defer sigFileResp.Body.Close()
@@ -273,7 +273,7 @@ func getChecksum(url string) ([]byte, error) {
 	}
 
 	if checkSumFileResp.StatusCode != 200 {
-		fmt.Printf(checkSumFileResp.Status)
+		fmt.Println(checkSumFileResp.Status)
 		os.Exit(2)
 	}
 	defer checkSumFileResp.Body.Close()
