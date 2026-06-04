@@ -21,6 +21,7 @@ func TestProcessServicesFromCompose(t *testing.T) {
 				{
 					ServiceName: "cli",
 					ServiceType: "cli-persistent",
+					image:       "drupal-base-cli:latest",
 				},
 				{
 					ServiceName: "nginx",

@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/uselagoon/lagoon-sync/synchers"
 	"log"
 	"strings"
 	"text/template"
+
+	"github.com/uselagoon/lagoon-sync/synchers"
 )
 
 type configTemplateData struct {

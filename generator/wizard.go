@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/uselagoon/lagoon-sync/synchers"
 )
@@ -31,10 +32,10 @@ func displayConfigTemplateData(d configTemplateData) {
 		fmt.Println("\t Cluster details")
 	}
 	if d.Api != "" {
-		fmt.Println("\t\tApi:%v", d.Api)
+		fmt.Printf("\t\tApi:%v", d.Api)
 	}
 	if d.Ssh != "" {
-		fmt.Println("\t\tSsh:%v", d.Ssh)
+		fmt.Printf("\t\tSsh:%v", d.Ssh)
 	}
 }
 

@@ -1,10 +1,11 @@
 package generator
 
 import (
+	"strings"
+
 	"github.com/compose-spec/compose-go/cli"
 	"github.com/compose-spec/compose-go/loader"
 	"github.com/compose-spec/compose-go/types"
-	"strings"
 )
 
 // docker-compose.go contains all the functionality needed to parse docker compose files for lagoon labels
