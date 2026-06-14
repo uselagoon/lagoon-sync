@@ -1,5 +1,9 @@
 # Lagoon-sync
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10765/badge)](https://www.bestpractices.dev/projects/10765)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/uselagoon/lagoon-sync/badge)](https://securityscorecards.dev/viewer/?uri=github.com/uselagoon/lagoon-sync)
+[![coverage](https://raw.githubusercontent.com/uselagoon/lagoon-sync/badges/.badges/main/coverage.svg)](https://github.com/uselagoon/lagoon-sync/actions/workflows/coverage.yaml)
+
 Lagoon-sync is cli tool written in Go that fundamentally provides the functionality to synchronise data between Lagoon environments. Lagoon-sync is part of the [Lagoon cli](https://github.com/amazeeio/lagoon-cli) toolset and works closely with its parent project.
 
 Lagoon-sync offers:
