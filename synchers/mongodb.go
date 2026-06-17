@@ -112,7 +112,7 @@ func (root *MongoDbSyncRoot) GetPrerequisiteCommand(environment Environment, com
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }} || true"),
-		substitutions: map[string]interface{}{
+		substitutions: map[string]string{
 			"bin":     lagoonSyncBin,
 			"command": command,
 		},
@@ -129,7 +129,7 @@ func (root *MongoDbSyncRoot) GetRemoteCommand(sourceEnvironment Environment) []S
 	transferResource := root.GetTransferResource(sourceEnvironment)
 	return []SyncCommand{{
 		command: fmt.Sprintf("mongodump --host {{ .hostname }} --port {{ .port }} --db {{ .database }} --archive={{ .transferResource }}"),
-		substitutions: map[string]interface{}{
+		substitutions: map[string]string{
 			"hostname":         m.DbHostname,
 			"port":             m.DbPort,
 			"database":         m.DbDatabase,
@@ -147,7 +147,7 @@ func (m *MongoDbSyncRoot) GetLocalCommand(targetEnvironment Environment) []SyncC
 	transferResource := m.GetTransferResource(targetEnvironment)
 	return []SyncCommand{
 		generateSyncCommand("mongorestore --drop --host {{ .hostname }} --port {{ .port }} --archive={{ .transferResource }}",
-			map[string]interface{}{
+			map[string]string{
 				"hostname":         l.DbHostname,
 				"port":             l.DbPort,
 				"database":         l.DbDatabase,

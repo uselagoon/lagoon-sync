@@ -117,7 +117,7 @@ func (root *PostgresSyncRoot) GetPrerequisiteCommand(environment Environment, co
 
 	return SyncCommand{
 		command: fmt.Sprintf("{{ .bin }} {{ .command }}"),
-		substitutions: map[string]interface{}{
+		substitutions: map[string]string{
 			"bin":     lagoonSyncBin,
 			"command": command,
 		},
