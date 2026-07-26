@@ -219,7 +219,7 @@ func SyncRunTransfer(sourceEnvironment Environment, targetEnvironment Environmen
 		sshOptionsStr.WriteString(fmt.Sprintf(" -i %s", sshOptions.PrivateKey))
 	}
 
-	sourceEnvSshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(targetEnvironment.EnvironmentName)
+	sourceEnvSshOptions := sshOptionWrapper.GetSSHOptionsForEnvironment(sourceEnvironment.EnvironmentName)
 	rsyncArgs := sshOptions.RsyncArgs
 
 	execString := fmt.Sprintf("%s %s --rsync-path=%s %s -e \"ssh%s -o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p %s -l %s %s service=%s\" %s %s %s",
