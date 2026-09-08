@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -108,10 +107,6 @@ func syncCommandRun(cmd *cobra.Command, args []string) {
 	sshOptionWrapper, err := buildSSHOptionWrapper(ProjectName, sshOptions, configRoot, APIEndpoint, useSshPortal)
 	if err != nil {
 		utils.LogFatalError(fmt.Sprintf("Failed to configure SSH options: %v", err), nil)
-	}
-
-	if b, err := json.MarshalIndent(sshOptionWrapper, "", "  "); err == nil {
-		fmt.Printf("[syncCmd] sshOptionWrapper:\n%s\n", b)
 	}
 
 	// let's update the named transfer resource if it is set
