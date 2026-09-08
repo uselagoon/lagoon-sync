@@ -22,8 +22,21 @@ type ApiConn struct {
 	sshPort         string
 }
 
-func (r *ApiConn) Init(graphqlEndpoint, sshkeyPath, sshHost, sshPort string) error {
-	token, err := sshtoken.RetrieveToken(sshkeyPath, sshHost, sshPort, nil, nil, false)
+// Init initialises the API connection, retrieving an SSH token and storing connection details.
+// tokenHost and tokenPort, if non-empty, override sshHost and sshPort solely for token retrieval
+// (e.g. when an SSH portal is in use and the token endpoint differs from the tunnel endpoint).
+func (r *ApiConn) Init(graphqlEndpoint, sshkeyPath, sshHost, sshPort, tokenHost, tokenPort string) error {
+	// Determine which host/port to use for token retrieval.
+	resolvedTokenHost := sshHost
+	if tokenHost != "" {
+		resolvedTokenHost = tokenHost
+	}
+	resolvedTokenPort := sshPort
+	if tokenPort != "" {
+		resolvedTokenPort = tokenPort
+	}
+
+	token, err := sshtoken.RetrieveToken(sshkeyPath, resolvedTokenHost, resolvedTokenPort, nil, nil, false)
 	if err != nil {
 		return err
 	}

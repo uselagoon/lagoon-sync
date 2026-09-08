@@ -198,7 +198,7 @@ func buildSSHOptions(configRoot synchers.SyncherConfigRoot, flagHost, flagPort, 
 
 // buildSSHOptionWrapper creates and configures an SSH option wrapper, optionally with SSH portal integration
 func buildSSHOptionWrapper(projectName string, baseOptions synchers.SSHOptions, configRoot synchers.SyncherConfigRoot, apiEndpoint string, usePortal bool) (*synchers.SSHOptionWrapper, error) {
-	sshOptionWrapper := synchers.NewSshOptionWrapper(projectName, baseOptions) 
+	sshOptionWrapper := synchers.NewSshOptionWrapper(projectName, baseOptions)
 
 	if !usePortal {
 		return sshOptionWrapper, nil
@@ -215,9 +215,14 @@ func buildSSHOptionWrapper(projectName string, baseOptions synchers.SSHOptions, 
 		}
 	}
 
+	// Resolve token host/port from env vars when using the SSH portal.
+	// These are only used for token retrieval and do not affect the SSH tunnel endpoint.
+	tokenHost, _ := os.LookupEnv("LAGOON_CONFIG_TOKEN_HOST")
+	tokenPort, _ := os.LookupEnv("LAGOON_CONFIG_TOKEN_PORT")
+
 	// Initialize API connection and fetch environment SSH details
 	apiConn := utils.ApiConn{}
-	err := apiConn.Init(apiEndPoint, baseOptions.PrivateKey, baseOptions.Host, baseOptions.Port)
+	err := apiConn.Init(apiEndPoint, baseOptions.PrivateKey, baseOptions.Host, baseOptions.Port, tokenHost, tokenPort)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize API connection: %w", err)
 	}
